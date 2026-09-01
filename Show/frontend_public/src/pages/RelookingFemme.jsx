@@ -24,6 +24,7 @@ import {
   ListItemText,
   useTheme,
   useMediaQuery,
+  Grid,
 } from '@mui/material';
 import {
   ArrowForward,
@@ -38,11 +39,8 @@ import {
   Palette,
   Check,
 } from '@mui/icons-material';
-import heroImage from '../assets/images/tibetia.jpeg';
+import heroImage from '../assets/images/tibetia.jpeg?url';
 
-// ============================================================
-// DONNÉES DES 7 RUBRIQUES
-// ============================================================
 const RUBRIQUES = [
   {
     id: 1,
@@ -65,13 +63,13 @@ const RUBRIQUES = [
     id: 2,
     nom: 'Soin du Visage',
     categorie: 'Visage',
-    description: 'Un soin personnalisé pour révéler l\'éclat de votre visage.',
+    description: "Un soin personnalisé pour révéler l'éclat de votre visage.",
     youWillLearn: [
       'Diagnostic de votre type de peau',
       'Nettoyage en profondeur',
       'Masque personnalisé',
       'Massage du visage',
-      'Conseils pour l\'entretien',
+      "Conseils pour l'entretien",
     ],
     prix: '80 000 CFA',
     duree: '1 séance',
@@ -103,7 +101,7 @@ const RUBRIQUES = [
     youWillLearn: [
       'Analyse de votre forme de visage',
       'Choix de la coupe adaptée',
-      'Conseils pour l\'entretien',
+      "Conseils pour l'entretien",
       'Techniques de coiffage',
       'Sélection de produits',
     ],
@@ -122,7 +120,7 @@ const RUBRIQUES = [
       'Choix des produits adaptés',
       'Techniques de maquillage de jour',
       'Maquillage de soirée',
-      'Conseils pour l\'entretien',
+      "Conseils pour l'entretien",
     ],
     prix: '70 000 CFA',
     duree: '1 séance',
@@ -209,7 +207,6 @@ const RelookingFemme = () => {
 
   return (
     <Box>
-      {/* ===== HERO SECTION ===== */}
       <Box
         sx={{
           position: 'relative',
@@ -253,7 +250,6 @@ const RelookingFemme = () => {
         </Container>
       </Box>
 
-      {/* ===== INTRODUCTION ===== */}
       <Box sx={{ py: 3, backgroundColor: '#FFFFFF', borderBottom: '1px solid #F0F0F0' }}>
         <Container maxWidth="lg">
           <Typography variant="h4" sx={{ fontWeight: 700, color: '#2C2C2C', fontFamily: '"Playfair Display", serif', mb: 1, textAlign: 'center', fontSize: { xs: '1.5rem', md: '2rem' } }}>Nos Rubriques de Relooking</Typography>
@@ -261,7 +257,6 @@ const RelookingFemme = () => {
         </Container>
       </Box>
 
-      {/* ===== CONTENEUR FLEX : TOUTES LES RUBRIQUES SUR UNE SEULE LIGNE ===== */}
       <Box
         sx={{
           py: { xs: 3, md: 5 },
@@ -314,7 +309,6 @@ const RelookingFemme = () => {
                 flexShrink: 0,
               }}
             >
-              {/* ===== EN-TÊTE AVEC ICÔNE ===== */}
               <Box
                 sx={{
                   height: { xs: 80, md: 110 },
@@ -355,7 +349,6 @@ const RelookingFemme = () => {
                 />
               </Box>
 
-              {/* ===== CONTENU ===== */}
               <CardContent
                 sx={{
                   flexGrow: 1,
@@ -365,7 +358,6 @@ const RelookingFemme = () => {
                   overflow: 'hidden',
                 }}
               >
-                {/* Titre */}
                 <Typography
                   variant="h6"
                   sx={{
@@ -381,7 +373,6 @@ const RelookingFemme = () => {
                   {item.nom}
                 </Typography>
 
-                {/* Description */}
                 <Typography
                   variant="body2"
                   sx={{
@@ -399,7 +390,6 @@ const RelookingFemme = () => {
                   {item.description}
                 </Typography>
 
-                {/* ===== LISTE "YOU'LL LEARN" ===== */}
                 <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
                   <Typography
                     variant="caption"
@@ -422,12 +412,14 @@ const RelookingFemme = () => {
                         </ListItemIcon>
                         <ListItemText
                           primary={point}
-                          primaryTypographyProps={{
-                            variant: 'caption',
-                            sx: {
-                              color: '#666666',
-                              fontSize: { xs: '0.5rem', md: '0.6rem' },
-                              lineHeight: 1.2,
+                          slotProps={{
+                            primary: {
+                              variant: 'caption',
+                              sx: {
+                                color: '#666666',
+                                fontSize: { xs: '0.5rem', md: '0.6rem' },
+                                lineHeight: 1.2,
+                              },
                             },
                           }}
                         />
@@ -437,12 +429,14 @@ const RelookingFemme = () => {
                       <ListItem disablePadding sx={{ py: 0.1 }}>
                         <ListItemText
                           primary={`+${item.youWillLearn.length - 4} autres...`}
-                          primaryTypographyProps={{
-                            variant: 'caption',
-                            sx: {
-                              color: '#A0A0A0',
-                              fontSize: { xs: '0.5rem', md: '0.6rem' },
-                              fontStyle: 'italic',
+                          slotProps={{
+                            primary: {
+                              variant: 'caption',
+                              sx: {
+                                color: '#A0A0A0',
+                                fontSize: { xs: '0.5rem', md: '0.6rem' },
+                                fontStyle: 'italic',
+                              },
                             },
                           }}
                         />
@@ -451,7 +445,6 @@ const RelookingFemme = () => {
                   </List>
                 </Box>
 
-                {/* ===== PRIX ET DURÉE ===== */}
                 <Box
                   sx={{
                     display: 'flex',
@@ -494,7 +487,6 @@ const RelookingFemme = () => {
                   </Box>
                 </Box>
 
-                {/* ===== BOUTON ===== */}
                 <Button
                   variant="contained"
                   fullWidth
@@ -519,7 +511,6 @@ const RelookingFemme = () => {
         </Box>
       </Box>
 
-      {/* ===== DIALOG ===== */}
       <Dialog
         open={dialogOpen}
         onClose={handleCloseDialog}
@@ -527,6 +518,12 @@ const RelookingFemme = () => {
         fullWidth
         fullScreen={isMobile}
         scroll="paper"
+        PaperProps={{
+          sx: {
+            borderRadius: isMobile ? 0 : '16px',
+            overflow: 'hidden',
+          },
+        }}
       >
         {selected && (
           <>
@@ -575,9 +572,11 @@ const RelookingFemme = () => {
                       </ListItemIcon>
                       <ListItemText
                         primary={point}
-                        primaryTypographyProps={{
-                          variant: 'body2',
-                          sx: { color: '#666666' },
+                        slotProps={{
+                          primary: {
+                            variant: 'body2',
+                            sx: { color: '#666666' },
+                          },
                         }}
                       />
                     </ListItem>
@@ -606,7 +605,6 @@ const RelookingFemme = () => {
                 </Box>
               </Box>
 
-              {/* ===== FORMULAIRE ===== */}
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 600, color: '#2C2C2C', mb: 2 }}>
                   Je suis intéressé(e) par cette rubrique

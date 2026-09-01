@@ -1,8 +1,9 @@
-from django.db import models
+# api/models.py
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from datetime import datetime
+from django.utils import timezone
 
 class Coach(models.Model):
     """Modèle pour le coach (Madame T)"""
@@ -28,6 +29,7 @@ class Coach(models.Model):
         verbose_name = "Coach"
         verbose_name_plural = "Coachs"
 
+
 class Forfait(models.Model):
     """Modèle pour les forfaits de coaching"""
     TYPE_CHOICES = [
@@ -43,19 +45,19 @@ class Forfait(models.Model):
     prix = models.DecimalField(max_digits=10, decimal_places=2)
     duree = models.IntegerField(help_text="Durée en jours")
     nb_seances = models.IntegerField(help_text="Nombre de séances")
-    caracteristiques = models.JSONField(default=list)  # Liste des fonctionnalités
+    caracteristiques = models.JSONField(default=list)
     est_actif = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-     verbose_name = "Forfait"
-     verbose_name_plural = "Forfaits"
-     ordering = ['-created_at']
+        verbose_name = "Forfait"
+        verbose_name_plural = "Forfaits"
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.nom} - {self.prix}€"
-        
+        return f"{self.nom} - {self.prix} CFA"
+
 
 class Client(models.Model):
     """Modèle pour les clients"""
@@ -72,6 +74,7 @@ class Client(models.Model):
 
     def __str__(self):
         return f"{self.prenom} {self.nom}"
+
 
 class RendezVous(models.Model):
     """Modèle pour les rendez-vous"""
@@ -94,6 +97,7 @@ class RendezVous(models.Model):
 
     def __str__(self):
         return f"{self.client} - {self.date_rendez_vous}"
+
 
 class Evenement(models.Model):
     """Modèle pour les événements"""
@@ -120,13 +124,13 @@ class Evenement(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        # Initialiser places_restantes si pas défini
         if not self.pk:
             self.places_restantes = self.places_total
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.titre} - {self.date_debut}"
+
 
 class ParticipationEvenement(models.Model):
     """Modèle pour les participations aux événements"""
@@ -144,7 +148,7 @@ class ParticipationEvenement(models.Model):
     notes = models.TextField(blank=True)
     
     class Meta:
-        unique_together = ['evenement', 'client']  # Un client ne peut pas s'inscrire deux fois
+        unique_together = ['evenement', 'client']
 
     def __str__(self):
         return f"{self.client} - {self.evenement}"
@@ -153,9 +157,11 @@ class ParticipationEvenement(models.Model):
 class Produit(models.Model):
     """Modèle pour les produits de la boutique"""
     CATEGORIE_CHOICES = [
-        ('VETEMENT', 'Vêtement'),
-        ('ACCESSOIRE', 'Accessoire'),
-        ('LIVRE', 'Livre'),
+        ('robes', 'Robes'),
+        ('accessoires', 'Accessoires'),
+        ('chaussures', 'Chaussures'),
+        ('bijoux', 'Bijoux'),
+        ('sacs', 'Sacs'),
         ('AUTRE', 'Autre'),
     ]
     
@@ -164,18 +170,20 @@ class Produit(models.Model):
     prix = models.DecimalField(max_digits=10, decimal_places=2)
     categorie = models.CharField(max_length=20, choices=CATEGORIE_CHOICES)
     image_principale = models.ImageField(upload_to='produits/')
-    images_secondaires = models.JSONField(default=list)
+    images_secondaires = models.JSONField(default=list, blank=True)
     taille = models.CharField(max_length=20, blank=True)
     quantite_stock = models.IntegerField(validators=[MinValueValidator(0)])
     est_disponible = models.BooleanField(default=True)
     est_en_promotion = models.BooleanField(default=False)
     prix_promotion = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    note = models.DecimalField(max_digits=3, decimal_places=1, default=4.5)
+    nb_avis = models.IntegerField(default=0)
     model_3d_url = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.nom} - {self.prix}€"
+        return f"{self.nom} - {self.prix} CFA"
 
     @property
     def prix_actuel(self):
@@ -183,10 +191,15 @@ class Produit(models.Model):
             return self.prix_promotion
         return self.prix
 
+    @property
+    def prix_formate(self):
+        return f"{int(self.prix_actuel)} CFA"
+
     class Meta:
         verbose_name = "Produit"
         verbose_name_plural = "Produits"
-        ordering = ['-created_at']  
+        ordering = ['-created_at']
+
 
 class Panier(models.Model):
     """Modèle pour le panier d'achat"""
@@ -196,6 +209,7 @@ class Panier(models.Model):
 
     def __str__(self):
         return f"Panier de {self.client}"
+
 
 class LignePanier(models.Model):
     """Modèle pour les lignes du panier"""
@@ -210,6 +224,7 @@ class LignePanier(models.Model):
 
     def __str__(self):
         return f"{self.produit} x {self.quantite}"
+
 
 class Commande(models.Model):
     """Modèle pour les commandes"""
@@ -227,10 +242,14 @@ class Commande(models.Model):
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='EN_ATTENTE')
     total = models.DecimalField(max_digits=10, decimal_places=2)
     adresse_livraison = models.TextField()
+    ville = models.CharField(max_length=100, blank=True)
+    code_postal = models.CharField(max_length=10, blank=True)
+    telephone = models.CharField(max_length=20, blank=True)
     notes = models.TextField(blank=True)
     
     def __str__(self):
         return f"Commande #{self.id} - {self.client}"
+
 
 class LigneCommande(models.Model):
     """Modèle pour les lignes de commande"""
@@ -245,7 +264,6 @@ class LigneCommande(models.Model):
 
     def __str__(self):
         return f"{self.produit} x {self.quantite}"
-
 
 
 class RubriqueRelookingFemme(models.Model):
@@ -269,24 +287,29 @@ class RubriqueRelookingFemme(models.Model):
     image = models.ImageField(upload_to='relooking_femme/', null=True, blank=True)
     est_actif = models.BooleanField(default=True)
     ordre = models.IntegerField(default=0)
+    note = models.DecimalField(max_digits=3, decimal_places=1, default=4.5)
+    nb_avis = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.nom} - {self.prix}€"
+        return f"{self.nom} - {self.prix} CFA"
+    
+    @property
+    def prix_formate(self):
+        return f"{int(self.prix)} CFA"
     
     class Meta:
         verbose_name = "Rubrique Relooking Femme"
         verbose_name_plural = "Rubriques Relooking Femme"
         ordering = ['ordre', 'nom']
 
-# api/models.py - Ajoutez ces modèles
 
 class RubriqueRelookingHomme(models.Model):
     """Modèle pour les rubriques de relooking homme"""
     CATEGORIE_CHOICES = [
         ('COACHING', 'Coaching Relooking'),
-        ('BILAN', 'Bilan d\'Image'),
+        ('BILAN', "Bilan d'Image"),
         ('SUBLIME', 'Relooking Sublime'),
         ('VINTAGE', 'Relooking Vintage'),
     ]
@@ -301,17 +324,21 @@ class RubriqueRelookingHomme(models.Model):
     est_actif = models.BooleanField(default=True)
     ordre = models.IntegerField(default=0)
     note = models.DecimalField(max_digits=3, decimal_places=1, default=4.5)
+    nb_avis = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return f"{self.nom} - {self.prix} CFA"
     
+    @property
+    def prix_formate(self):
+        return f"{int(self.prix)} CFA"
+    
     class Meta:
         verbose_name = "Rubrique Relooking Homme"
         verbose_name_plural = "Rubriques Relooking Homme"
         ordering = ['ordre', 'nom']
-
 
 
 class RubriqueAtelier(models.Model):
@@ -328,20 +355,22 @@ class RubriqueAtelier(models.Model):
     description_detail = models.TextField(blank=True)
     prix = models.DecimalField(max_digits=10, decimal_places=2)
     duree = models.CharField(max_length=50, help_text="Durée de l'atelier")
-    
-    # Spécifique aux ateliers en groupe
     nb_personnes_min = models.IntegerField(default=2, help_text="Nombre minimum de participants")
     nb_personnes_max = models.IntegerField(default=6, help_text="Nombre maximum de participants")
-    
     image = models.ImageField(upload_to='ateliers/', null=True, blank=True)
     est_actif = models.BooleanField(default=True)
     ordre = models.IntegerField(default=0)
     note = models.DecimalField(max_digits=3, decimal_places=1, default=4.5)
+    nb_avis = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return f"{self.nom} - {self.prix} CFA"
+    
+    @property
+    def prix_formate(self):
+        return f"{int(self.prix)} CFA"
     
     @property
     def places_display(self):
@@ -352,7 +381,6 @@ class RubriqueAtelier(models.Model):
         verbose_name_plural = "Ateliers Relooking en Groupe"
         ordering = ['ordre', 'nom']
 
-# api/models.py
 
 class FormationEnLigne(models.Model):
     """Modèle pour les formations en ligne (Elegance Times online)"""
@@ -382,6 +410,10 @@ class FormationEnLigne(models.Model):
         return f"{self.titre} - {self.get_statut_display()}"
     
     @property
+    def prix_formate(self):
+        return f"{int(self.prix)} CFA"
+    
+    @property
     def est_live(self):
         return self.statut == 'LIVE'
     
@@ -404,7 +436,7 @@ class CodeAccesFormation(models.Model):
     ]
     
     formation = models.ForeignKey(FormationEnLigne, on_delete=models.CASCADE, related_name='codes')
-    client = models.ForeignKey('Client', on_delete=models.CASCADE)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE)
     code = models.CharField(max_length=20, unique=True)
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='ACTIF')
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -418,20 +450,11 @@ class CodeAccesFormation(models.Model):
     
     @property
     def est_valide(self):
-        from django.utils import timezone
-        return (
-            self.statut == 'ACTIF' and 
-            self.date_expiration > timezone.now()
-        )
+        return self.statut == 'ACTIF' and self.date_expiration > timezone.now()
     
     @property
     def est_utilisable(self):
-        from django.utils import timezone
-        return (
-            self.statut == 'ACTIF' and 
-            self.date_expiration > timezone.now() and
-            self.date_utilisation is None
-        )
+        return self.est_valide and self.date_utilisation is None
     
     class Meta:
         verbose_name = "Code d'accès"
@@ -449,7 +472,7 @@ class InscriptionFormation(models.Model):
     ]
     
     formation = models.ForeignKey(FormationEnLigne, on_delete=models.CASCADE, related_name='inscriptions')
-    client = models.ForeignKey('Client', on_delete=models.CASCADE, related_name='inscriptions_formations')
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='inscriptions_formations')
     code_acces = models.OneToOneField(CodeAccesFormation, on_delete=models.SET_NULL, null=True, blank=True, related_name='inscription')
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='EN_ATTENTE')
     date_inscription = models.DateTimeField(auto_now_add=True)
@@ -466,7 +489,6 @@ class InscriptionFormation(models.Model):
         ordering = ['-date_inscription']
         unique_together = ['formation', 'client']
 
-# api/models.py - Ajoutez ces modèles
 
 class MoyenPaiement(models.Model):
     """Modèle pour les moyens de paiement disponibles"""
@@ -474,8 +496,8 @@ class MoyenPaiement(models.Model):
         ('WAVE', 'Wave'),
         ('ORANGE_MONEY', 'Orange Money'),
         ('MOOV_MONEY', 'Moov Money'),
-        ('CARTE_BANCAIRE', 'Carte Bancaire'),
         ('MTN_MONEY', 'MTN Mobile Money'),
+        ('CARTE_BANCAIRE', 'Carte Bancaire'),
     ]
     
     nom = models.CharField(max_length=50)
@@ -504,7 +526,7 @@ class TransactionPaiement(models.Model):
         ('REMBOURSE', 'Remboursé'),
     ]
     
-    inscription = models.ForeignKey('InscriptionFormation', on_delete=models.CASCADE, related_name='transactions')
+    inscription = models.ForeignKey(InscriptionFormation, on_delete=models.CASCADE, related_name='transactions')
     moyen_paiement = models.ForeignKey(MoyenPaiement, on_delete=models.SET_NULL, null=True)
     montant = models.DecimalField(max_digits=10, decimal_places=2)
     reference = models.CharField(max_length=100, unique=True)
@@ -520,4 +542,189 @@ class TransactionPaiement(models.Model):
     class Meta:
         verbose_name = "Transaction de paiement"
         verbose_name_plural = "Transactions de paiement"
+        ordering = ['-date_creation']
+
+
+# ========== NOUVEAUX MODÈLES AJOUTÉS ==========
+
+class AvisProduit(models.Model):
+    """Modèle pour les avis sur les produits"""
+    produit = models.ForeignKey(Produit, on_delete=models.CASCADE, related_name='avis')
+    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    note = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    commentaire = models.TextField()
+    date_creation = models.DateTimeField(auto_now_add=True)
+    est_approuve = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return f"{self.client} - {self.produit} - {self.note} étoiles"
+    
+    class Meta:
+        verbose_name = "Avis produit"
+        verbose_name_plural = "Avis produits"
+        ordering = ['-date_creation']
+        unique_together = ['produit', 'client']
+
+
+class Promotion(models.Model):
+    """Modèle pour les promotions spéciales"""
+    TYPE_CHOICES = [
+        ('POURCENTAGE', 'Pourcentage'),
+        ('FIXE', 'Montant fixe'),
+        ('LIVRAISON', 'Livraison gratuite'),
+    ]
+    
+    code = models.CharField(max_length=50, unique=True)
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    valeur = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.TextField(blank=True)
+    date_debut = models.DateTimeField()
+    date_fin = models.DateTimeField()
+    utilisation_max = models.IntegerField(default=1)
+    utilisation_actuelle = models.IntegerField(default=0)
+    est_actif = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return f"{self.code} - {self.get_type_display()}"
+    
+    @property
+    def est_valide(self):
+        now = timezone.now()
+        return (
+            self.est_actif and
+            self.date_debut <= now <= self.date_fin and
+            self.utilisation_actuelle < self.utilisation_max
+        )
+    
+    class Meta:
+        verbose_name = "Promotion"
+        verbose_name_plural = "Promotions"
+
+
+class Wishlist(models.Model):
+    """Modèle pour la liste de souhaits des clients"""
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='wishlist')
+    produit = models.ForeignKey(Produit, on_delete=models.CASCADE)
+    date_ajout = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['client', 'produit']
+        verbose_name = "Liste de souhaits"
+        verbose_name_plural = "Listes de souhaits"
+    
+    def __str__(self):
+        return f"{self.client} - {self.produit}"
+
+
+class Actualite(models.Model):
+    """Modèle pour les actualités / blog"""
+    titre = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True)
+    contenu = models.TextField()
+    extrait = models.TextField(blank=True, help_text="Résumé de l'article")
+    image = models.ImageField(upload_to='actualites/', null=True, blank=True)
+    auteur = models.CharField(max_length=100, default="Madame Tibetia")
+    categorie = models.CharField(max_length=50, blank=True)
+    tags = models.JSONField(default=list, blank=True)
+    est_publie = models.BooleanField(default=True)
+    date_publication = models.DateTimeField(default=timezone.now)
+    vues = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.titre
+    
+    class Meta:
+        verbose_name = "Actualité"
+        verbose_name_plural = "Actualités"
+        ordering = ['-date_publication']
+
+
+class FAQ(models.Model):
+    """Modèle pour les questions fréquentes"""
+    question = models.CharField(max_length=200)
+    reponse = models.TextField()
+    categorie = models.CharField(max_length=50, default='General')
+    ordre = models.IntegerField(default=0)
+    est_actif = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return self.question
+    
+    class Meta:
+        verbose_name = "FAQ"
+        verbose_name_plural = "FAQ"
+        ordering = ['ordre']
+
+
+class Newsletter(models.Model):
+    """Modèle pour les abonnés à la newsletter"""
+    email = models.EmailField(unique=True)
+    date_abonnement = models.DateTimeField(auto_now_add=True)
+    est_actif = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return self.email
+    
+    class Meta:
+        verbose_name = "Abonné newsletter"
+        verbose_name_plural = "Abonnés newsletter"
+        ordering = ['-date_abonnement']
+
+
+class ContactMessage(models.Model):
+    """Modèle pour les messages de contact"""
+    SUJET_CHOICES = [
+        ('GENERAL', 'Demande générale'),
+        ('FORMATION', 'Formation en ligne'),
+        ('RELOCKING', 'Relooking'),
+        ('PRODUIT', 'Produit / Boutique'),
+        ('AUTRE', 'Autre'),
+    ]
+    
+    nom = models.CharField(max_length=100)
+    prenom = models.CharField(max_length=100)
+    email = models.EmailField()
+    telephone = models.CharField(max_length=20, blank=True)
+    sujet = models.CharField(max_length=20, choices=SUJET_CHOICES, default='GENERAL')
+    message = models.TextField()
+    date_creation = models.DateTimeField(auto_now_add=True)
+    est_lu = models.BooleanField(default=False)
+    reponse = models.TextField(blank=True)
+    date_reponse = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.prenom} {self.nom} - {self.get_sujet_display()}"
+    
+    class Meta:
+        verbose_name = "Message de contact"
+        verbose_name_plural = "Messages de contact"
+        ordering = ['-date_creation']
+
+
+class Notification(models.Model):
+    """Modèle pour les notifications des utilisateurs"""
+    TYPE_CHOICES = [
+        ('COMMANDE', 'Commande'),
+        ('INSCRIPTION', 'Inscription formation'),
+        ('EVENEMENT', 'Événement'),
+        ('PROMOTION', 'Promotion'),
+        ('GENERAL', 'Général'),
+    ]
+    
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='notifications')
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    titre = models.CharField(max_length=200)
+    message = models.TextField()
+    lien = models.CharField(max_length=200, blank=True, help_text="Lien vers la page concernée")
+    est_lu = models.BooleanField(default=False)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.client} - {self.titre}"
+    
+    class Meta:
+        verbose_name = "Notification"
+        verbose_name_plural = "Notifications"
         ordering = ['-date_creation']

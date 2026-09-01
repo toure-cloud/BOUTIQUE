@@ -4,18 +4,20 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-8ii4=z=4)#)s6)&wnx)7u4ix6gscyp-e)ocp_2qu$7$-&7s^%c'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    '7z6hftkf-8000.uks1.devtunnels.ms',  # ← DevTunnel backend
+    '7z6hftkf-3000.uks1.devtunnels.ms',  # ← DevTunnel frontend
+    '*',  # ⚠️ Seulement en développement
+]
 
 # Application definition
 
@@ -27,6 +29,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework.authtoken',
+    'rest_framework',
     'corsheaders',
     'api',
 ]
@@ -127,7 +130,7 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
-
+CORS_ALLOW_CREDENTIALS = True
 # Autoriser les méthodes HTTP
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -138,6 +141,14 @@ CORS_ALLOW_METHODS = [
     'PUT',
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://localhost:3000',
+    'https://127.0.0.1:3000',
+    'https://7z6hftkf-3000.uks1.devtunnels.ms',
+    'https://7z6hftkf-8000.uks1.devtunnels.ms',
+]
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 

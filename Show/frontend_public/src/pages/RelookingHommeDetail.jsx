@@ -501,7 +501,7 @@ const RelookingHommeDetail = () => {
           Retour aux rubriques
         </Button>
 
-        <Grid container spacing={4} alignItems="flex-start">
+        <Grid container spacing={4} sx={{ alignItems: "flex-start" }}>
           {/* COLONNE GAUCHE */}
           <Grid item xs={12} md={7}>
             <Stack spacing={3}>
@@ -622,7 +622,7 @@ const RelookingHommeDetail = () => {
                         <LocalOffer sx={{ fontSize: 20 }} />
                       </Avatar>
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                           Prix
                         </Typography>
                         <Typography variant="h6" fontWeight={700} color="#1a1a1a">
@@ -636,7 +636,7 @@ const RelookingHommeDetail = () => {
                         <AccessTime sx={{ fontSize: 20 }} />
                       </Avatar>
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                           Durée
                         </Typography>
                         <Typography variant="body1" fontWeight={600} color="#1a1a1a">
@@ -650,7 +650,7 @@ const RelookingHommeDetail = () => {
                         <WorkspacePremium sx={{ fontSize: 20 }} />
                       </Avatar>
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                           Note
                         </Typography>
                         <Typography variant="body1" fontWeight={600} color="#1a1a1a">

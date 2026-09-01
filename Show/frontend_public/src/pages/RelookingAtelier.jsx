@@ -24,6 +24,7 @@ import {
   ListItemText,
   useTheme,
   useMediaQuery,
+  Grid,
 } from '@mui/material';
 import {
   ArrowForward,
@@ -34,14 +35,14 @@ import {
   Group,
   Check,
 } from '@mui/icons-material';
-import heroImage from '../assets/images/tibetia.jpeg';
+import heroImage from '../assets/images/tibetia.jpeg?url';
 
 const ATELIERS = [
   {
     id: 1,
     nom: 'Atelier Style et Élégance',
     categorie: 'Style',
-    description: 'Un atelier collectif pour maîtriser les codes de l\'élégance au quotidien.',
+    description: "Un atelier collectif pour maîtriser les codes de l'élégance au quotidien.",
     youWillLearn: [
       'Les fondamentaux du style élégant',
       'Comment choisir les bonnes couleurs',
@@ -79,7 +80,7 @@ const ATELIERS = [
     categorie: 'Masterclass',
     description: 'Une masterclass intensive pour révéler votre charisme et votre image.',
     youWillLearn: [
-      'Psychologie de l\'image',
+      "Psychologie de l'image",
       'Communication non verbale',
       'Style et élégance',
       'Prise de parole',
@@ -144,7 +145,6 @@ const RelookingAtelier = () => {
         </Container>
       </Box>
 
-      {/* CONTENEUR FLEX : TOUS LES ATELIERS SUR UNE SEULE LIGNE */}
       <Box sx={{ py: { xs: 3, md: 5 }, px: { xs: 2, md: 4 }, overflowX: 'auto', overflowY: 'hidden', whiteSpace: 'nowrap', WebkitOverflowScrolling: 'touch', '&::-webkit-scrollbar': { height: '6px' }, '&::-webkit-scrollbar-track': { backgroundColor: '#F5F5F5', borderRadius: '10px' }, '&::-webkit-scrollbar-thumb': { backgroundColor: '#D0D0D0', borderRadius: '10px' }, '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#A0A0A0' } }}>
         <Box sx={{ display: 'flex', flexDirection: 'row', gap: 3, width: 'fit-content', mx: 'auto' }}>
           {ATELIERS.map((item) => (
@@ -163,12 +163,36 @@ const RelookingAtelier = () => {
                     {item.youWillLearn.slice(0, 4).map((point, index) => (
                       <ListItem key={index} disablePadding sx={{ py: 0.1 }}>
                         <ListItemIcon sx={{ minWidth: 16 }}><Check sx={{ fontSize: 12, color: '#A0A0A0' }} /></ListItemIcon>
-                        <ListItemText primary={point} primaryTypographyProps={{ variant: 'caption', sx: { color: '#666666', fontSize: { xs: '0.5rem', md: '0.6rem' }, lineHeight: 1.2 } }} />
+                        <ListItemText
+                          primary={point}
+                          slotProps={{
+                            primary: {
+                              variant: 'caption',
+                              sx: {
+                                color: '#666666',
+                                fontSize: { xs: '0.5rem', md: '0.6rem' },
+                                lineHeight: 1.2,
+                              },
+                            },
+                          }}
+                        />
                       </ListItem>
                     ))}
                     {item.youWillLearn.length > 4 && (
                       <ListItem disablePadding sx={{ py: 0.1 }}>
-                        <ListItemText primary={`+${item.youWillLearn.length - 4} autres...`} primaryTypographyProps={{ variant: 'caption', sx: { color: '#A0A0A0', fontSize: { xs: '0.5rem', md: '0.6rem' }, fontStyle: 'italic' } }} />
+                        <ListItemText
+                          primary={`+${item.youWillLearn.length - 4} autres...`}
+                          slotProps={{
+                            primary: {
+                              variant: 'caption',
+                              sx: {
+                                color: '#A0A0A0',
+                                fontSize: { xs: '0.5rem', md: '0.6rem' },
+                                fontStyle: 'italic',
+                              },
+                            },
+                          }}
+                        />
                       </ListItem>
                     )}
                   </List>
@@ -194,10 +218,28 @@ const RelookingAtelier = () => {
         </Box>
       </Box>
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth fullScreen={isMobile} scroll="paper">
+      <Dialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        maxWidth="md"
+        fullWidth
+        fullScreen={isMobile}
+        scroll="paper"
+        PaperProps={{
+          sx: {
+            borderRadius: isMobile ? 0 : '16px',
+            overflow: 'hidden',
+          },
+        }}
+      >
         {selected && (
           <>
-            <DialogTitle><Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><Typography variant="h5" sx={{ fontFamily: '"Playfair Display", serif' }}>{selected.nom}</Typography><IconButton onClick={handleCloseDialog}><Close /></IconButton></Box></DialogTitle>
+            <DialogTitle>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h5" sx={{ fontFamily: '"Playfair Display", serif' }}>{selected.nom}</Typography>
+                <IconButton onClick={handleCloseDialog}><Close /></IconButton>
+              </Box>
+            </DialogTitle>
             <DialogContent dividers>
               <Box sx={{ mb: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
@@ -210,7 +252,15 @@ const RelookingAtelier = () => {
                   {selected.youWillLearn.map((point, index) => (
                     <ListItem key={index} disablePadding sx={{ py: 0.5 }}>
                       <ListItemIcon sx={{ minWidth: 28 }}><CheckCircle sx={{ fontSize: 18, color: '#4CAF50' }} /></ListItemIcon>
-                      <ListItemText primary={point} primaryTypographyProps={{ variant: 'body2', sx: { color: '#666666' } }} />
+                      <ListItemText
+                        primary={point}
+                        slotProps={{
+                          primary: {
+                            variant: 'body2',
+                            sx: { color: '#666666' },
+                          },
+                        }}
+                      />
                     </ListItem>
                   ))}
                 </List>

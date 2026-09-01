@@ -16,6 +16,9 @@ import RelookingFemme from './pages/RelookingFemme';
 import RelookingAtelier from './pages/RelookingAtelier';
 import FormationDetail from './pages/FormationDetail'; 
 import RelookingHommeDetail from './pages/RelookingHommeDetail'; 
+import Panier from './pages/Panier';
+import EleganceTimesOnline from './components/EleganceTimesOnline';
+import DetailsProduits from './pages/DetailsProduits';
 
 const theme = createTheme({
   // ... votre thème ...
@@ -46,6 +49,9 @@ function App() {
                 <Route path="/relooking/homme/:id" element={<RelookingHommeDetail />} />
                 <Route path="/formations/:id" element={<FormationDetail />} />
                 <Route path="/formations" element={<Home />} />
+                <Route path="/panier" element={<Panier />} />
+                <Route path="/elegance-times" element={<EleganceTimesOnline />} />
+                <Route path="/produit/:id" element={<DetailsProduits />} />
               </Routes>
             </Box>
             <Footer />
@@ -55,5 +61,4 @@ function App() {
     </QueryClientProvider>
   );
 }
-
 export default App;

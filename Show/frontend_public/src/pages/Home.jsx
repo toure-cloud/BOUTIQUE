@@ -1,5 +1,5 @@
 // src/pages/Home.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Container,
@@ -17,22 +17,24 @@ import {
   ListItemText,
   useTheme,
   useMediaQuery,
+  IconButton,
 } from '@mui/material';
 import {
   ArrowForward,
-  ShoppingBag,
+  ArrowBack,
   Person,
   People,
   Group,
   PlayArrow,
   Check,
-  LiveTv,
+  ShoppingBag,
+  Star,
 } from '@mui/icons-material';
 import { forfaitService } from '../services/forfaitService';
 import { evenementService } from '../services/evenementService';
 import { formationService } from '../services/formationService';
 
-import heroImage from '../assets/images/tibetia.jpeg';
+import heroImage from '../assets/images/tibetia.jpeg?url';
 
 const Home = () => {
   const theme = useTheme();
@@ -43,6 +45,10 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
 
   const [selfStudyTab, setSelfStudyTab] = useState('elegance');
+
+  // Refs pour le scroll horizontal
+  const selfStudyScrollRef = useRef(null);
+  const boutiqueScrollRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,7 +83,7 @@ const Home = () => {
       path: '/relooking/homme',
       items: [
         'Coaching relooking personnalisé',
-        'Bilan d\'image complet',
+        "Bilan d'image complet",
         'Conseil en style vestimentaire',
         'Shopping accompagné',
         'Transformation de votre image',
@@ -115,6 +121,50 @@ const Home = () => {
     },
   ];
 
+  // ===== DONNÉES PRODUITS BOUTIQUE =====
+  const produitsBoutique = [
+    {
+      id: 1,
+      title: 'Parfum Signature',
+      description: 'Fragrance raffinée aux notes florales et boisées',
+      price: '45 000 CFA',
+      image: 'https://images.unsplash.com/photo-1541643600914-78b084683601?w=400&q=80',
+      rating: 4.8,
+    },
+    {
+      id: 2,
+      title: 'Bijou Élégance',
+      description: 'Collier minimaliste en or 18 carats',
+      price: '28 500 CFA',
+      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&q=80',
+      rating: 4.9,
+    },
+    {
+      id: 3,
+      title: 'Sérum Lumière',
+      description: 'Soin visage hydratant et illuminateur',
+      price: '32 000 CFA',
+      image: 'https://images.unsplash.com/photo-1571781926291-c77df8097c1f?w=400&q=80',
+      rating: 4.7,
+    },
+    {
+      id: 4,
+      title: 'Montre Classique',
+      description: 'Montre en acier inoxydable avec cadran bleu',
+      price: '65 000 CFA',
+      image: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&q=80',
+      rating: 4.6,
+    },
+    {
+      id: 5,
+      title: 'Sac à Main Cuir',
+      description: 'Sac en cuir véritable avec finitions dorées',
+      price: '85 000 CFA',
+      image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&q=80',
+      rating: 4.8,
+    },
+  ];
+
   // ===== DONNÉES POUR ELEGANCE TIMES ONLINE =====
   const getEleganceData = () => {
     if (formations.length > 0) {
@@ -139,7 +189,6 @@ const Home = () => {
         isFormation: true,
       }));
     }
-    // Fallback
     return [
       {
         id: 1,
@@ -170,8 +219,8 @@ const Home = () => {
         items: [
           'Comprendre le style élégant',
           'Construire 12 pièces clés',
-          'Garde-robe alignée Lifestyle',
-          'Comprendre l\'ajustement et la forme',
+          "Garde-robe alignée Lifestyle",
+          "Comprendre l'ajustement et la forme",
         ],
         isFormation: false,
       },
@@ -179,7 +228,7 @@ const Home = () => {
         id: 4,
         title: 'Confiance Gala',
         items: [
-          'Construire un état d\'esprit confiant',
+          "Construire un état d'esprit confiant",
           'Où trouver des galas',
           'Codes vestimentaires et quoi porter',
           'Premières impressions élégantes',
@@ -192,6 +241,415 @@ const Home = () => {
   const getSelfStudyData = () => {
     return selfStudyTab === 'elegance' ? getEleganceData() : relookingData;
   };
+
+  // ===== FONCTIONS DE SCROLL =====
+  const scrollLeft = (ref) => {
+    if (ref.current) {
+      ref.current.scrollBy({ left: -320, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = (ref) => {
+    if (ref.current) {
+      ref.current.scrollBy({ left: 320, behavior: 'smooth' });
+    }
+  };
+
+  // ===== RENDU D'UNE CARTE SELF-STUDY =====
+  const renderSelfStudyCard = (item) => (
+    <Card
+      key={item.id}
+      sx={{
+        minWidth: { xs: 240, sm: 260, md: 280 },
+        maxWidth: { xs: 240, sm: 260, md: 280 },
+        borderRadius: 3,
+        border: '1px solid #EEEEEE',
+        overflow: 'hidden',
+        transition: 'transform 0.28s ease, box-shadow 0.28s ease',
+        backgroundColor: '#FFFFFF',
+        display: 'flex',
+        flexDirection: 'column',
+        flexShrink: 0,
+        '&:hover': {
+          transform: 'translateY(-6px)',
+          boxShadow: '0 18px 40px rgba(0,0,0,0.07)',
+        },
+      }}
+    >
+      {/* Badge */}
+      {item.badge && (
+        <Chip
+          label={item.badge}
+          size="small"
+          sx={{
+            position: 'absolute',
+            top: 14,
+            right: 14,
+            zIndex: 2,
+            backgroundColor: item.est_live ? '#E53935' : '#1A1A1A',
+            color: '#FFFFFF',
+            fontWeight: 700,
+            fontSize: '0.65rem',
+            letterSpacing: 0.6,
+            height: 24,
+            animation: item.est_live ? 'pulse 1.6s infinite' : 'none',
+            '@keyframes pulse': {
+              '0%': { opacity: 1 },
+              '50%': { opacity: 0.55 },
+              '100%': { opacity: 1 },
+            },
+          }}
+        />
+      )}
+
+      {/* En-tête image / icône */}
+      <Box
+        sx={{
+          height: selfStudyTab === 'elegance' ? 140 : 150,
+          backgroundColor: '#F0F0F0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {selfStudyTab === 'elegance' ? (
+          item.image ? (
+            <CardMedia
+              component="img"
+              image={`${import.meta.env.VITE_MEDIA_URL}${item.image}`}
+              alt={item.title}
+              sx={{
+                height: '100%',
+                width: '100%',
+                objectFit: 'cover',
+              }}
+            />
+          ) : (
+            <Typography sx={{ fontSize: '3.2rem', opacity: 0.25 }}>🎓</Typography>
+          )
+        ) : (
+          item.icon
+        )}
+
+        {selfStudyTab === 'elegance' && item.est_live && (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: 'rgba(229, 57, 53, 0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Chip
+              icon={<PlayArrow sx={{ color: '#fff !important', fontSize: 18 }} />}
+              label="EN DIRECT"
+              sx={{
+                backgroundColor: 'rgba(229, 57, 53, 0.95)',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                height: 32,
+                px: 1,
+                borderRadius: 50,
+              }}
+            />
+          </Box>
+        )}
+      </Box>
+
+      <CardContent
+        sx={{
+          flexGrow: 1,
+          p: 2.5,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 700,
+            color: '#1A1A1A',
+            mb: 1.2,
+            fontSize: selfStudyTab === 'elegance' ? '1rem' : '1.1rem',
+            fontFamily: '"Playfair Display", serif',
+            lineHeight: 1.3,
+            minHeight: selfStudyTab === 'elegance' ? 48 : 40,
+          }}
+        >
+          {item.title}
+        </Typography>
+
+        {selfStudyTab === 'relooking' && item.description && (
+          <Typography
+            variant="body2"
+            sx={{
+              color: '#666',
+              fontSize: '0.8rem',
+              mb: 2,
+              lineHeight: 1.5,
+              minHeight: 40,
+            }}
+          >
+            {item.description}
+          </Typography>
+        )}
+
+        {/* Prix / Durée pour formations */}
+        {selfStudyTab === 'elegance' && item.isFormation && (
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
+              <Typography variant="caption" sx={{ color: '#999', fontSize: '0.7rem' }}>Prix</Typography>
+              <Typography variant="body2" sx={{ color: '#1A1A1A', fontWeight: 700, fontSize: '0.85rem' }}>
+                {item.prix}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
+              <Typography variant="caption" sx={{ color: '#999', fontSize: '0.7rem' }}>Durée</Typography>
+              <Typography variant="body2" sx={{ color: '#555', fontSize: '0.8rem' }}>
+                {item.duree}
+              </Typography>
+            </Box>
+            {item.date_live && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="caption" sx={{ color: '#999', fontSize: '0.7rem' }}>Date</Typography>
+                <Typography variant="body2" sx={{ color: '#555', fontSize: '0.8rem' }}>
+                  {new Date(item.date_live).toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        )}
+
+        <Typography
+          variant="caption"
+          sx={{
+            color: '#999',
+            fontWeight: 600,
+            fontSize: '0.65rem',
+            letterSpacing: 0.8,
+            display: 'block',
+            mb: 1,
+            textTransform: 'uppercase',
+          }}
+        >
+          {selfStudyTab === 'elegance' ? 'Vous apprendrez' : 'Prestations'}
+        </Typography>
+
+        <List dense disablePadding sx={{ mb: 2, flexGrow: 1 }}>
+          {item.items.slice(0, 4).map((point, idx) => (
+            <ListItem key={idx} disablePadding sx={{ py: 0.2 }}>
+              <ListItemIcon sx={{ minWidth: 20 }}>
+                <Check sx={{ fontSize: 14, color: '#888' }} />
+              </ListItemIcon>
+              <ListItemText
+                primary={point}
+                primaryTypographyProps={{
+                  variant: 'body2',
+                  sx: {
+                    color: '#555',
+                    fontSize: '0.75rem',
+                    lineHeight: 1.3,
+                  },
+                }}
+              />
+            </ListItem>
+          ))}
+          {item.items.length > 4 && (
+            <ListItem disablePadding sx={{ py: 0.2 }}>
+              <ListItemText
+                primary={`+${item.items.length - 4} autres...`}
+                primaryTypographyProps={{
+                  variant: 'caption',
+                  sx: { color: '#AAA', fontSize: '0.7rem', fontStyle: 'italic' },
+                }}
+              />
+            </ListItem>
+          )}
+        </List>
+
+        {/* Bouton */}
+        {selfStudyTab === 'relooking' && item.path && (
+          <Button
+            component={Link}
+            to={item.path}
+            variant="contained"
+            fullWidth
+            sx={{
+              mt: 'auto',
+              backgroundColor: '#1A1A1A',
+              color: '#fff',
+              borderRadius: 50,
+              py: 1,
+              textTransform: 'none',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              '&:hover': { backgroundColor: '#333' },
+            }}
+            endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
+          >
+            Découvrir
+          </Button>
+        )}
+
+        {selfStudyTab === 'elegance' && item.isFormation && (
+          <Button
+            component={Link}
+            to={item.path}
+            variant="contained"
+            fullWidth
+            sx={{
+              mt: 'auto',
+              backgroundColor: item.est_live ? '#E53935' : '#1A1A1A',
+              color: '#fff',
+              borderRadius: 50,
+              py: 1,
+              textTransform: 'none',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              '&:hover': {
+                backgroundColor: item.est_live ? '#C62828' : '#333',
+              },
+            }}
+            endIcon={
+              item.est_live ? (
+                <PlayArrow sx={{ fontSize: 16 }} />
+              ) : (
+                <ArrowForward sx={{ fontSize: 16 }} />
+              )
+            }
+          >
+            {item.est_live ? 'Rejoindre' : 'Détails'}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  // ===== RENDU D'UNE CARTE BOUTIQUE =====
+  const renderBoutiqueCard = (product) => (
+    <Card
+      key={product.id}
+      sx={{
+        minWidth: { xs: 220, sm: 240, md: 260 },
+        maxWidth: { xs: 220, sm: 240, md: 260 },
+        borderRadius: 3,
+        border: '1px solid #EEEEEE',
+        overflow: 'hidden',
+        backgroundColor: '#FFFFFF',
+        display: 'flex',
+        flexDirection: 'column',
+        flexShrink: 0,
+        transition: 'transform 0.35s ease, box-shadow 0.35s ease',
+        '&:hover': {
+          transform: 'translateY(-8px)',
+          boxShadow: '0 20px 44px rgba(0,0,0,0.1)',
+        },
+      }}
+    >
+      <Box
+        sx={{
+          height: 200,
+          overflow: 'hidden',
+          position: 'relative',
+          backgroundColor: '#F8F8F8',
+        }}
+      >
+        <Box
+          component="img"
+          src={product.image}
+          alt={product.title}
+          sx={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transition: 'transform 0.5s ease',
+            '.MuiCard-root:hover &': {
+              transform: 'scale(1.05)',
+            },
+          }}
+        />
+        <Chip
+          icon={<Star sx={{ fontSize: 12, color: '#FFB400 !important' }} />}
+          label={product.rating}
+          size="small"
+          sx={{
+            position: 'absolute',
+            bottom: 10,
+            right: 10,
+            backgroundColor: 'rgba(255,255,255,0.9)',
+            fontWeight: 600,
+            fontSize: '0.65rem',
+            height: 24,
+          }}
+        />
+      </Box>
+
+      <CardContent sx={{ flexGrow: 1, p: 2.5, display: 'flex', flexDirection: 'column' }}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 700,
+            color: '#1A1A1A',
+            mb: 0.5,
+            fontFamily: '"Playfair Display", serif',
+            fontSize: '1rem',
+            lineHeight: 1.3,
+            minHeight: 44,
+          }}
+        >
+          {product.title}
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: '#666',
+            fontSize: '0.8rem',
+            mb: 2,
+            lineHeight: 1.4,
+            flexGrow: 1,
+            minHeight: 40,
+          }}
+        >
+          {product.description}
+        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+          <Typography sx={{ fontWeight: 700, color: '#1A1A1A', fontSize: '0.95rem' }}>
+            {product.price}
+          </Typography>
+          <Button
+            component={Link}
+            to="/boutique"
+            size="small"
+            sx={{
+              color: '#1A1A1A',
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              borderRadius: 50,
+              px: 2,
+              border: '1px solid #DDD',
+              '&:hover': {
+                backgroundColor: '#1A1A1A',
+                color: '#fff',
+                borderColor: '#1A1A1A',
+              },
+            }}
+          >
+            Voir
+          </Button>
+        </Box>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <Box sx={{ backgroundColor: '#FAFAFA' }}>
@@ -206,7 +664,6 @@ const Home = () => {
           overflow: 'hidden',
         }}
       >
-        {/* Image de fond – plus nette */}
         <Box
           component="img"
           src={heroImage}
@@ -218,12 +675,10 @@ const Home = () => {
             height: '100%',
             objectFit: 'cover',
             objectPosition: 'center 18%',
-            // Image plus nette : pas de flou, opacity haute
             filter: 'contrast(1.05) brightness(1.02)',
           }}
         />
 
-        {/* Overlay très léger pour garder l’image nette */}
         <Box
           sx={{
             position: 'absolute',
@@ -341,7 +796,7 @@ const Home = () => {
       </Box>
 
       {/* ===== SECTION SELF-STUDY ===== */}
-      <Box sx={{ py: { xs: 7, md: 11 }, backgroundColor: '#FAFAFA' }}>
+      <Box sx={{ py: { xs: 6, md: 9 }, backgroundColor: '#FAFAFA' }}>
         <Container maxWidth="lg">
           <Typography
             variant="h2"
@@ -351,7 +806,7 @@ const Home = () => {
               color: '#1A1A1A',
               mb: 1.5,
               fontFamily: '"Playfair Display", serif',
-              fontSize: { xs: '2.2rem', md: '3.2rem' },
+              fontSize: { xs: '2rem', md: '3rem' },
               letterSpacing: -0.5,
             }}
           >
@@ -363,10 +818,10 @@ const Home = () => {
             sx={{
               textAlign: 'center',
               color: '#666',
-              mb: 5,
+              mb: 4,
               maxWidth: 520,
               mx: 'auto',
-              fontSize: '1.05rem',
+              fontSize: '1rem',
             }}
           >
             Formations en ligne et programmes de relooking
@@ -379,14 +834,14 @@ const Home = () => {
               justifyContent: 'center',
               alignItems: 'center',
               gap: { xs: 1, sm: 2 },
-              mb: 6,
+              mb: 4,
             }}
           >
             <Button
               onClick={() => setSelfStudyTab('elegance')}
               sx={{
                 color: selfStudyTab === 'elegance' ? '#1A1A1A' : '#999',
-                fontSize: { xs: '0.95rem', md: '1.05rem' },
+                fontSize: { xs: '0.9rem', md: '1rem' },
                 fontWeight: selfStudyTab === 'elegance' ? 700 : 400,
                 textTransform: 'none',
                 borderBottom: selfStudyTab === 'elegance' ? '2.5px solid #1A1A1A' : '2.5px solid transparent',
@@ -409,7 +864,7 @@ const Home = () => {
               onClick={() => setSelfStudyTab('relooking')}
               sx={{
                 color: selfStudyTab === 'relooking' ? '#1A1A1A' : '#999',
-                fontSize: { xs: '0.95rem', md: '1.05rem' },
+                fontSize: { xs: '0.9rem', md: '1rem' },
                 fontWeight: selfStudyTab === 'relooking' ? 700 : 400,
                 textTransform: 'none',
                 borderBottom: selfStudyTab === 'relooking' ? '2.5px solid #1A1A1A' : '2.5px solid transparent',
@@ -427,315 +882,74 @@ const Home = () => {
             </Button>
           </Box>
 
-          {/* Grille des cartes */}
-          <Grid container spacing={3.5} justifyContent="center">
-            {getSelfStudyData().map((item) => (
-              <Grid
-                item
-                xs={12}
-                sm={6}
-                md={selfStudyTab === 'elegance' ? 3 : 4}
-                key={item.id}
-                sx={{ display: 'flex' }}
-              >
-                <Card
-                  elevation={0}
-                  sx={{
-                    width: '100%',
-                    borderRadius: 3,
-                    border: '1px solid #EEEEEE',
-                    overflow: 'hidden',
-                    transition: 'transform 0.28s ease, box-shadow 0.28s ease',
-                    backgroundColor: '#FFFFFF',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    position: 'relative',
-                    '&:hover': {
-                      transform: 'translateY(-6px)',
-                      boxShadow: '0 18px 40px rgba(0,0,0,0.07)',
-                    },
-                  }}
-                >
-                  {/* Badge */}
-                  {item.badge && (
-                    <Chip
-                      label={item.badge}
-                      size="small"
-                      sx={{
-                        position: 'absolute',
-                        top: 14,
-                        right: 14,
-                        zIndex: 2,
-                        backgroundColor: item.est_live ? '#E53935' : '#1A1A1A',
-                        color: '#FFFFFF',
-                        fontWeight: 700,
-                        fontSize: '0.65rem',
-                        letterSpacing: 0.6,
-                        height: 24,
-                        animation: item.est_live ? 'pulse 1.6s infinite' : 'none',
-                        '@keyframes pulse': {
-                          '0%': { opacity: 1 },
-                          '50%': { opacity: 0.55 },
-                          '100%': { opacity: 1 },
-                        },
-                      }}
-                    />
-                  )}
+          {/* Conteneur avec scroll horizontal */}
+          <Box sx={{ position: 'relative' }}>
+            <IconButton
+              onClick={() => scrollLeft(selfStudyScrollRef)}
+              sx={{
+                position: 'absolute',
+                left: { xs: -12, md: -20 },
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 2,
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                '&:hover': { backgroundColor: '#FFFFFF' },
+                display: { xs: 'none', sm: 'flex' },
+                width: 40,
+                height: 40,
+              }}
+            >
+              <ArrowBack />
+            </IconButton>
 
-                  {/* En-tête image / icône */}
-                  <Box
-                    sx={{
-                      height: selfStudyTab === 'elegance' ? 140 : 150,
-                      backgroundColor: '#F0F0F0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {selfStudyTab === 'elegance' ? (
-                      item.image ? (
-                        <CardMedia
-                          component="img"
-                          image={`${import.meta.env.VITE_MEDIA_URL}${item.image}`}
-                          alt={item.title}
-                          sx={{
-                            height: '100%',
-                            width: '100%',
-                            objectFit: 'cover',
-                          }}
-                        />
-                      ) : (
-                        <Typography sx={{ fontSize: '3.2rem', opacity: 0.25 }}>🎓</Typography>
-                      )
-                    ) : (
-                      item.icon
-                    )}
+            <Box
+              ref={selfStudyScrollRef}
+              sx={{
+                display: 'flex',
+                flexDirection: 'row',
+                gap: 3,
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                py: 2,
+                px: 1,
+                scrollBehavior: 'smooth',
+                '&::-webkit-scrollbar': { height: 6 },
+                '&::-webkit-scrollbar-track': { backgroundColor: '#F0F0F0', borderRadius: 10 },
+                '&::-webkit-scrollbar-thumb': { backgroundColor: '#D0D0D0', borderRadius: 10 },
+                '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#A0A0A0' },
+              }}
+            >
+              {getSelfStudyData().map((item) => renderSelfStudyCard(item))}
+            </Box>
 
-                    {selfStudyTab === 'elegance' && item.est_live && (
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          inset: 0,
-                          backgroundColor: 'rgba(229, 57, 53, 0.18)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Chip
-                          icon={<PlayArrow sx={{ color: '#fff !important', fontSize: 18 }} />}
-                          label="EN DIRECT"
-                          sx={{
-                            backgroundColor: 'rgba(229, 57, 53, 0.95)',
-                            color: '#fff',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            height: 32,
-                            px: 1,
-                            borderRadius: 50,
-                          }}
-                        />
-                      </Box>
-                    )}
-                  </Box>
+            <IconButton
+              onClick={() => scrollRight(selfStudyScrollRef)}
+              sx={{
+                position: 'absolute',
+                right: { xs: -12, md: -20 },
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 2,
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                '&:hover': { backgroundColor: '#FFFFFF' },
+                display: { xs: 'none', sm: 'flex' },
+                width: 40,
+                height: 40,
+              }}
+            >
+              <ArrowForward />
+            </IconButton>
+          </Box>
 
-                  <CardContent
-                    sx={{
-                      flexGrow: 1,
-                      p: 2.8,
-                      display: 'flex',
-                      flexDirection: 'column',
-                    }}
-                  >
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 700,
-                        color: '#1A1A1A',
-                        mb: 1.2,
-                        fontSize: selfStudyTab === 'elegance' ? '1.05rem' : '1.15rem',
-                        fontFamily: '"Playfair Display", serif',
-                        lineHeight: 1.3,
-                        minHeight: selfStudyTab === 'elegance' ? 48 : 40,
-                      }}
-                    >
-                      {item.title}
-                    </Typography>
-
-                    {selfStudyTab === 'relooking' && item.description && (
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: '#666',
-                          fontSize: '0.85rem',
-                          mb: 2,
-                          lineHeight: 1.5,
-                          minHeight: 42,
-                        }}
-                      >
-                        {item.description}
-                      </Typography>
-                    )}
-
-                    {/* Prix / Durée pour formations */}
-                    {selfStudyTab === 'elegance' && item.isFormation && (
-                      <Box sx={{ mb: 2 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
-                          <Typography variant="caption" sx={{ color: '#999', fontSize: '0.75rem' }}>
-                            Prix
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{ color: '#1A1A1A', fontWeight: 700, fontSize: '0.9rem' }}
-                          >
-                            {item.prix}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
-                          <Typography variant="caption" sx={{ color: '#999', fontSize: '0.75rem' }}>
-                            Durée
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: '#555', fontSize: '0.85rem' }}>
-                            {item.duree}
-                          </Typography>
-                        </Box>
-                        {item.date_live && (
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="caption" sx={{ color: '#999', fontSize: '0.75rem' }}>
-                              Date
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#555', fontSize: '0.85rem' }}>
-                              {new Date(item.date_live).toLocaleDateString('fr-FR', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                              })}
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    )}
-
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: '#999',
-                        fontWeight: 600,
-                        fontSize: '0.68rem',
-                        letterSpacing: 0.8,
-                        display: 'block',
-                        mb: 1,
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      {selfStudyTab === 'elegance' ? 'Vous apprendrez' : 'Prestations'}
-                    </Typography>
-
-                    <List dense disablePadding sx={{ mb: 2, flexGrow: 1 }}>
-                      {item.items.slice(0, 4).map((point, idx) => (
-                        <ListItem key={idx} disablePadding sx={{ py: 0.25 }}>
-                          <ListItemIcon sx={{ minWidth: 22 }}>
-                            <Check sx={{ fontSize: 15, color: '#888' }} />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={point}
-                            primaryTypographyProps={{
-                              variant: 'body2',
-                              sx: {
-                                color: '#555',
-                                fontSize: '0.8rem',
-                                lineHeight: 1.4,
-                              },
-                            }}
-                          />
-                        </ListItem>
-                      ))}
-                      {item.items.length > 4 && (
-                        <ListItem disablePadding sx={{ py: 0.2 }}>
-                          <ListItemText
-                            primary={`+${item.items.length - 4} autres...`}
-                            primaryTypographyProps={{
-                              variant: 'caption',
-                              sx: {
-                                color: '#AAA',
-                                fontSize: '0.72rem',
-                                fontStyle: 'italic',
-                              },
-                            }}
-                          />
-                        </ListItem>
-                      )}
-                    </List>
-
-                    {/* Boutons */}
-                    {selfStudyTab === 'relooking' && item.path && (
-                      <Button
-                        component={Link}
-                        to={item.path}
-                        variant="contained"
-                        fullWidth
-                        sx={{
-                          mt: 'auto',
-                          backgroundColor: '#1A1A1A',
-                          color: '#fff',
-                          borderRadius: 50,
-                          py: 1.1,
-                          textTransform: 'none',
-                          fontSize: '0.85rem',
-                          fontWeight: 600,
-                          '&:hover': { backgroundColor: '#333' },
-                        }}
-                        endIcon={<ArrowForward sx={{ fontSize: 18 }} />}
-                      >
-                        Découvrir
-                      </Button>
-                    )}
-
-                    {selfStudyTab === 'elegance' && item.isFormation && (
-                      <Button
-                        component={Link}
-                        to={item.path}
-                        variant="contained"
-                        fullWidth
-                        sx={{
-                          mt: 'auto',
-                          backgroundColor: item.est_live ? '#E53935' : '#1A1A1A',
-                          color: '#fff',
-                          borderRadius: 50,
-                          py: 1.1,
-                          textTransform: 'none',
-                          fontSize: '0.85rem',
-                          fontWeight: 600,
-                          '&:hover': {
-                            backgroundColor: item.est_live ? '#C62828' : '#333',
-                          },
-                        }}
-                        endIcon={
-                          item.est_live ? (
-                            <PlayArrow sx={{ fontSize: 18 }} />
-                          ) : (
-                            <ArrowForward sx={{ fontSize: 18 }} />
-                          )
-                        }
-                      >
-                        {item.est_live ? 'Rejoindre' : 'Détails'}
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-
-          <Box sx={{ textAlign: 'center', mt: 6 }}>
+          <Box sx={{ textAlign: 'center', mt: 4 }}>
             <Button
               component={Link}
               to={selfStudyTab === 'elegance' ? '/formations' : '/relooking/femme'}
               sx={{
                 color: '#1A1A1A',
-                fontSize: '0.95rem',
+                fontSize: '0.9rem',
                 fontWeight: 500,
                 textTransform: 'none',
                 letterSpacing: 0.8,
@@ -749,87 +963,14 @@ const Home = () => {
                 },
               }}
             >
-              Voir tous les programmes
+              Voir tous les programmes →
             </Button>
           </Box>
         </Container>
       </Box>
 
       {/* ===== SECTION BOUTIQUE ===== */}
-      <Box sx={{ py: { xs: 7, md: 11 }, backgroundColor: '#FFFFFF' }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={6} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <Typography
-                variant="h3"
-                sx={{
-                  fontWeight: 300,
-                  color: '#1A1A1A',
-                  mb: 2.5,
-                  fontFamily: '"Playfair Display", serif',
-                  fontSize: { xs: '2rem', md: '2.7rem' },
-                  lineHeight: 1.2,
-                }}
-              >
-                Découvrez notre
-                <br />
-                <Box component="span" sx={{ fontStyle: 'italic', color: '#666' }}>
-                  boutique élégante
-                </Box>
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  color: '#555',
-                  mb: 4,
-                  lineHeight: 1.75,
-                  fontSize: '1.05rem',
-                  maxWidth: 440,
-                }}
-              >
-                Des produits sélectionnés avec soin pour votre bien-être et votre élégance.
-              </Typography>
-              <Button
-                component={Link}
-                to="/boutique"
-                variant="contained"
-                sx={{
-                  backgroundColor: '#1A1A1A',
-                  color: '#fff',
-                  px: 4.5,
-                  py: 1.5,
-                  borderRadius: 50,
-                  textTransform: 'none',
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                  '&:hover': { backgroundColor: '#333' },
-                }}
-              >
-                Voir les produits
-              </Button>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Box
-                sx={{
-                  height: { xs: 260, md: 380 },
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                  background: 'linear-gradient(145deg, #F0F0F0, #E8E8E8)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px solid #EEE',
-                }}
-              >
-                <ShoppingBag sx={{ fontSize: 72, color: '#BBB' }} />
-              </Box>
-            </Grid>
-          </Grid>
-        </Container>
-      </Box>
-
-      {/* ===== SECTION ÉVÉNEMENTS ===== */}
-      <Box sx={{ py: { xs: 7, md: 11 }, backgroundColor: '#FAFAFA' }}>
+      <Box sx={{ py: { xs: 6, md: 9 }, backgroundColor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Typography
             variant="h2"
@@ -839,7 +980,121 @@ const Home = () => {
               color: '#1A1A1A',
               mb: 1.5,
               fontFamily: '"Playfair Display", serif',
-              fontSize: { xs: '2.2rem', md: '3rem' },
+              fontSize: { xs: '2rem', md: '3rem' },
+            }}
+          >
+            Boutique élégante
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              textAlign: 'center',
+              color: '#666',
+              mb: 4,
+              maxWidth: 520,
+              mx: 'auto',
+              fontSize: '1rem',
+            }}
+          >
+            Des produits sélectionnés avec soin pour votre bien-être et votre élégance
+          </Typography>
+
+          <Box sx={{ position: 'relative' }}>
+            <IconButton
+              onClick={() => scrollLeft(boutiqueScrollRef)}
+              sx={{
+                position: 'absolute',
+                left: { xs: -12, md: -20 },
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 2,
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                '&:hover': { backgroundColor: '#FFFFFF' },
+                display: { xs: 'none', sm: 'flex' },
+                width: 40,
+                height: 40,
+              }}
+            >
+              <ArrowBack />
+            </IconButton>
+
+            <Box
+              ref={boutiqueScrollRef}
+              sx={{
+                display: 'flex',
+                flexDirection: 'row',
+                gap: 3,
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                py: 2,
+                px: 1,
+                scrollBehavior: 'smooth',
+                '&::-webkit-scrollbar': { height: 6 },
+                '&::-webkit-scrollbar-track': { backgroundColor: '#F0F0F0', borderRadius: 10 },
+                '&::-webkit-scrollbar-thumb': { backgroundColor: '#D0D0D0', borderRadius: 10 },
+                '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#A0A0A0' },
+              }}
+            >
+              {produitsBoutique.map((product) => renderBoutiqueCard(product))}
+            </Box>
+
+            <IconButton
+              onClick={() => scrollRight(boutiqueScrollRef)}
+              sx={{
+                position: 'absolute',
+                right: { xs: -12, md: -20 },
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 2,
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                '&:hover': { backgroundColor: '#FFFFFF' },
+                display: { xs: 'none', sm: 'flex' },
+                width: 40,
+                height: 40,
+              }}
+            >
+              <ArrowForward />
+            </IconButton>
+          </Box>
+
+          <Box sx={{ textAlign: 'center', mt: 4 }}>
+            <Button
+              component={Link}
+              to="/boutique"
+              variant="contained"
+              sx={{
+                backgroundColor: '#1A1A1A',
+                color: '#fff',
+                px: 5,
+                py: 1.4,
+                borderRadius: 50,
+                textTransform: 'none',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                '&:hover': { backgroundColor: '#333' },
+              }}
+              endIcon={<ArrowForward sx={{ fontSize: 18 }} />}
+            >
+              Voir toute la boutique
+            </Button>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* ===== SECTION ÉVÉNEMENTS ===== */}
+      <Box sx={{ py: { xs: 6, md: 9 }, backgroundColor: '#FAFAFA' }}>
+        <Container maxWidth="lg">
+          <Typography
+            variant="h2"
+            sx={{
+              textAlign: 'center',
+              fontWeight: 300,
+              color: '#1A1A1A',
+              mb: 1.5,
+              fontFamily: '"Playfair Display", serif',
+              fontSize: { xs: '2rem', md: '3rem' },
             }}
           >
             Événements à venir
@@ -849,18 +1104,18 @@ const Home = () => {
             sx={{
               textAlign: 'center',
               color: '#666',
-              mb: 6,
+              mb: 4,
               maxWidth: 520,
               mx: 'auto',
-              fontSize: '1.05rem',
+              fontSize: '1rem',
             }}
           >
             Participez à nos prochains événements pour vivre une expérience unique
           </Typography>
 
-          <Grid container spacing={3.5}>
+          <Grid container spacing={3}>
             {evenements.map((evenement) => (
-              <Grid item xs={12} md={4} key={evenement.id}>
+              <Grid item xs={12} sm={6} md={4} key={evenement.id}>
                 <Card
                   elevation={0}
                   sx={{
@@ -909,7 +1164,7 @@ const Home = () => {
                         mt: 1,
                         mb: 1,
                         fontFamily: '"Playfair Display", serif',
-                        fontSize: '1.15rem',
+                        fontSize: '1.1rem',
                       }}
                     >
                       {evenement.titre}
@@ -928,7 +1183,7 @@ const Home = () => {
                         mt: 1,
                       }}
                     >
-                      <Typography variant="body2" sx={{ color: '#999', fontSize: '0.85rem' }}>
+                      <Typography variant="body2" sx={{ color: '#999', fontSize: '0.8rem' }}>
                         Places : {evenement.places_restantes}/{evenement.places_total}
                       </Typography>
                       <Button
@@ -958,7 +1213,7 @@ const Home = () => {
             ))}
           </Grid>
 
-          <Box sx={{ textAlign: 'center', mt: 6 }}>
+          <Box sx={{ textAlign: 'center', mt: 5 }}>
             <Button
               component={Link}
               to="/evenements"
@@ -1004,7 +1259,7 @@ const Home = () => {
       >
         <Typography
           variant="body2"
-          sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem' }}
+          sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.8rem' }}
         >
           Ce site utilise des cookies pour vous offrir la meilleure expérience.{' '}
           <Link
@@ -1026,7 +1281,7 @@ const Home = () => {
             px: 3.5,
             py: 0.7,
             textTransform: 'none',
-            fontSize: '0.85rem',
+            fontSize: '0.8rem',
             fontWeight: 600,
             '&:hover': { backgroundColor: '#F0F0F0' },
           }}
