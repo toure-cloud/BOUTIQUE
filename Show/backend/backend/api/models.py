@@ -59,21 +59,29 @@ class Forfait(models.Model):
         return f"{self.nom} - {self.prix} CFA"
 
 
+# api/models.py
 class Client(models.Model):
     """Modèle pour les clients"""
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(
+        User, 
+        on_delete=models.CASCADE,
+        null=True,  # ✅ Permettre NULL
+        blank=True  # ✅ Permettre vide
+    )
     nom = models.CharField(max_length=100)
     prenom = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     telephone = models.CharField(max_length=20)
-    date_naissance = models.DateField(null=True, blank=True)
     adresse = models.TextField(blank=True)
-    photo = models.ImageField(upload_to='clients/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.prenom} {self.nom}"
+
+    class Meta:
+        verbose_name = "Client"
+        verbose_name_plural = "Clients"
 
 
 class RendezVous(models.Model):
@@ -152,8 +160,7 @@ class ParticipationEvenement(models.Model):
 
     def __str__(self):
         return f"{self.client} - {self.evenement}"
-
-
+    
 class Produit(models.Model):
     """Modèle pour les produits de la boutique"""
     CATEGORIE_CHOICES = [
@@ -170,7 +177,8 @@ class Produit(models.Model):
     prix = models.DecimalField(max_digits=10, decimal_places=2)
     categorie = models.CharField(max_length=20, choices=CATEGORIE_CHOICES)
     image_principale = models.ImageField(upload_to='produits/')
-    images_secondaires = models.JSONField(default=list, blank=True)
+    # ✅ Supprimer ou commenter images_secondaires
+    # images_secondaires = models.JSONField(default=list, blank=True)  # ❌ À SUPPRIMER
     taille = models.CharField(max_length=20, blank=True)
     quantite_stock = models.IntegerField(validators=[MinValueValidator(0)])
     est_disponible = models.BooleanField(default=True)
@@ -199,6 +207,23 @@ class Produit(models.Model):
         verbose_name = "Produit"
         verbose_name_plural = "Produits"
         ordering = ['-created_at']
+
+
+# ✅ NOUVEAU MODÈLE : Images secondaires
+class ImageProduit(models.Model):
+    """Modèle pour les images secondaires d'un produit"""
+    produit = models.ForeignKey(Produit, on_delete=models.CASCADE, related_name='images_secondaires')
+    image = models.ImageField(upload_to='produits/secondaires/')
+    ordre = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.produit.nom} - Image {self.ordre}"
+    
+    class Meta:
+        verbose_name = "Image secondaire"
+        verbose_name_plural = "Images secondaires"
+        ordering = ['ordre']
 
 
 class Panier(models.Model):
@@ -728,3 +753,86 @@ class Notification(models.Model):
         verbose_name = "Notification"
         verbose_name_plural = "Notifications"
         ordering = ['-date_creation']
+
+
+
+  #### partie frontend private
+
+  # api/models.py - Ajoutez ces modèles pour l'administration
+
+class AdminLog(models.Model):
+    """Journal des actions des administrateurs"""
+    ACTION_CHOICES = [
+        ('CREATE', 'Création'),
+        ('UPDATE', 'Modification'),
+        ('DELETE', 'Suppression'),
+        ('LOGIN', 'Connexion'),
+        ('LOGOUT', 'Déconnexion'),
+    ]
+    
+    admin = models.ForeignKey(User, on_delete=models.CASCADE)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    model_name = models.CharField(max_length=100)
+    object_id = models.IntegerField(null=True, blank=True)
+    details = models.JSONField(default=dict)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.admin.username} - {self.action} - {self.model_name}"
+    
+    class Meta:
+        verbose_name = "Journal administrateur"
+        verbose_name_plural = "Journaux administrateur"
+        ordering = ['-created_at']
+
+
+class SiteSettings(models.Model):
+    """Paramètres du site"""
+    site_name = models.CharField(max_length=100, default="Madame Tibetia")
+    site_description = models.TextField(default="L'élégance du coaching personnalisé")
+    logo = models.ImageField(upload_to='settings/', null=True, blank=True)
+    favicon = models.ImageField(upload_to='settings/', null=True, blank=True)
+    contact_email = models.EmailField(default="contact@madametibetia.com")
+    contact_phone = models.CharField(max_length=20, default="+33 6 12 34 56 78")
+    contact_address = models.TextField(default="123 Avenue de l'Élégance, 75001 Paris")
+    facebook_url = models.URLField(blank=True, null=True)
+    instagram_url = models.URLField(blank=True, null=True)
+    linkedin_url = models.URLField(blank=True, null=True)
+    twitter_url = models.URLField(blank=True, null=True)
+    maintenance_mode = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.site_name
+    
+    class Meta:
+        verbose_name = "Paramètre du site"
+        verbose_name_plural = "Paramètres du site"      
+
+
+
+# api/models.py - Ajoutez à la fin du fichier
+
+# ========== MODÈLES POUR L'AUTHENTIFICATION ET OTP ==========
+
+class OTPCode(models.Model):
+    """Modèle pour les codes OTP"""
+    email = models.EmailField()
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return f"{self.email} - {self.code} - {'Utilisé' if self.is_used else 'Valide'}"
+    
+    @property
+    def is_valid(self):
+        return not self.is_used and timezone.now() < self.expires_at
+    
+    class Meta:
+        verbose_name = "Code OTP"
+        verbose_name_plural = "Codes OTP"
+        ordering = ['-created_at']

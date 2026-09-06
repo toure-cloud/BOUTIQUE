@@ -1,122 +1,171 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+// frontend_private/src/App.jsx
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
+import NouveauProduit from './pages/Admin/Produits/NouveauProduit';
+import NouvelEvenement from './pages/Admin/Evenements/NouvelEvenement';
+import NouvelleFormation from './pages/Admin/Formations/NouvelleFormation';
+import ProduitsList from './pages/Admin/Produits/ProduitsList';
+import EvenementsList from './pages/Admin/Evenements/EvenementsList';
+import FormationsList from './pages/Admin/Formations/FormationsList';
+import PaiementsList from './pages/Admin/Paiements/PaiementsList';
+import ClientsList from './pages/Admin/Clients/ClientsList'; 
+import ParticipantsList from './pages/Admin/Evenements/ParticipantsList'; // ✅ AJOUTER CET IMPORT
+import './index.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Composant de redirection intelligente
+const HomeRedirect = () => {
+  const { user, isAdmin, loading } = useAuth();
 
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '1.2rem',
+        color: '#666'
+      }}>
+        Chargement...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (isAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return <Navigate to="/profile" replace />;
+};
+
+const App = () => {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Routes publiques */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-      <div className="ticks"></div>
+          {/* Dashboard Admin */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requireAdmin>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          {/* ✅ Routes Admin - Produits */}
+          <Route
+            path="/admin/produits"
+            element={
+              <ProtectedRoute requireAdmin>
+                <ProduitsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/produits/nouveau"
+            element={
+              <ProtectedRoute requireAdmin>
+                <NouveauProduit />
+              </ProtectedRoute>
+            }
+          />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
+          {/* ✅ Routes Admin - Événements */}
+          <Route
+            path="/admin/evenements"
+            element={
+              <ProtectedRoute requireAdmin>
+                <EvenementsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/evenements/nouveau"
+            element={
+              <ProtectedRoute requireAdmin>
+                <NouvelEvenement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+  path="/admin/evenements/:id/participants"
+  element={
+    <ProtectedRoute requireAdmin>
+      <ParticipantsList />
+    </ProtectedRoute>
+  }
+/>
 
-export default App
+          {/* ✅ Routes Admin - Formations */}
+          <Route
+            path="/admin/formations"
+            element={
+              <ProtectedRoute requireAdmin>
+                <FormationsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/formations/nouveau"
+            element={
+              <ProtectedRoute requireAdmin>
+                <NouvelleFormation />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ✅ Routes Admin - Clients */}
+          <Route
+            path="/admin/clients"
+            element={
+              <ProtectedRoute requireAdmin>
+                <ClientsList />  {/* ✅ AJOUTER CETTE ROUTE */}
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ✅ Routes Admin - Paiements */}
+          <Route
+            path="/admin/paiements"
+            element={
+              <ProtectedRoute requireAdmin>
+                <PaiementsList />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Profil */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Redirection */}
+          <Route path="/" element={<HomeRedirect />} />
+          <Route path="*" element={<HomeRedirect />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+};
+
+export default App;

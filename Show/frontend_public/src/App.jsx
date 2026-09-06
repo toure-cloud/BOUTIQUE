@@ -7,6 +7,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
 import Home from './pages/Home';
+import Formations from './pages/Formations';
 import Forfaits from './pages/Forfaits';
 import Evenements from './pages/Evenements';
 import Boutique from './pages/Boutique';
@@ -18,7 +19,8 @@ import FormationDetail from './pages/FormationDetail';
 import RelookingHommeDetail from './pages/RelookingHommeDetail'; 
 import Panier from './pages/Panier';
 import EleganceTimesOnline from './components/EleganceTimesOnline';
-import DetailsProduits from './pages/DetailsProduits';
+import DetailsProduits from './pages/ProduitDetail';
+import EvenementDetail from './pages/EvenementDetail';
 
 const theme = createTheme({
   // ... votre thème ...
@@ -40,7 +42,7 @@ function App() {
                 <Route path="/forfaits" element={<Forfaits />} />
                 <Route path="/forfaits/:id" element={<Forfaits />} />
                 <Route path="/evenements" element={<Evenements />} />
-                <Route path="/evenements/:id" element={<Evenements />} />
+                <Route path="/evenements/:id" element={<EvenementDetail />} />
                 <Route path="/boutique" element={<Boutique />} />
                 <Route path="/a-propos" element={<APropos />} />
                 <Route path="/relooking/homme" element={<RelookingHomme />} />
@@ -48,10 +50,12 @@ function App() {
                 <Route path="/relooking/atelier" element={<RelookingAtelier />} />
                 <Route path="/relooking/homme/:id" element={<RelookingHommeDetail />} />
                 <Route path="/formations/:id" element={<FormationDetail />} />
-                <Route path="/formations" element={<Home />} />
+                <Route path="/formations" element={<Formations />} />
                 <Route path="/panier" element={<Panier />} />
                 <Route path="/elegance-times" element={<EleganceTimesOnline />} />
                 <Route path="/produit/:id" element={<DetailsProduits />} />
+                
+                
               </Routes>
             </Box>
             <Footer />

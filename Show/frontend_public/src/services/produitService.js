@@ -1,28 +1,37 @@
-// src/services/produitService.js
+// frontend_public/src/services/produitService.js
 import api from './api';
 
 export const produitService = {
-  // Récupérer tous les produits
+  // ✅ Récupérer tous les produits (public)
   getProduits: async (params = {}) => {
-    const response = await api.get('/produits/', { params });
-    return response.data;
+    try {
+      const response = await api.get('/produits/', { params });
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur getProduits:', error);
+      throw error;
+    }
   },
 
-  // Récupérer un produit par ID
+  // ✅ Récupérer un produit par ID
   getProduitById: async (id) => {
-    const response = await api.get(`/produits/${id}/`);
-    return response.data;
+    try {
+      const response = await api.get(`/produits/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur getProduitById(${id}):`, error);
+      throw error;
+    }
   },
 
-  // Récupérer les produits par catégorie
+  // ✅ Récupérer les produits par catégorie
   getProduitsByCategorie: async (categorie) => {
-    const response = await api.get('/produits/par_categorie/', { params: { categorie } });
-    return response.data;
-  },
-
-  // Récupérer les produits en promotion
-  getProduitsPromotion: async () => {
-    const response = await api.get('/produits/promotion/');
-    return response.data;
+    try {
+      const response = await api.get('/produits/', { params: { categorie } });
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur getProduitsByCategorie(${categorie}):`, error);
+      throw error;
+    }
   },
 };

@@ -49,9 +49,9 @@ import {
   Verified,
   School,
   Timer,
-  MenuBook,      // ← Remplace BookOpen
-  EmojiEvents,   // ← Remplace Award
-  Group,         // ← Remplace Users
+  MenuBook,
+  EmojiEvents,
+  Group,
   VideoLibrary,
 } from '@mui/icons-material';
 import { formationService } from '../services/formationService';
@@ -75,6 +75,7 @@ const FormationDetail = () => {
   const [moyensPaiement, setMoyensPaiement] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [loadingInscription, setLoadingInscription] = useState(false);
 
   const [formData, setFormData] = useState({
     nom: '',
@@ -142,20 +143,63 @@ const FormationDetail = () => {
     return Object.keys(errors).length === 0;
   };
 
+  // ✅ CORRECTION: Inscription avec les données du formulaire
   const handleInscription = async () => {
     if (!validateForm()) return;
+    
+    setLoadingInscription(true);
+    
     try {
-      const response = await formationService.inscrire(parseInt(id), formData.notes);
+      // ✅ Récupérer les données du formulaire
+      const clientData = {
+        email: formData.email,
+        nom: formData.nom,
+        prenom: formData.prenom,
+        telephone: formData.telephone,
+      };
+      
+      console.log('📦 Données client pour inscription:', clientData);
+      
+      // ✅ Appeler le service avec les données
+      const response = await formationService.inscrire(
+        parseInt(id),
+        clientData,
+        formData.notes || ''
+      );
+      
+      console.log('✅ Inscription réussie:', response);
+      
       setInscriptionId(response.id);
       setActiveStep(1);
       setSnackbarMessage('✅ Inscription enregistrée ! Choisissez votre moyen de paiement.');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
+      
     } catch (err) {
-      console.error("Erreur d'inscription:", err);
-      setSnackbarMessage("❌ Erreur lors de l'inscription");
+      console.error("❌ Erreur d'inscription:", err);
+      
+      let errorMessage = "❌ Erreur lors de l'inscription";
+      
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.response?.data) {
+        const errors = err.response.data;
+        const firstKey = Object.keys(errors)[0];
+        if (firstKey) {
+          const firstError = errors[firstKey];
+          if (Array.isArray(firstError)) {
+            errorMessage = firstError[0];
+          } else if (typeof firstError === 'string') {
+            errorMessage = firstError;
+          }
+        }
+      }
+      
+      setSnackbarMessage(errorMessage);
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
+    } finally {
+      setLoadingInscription(false);
     }
   };
 
@@ -175,16 +219,13 @@ const FormationDetail = () => {
 
     try {
       const transactionData = {
-        inscription: inscriptionId,
-        moyen_paiement: parseInt(moyenPaiementSelected),
-        montant: formation.prix,
-        numero_transaction: numeroPaiement || 'SIMULATION-' + Date.now(),
-        details: {
-          moyen: Array.isArray(moyensPaiement) &&
-            moyensPaiement.find((m) => m.id === parseInt(moyenPaiementSelected))?.type,
-          numero: numeroPaiement || 'Simulation',
-          date: new Date().toISOString(),
-        },
+        inscriptionId: inscriptionId,
+        moyenPaiement: parseInt(moyenPaiementSelected),
+        email: formData.email,
+        nom: formData.nom,
+        prenom: formData.prenom,
+        telephone: formData.telephone,
+        notes: formData.notes || '',
       };
 
       await formationService.creerTransaction(transactionData);
@@ -268,7 +309,6 @@ const FormationDetail = () => {
           }}
         />
 
-        {/* Coach Avatar */}
         <Box
           sx={{
             position: 'absolute',
@@ -444,51 +484,71 @@ const FormationDetail = () => {
                       <TextField
                         fullWidth
                         size="small"
-                        label="Nom"
+                        label="Nom *"
                         name="nom"
                         value={formData.nom}
                         onChange={handleChange}
                         error={!!formErrors.nom}
                         helperText={formErrors.nom}
+                        required
                         sx={{ mb: 1.5 }}
-                        InputProps={{ startAdornment: <InputAdornment position="start"><Person sx={{ color: '#2E7D32', fontSize: 18 }} /></InputAdornment> }}
+                        slotProps={{
+                          input: {
+                            startAdornment: <InputAdornment position="start"><Person sx={{ color: '#2E7D32', fontSize: 18 }} /></InputAdornment>
+                          }
+                        }}
                       />
                       <TextField
                         fullWidth
                         size="small"
-                        label="Prénom"
+                        label="Prénom *"
                         name="prenom"
                         value={formData.prenom}
                         onChange={handleChange}
                         error={!!formErrors.prenom}
                         helperText={formErrors.prenom}
+                        required
                         sx={{ mb: 1.5 }}
-                        InputProps={{ startAdornment: <InputAdornment position="start"><Person sx={{ color: '#2E7D32', fontSize: 18 }} /></InputAdornment> }}
+                        slotProps={{
+                          input: {
+                            startAdornment: <InputAdornment position="start"><Person sx={{ color: '#2E7D32', fontSize: 18 }} /></InputAdornment>
+                          }
+                        }}
                       />
                       <TextField
                         fullWidth
                         size="small"
-                        label="Email"
+                        label="Email *"
                         name="email"
                         type="email"
                         value={formData.email}
                         onChange={handleChange}
                         error={!!formErrors.email}
                         helperText={formErrors.email}
+                        required
                         sx={{ mb: 1.5 }}
-                        InputProps={{ startAdornment: <InputAdornment position="start"><Email sx={{ color: '#2E7D32', fontSize: 18 }} /></InputAdornment> }}
+                        slotProps={{
+                          input: {
+                            startAdornment: <InputAdornment position="start"><Email sx={{ color: '#2E7D32', fontSize: 18 }} /></InputAdornment>
+                          }
+                        }}
                       />
                       <TextField
                         fullWidth
                         size="small"
-                        label="Téléphone"
+                        label="Téléphone *"
                         name="telephone"
                         value={formData.telephone}
                         onChange={handleChange}
                         error={!!formErrors.telephone}
                         helperText={formErrors.telephone}
+                        required
                         sx={{ mb: 1.5 }}
-                        InputProps={{ startAdornment: <InputAdornment position="start"><Phone sx={{ color: '#2E7D32', fontSize: 18 }} /></InputAdornment> }}
+                        slotProps={{
+                          input: {
+                            startAdornment: <InputAdornment position="start"><Phone sx={{ color: '#2E7D32', fontSize: 18 }} /></InputAdornment>
+                          }
+                        }}
                       />
                       <TextField
                         fullWidth
@@ -506,6 +566,7 @@ const FormationDetail = () => {
                         variant="contained"
                         fullWidth
                         onClick={handleInscription}
+                        disabled={loadingInscription}
                         sx={{
                           backgroundColor: '#2E7D32',
                           borderRadius: 50,
@@ -513,10 +574,11 @@ const FormationDetail = () => {
                           fontWeight: 700,
                           textTransform: 'none',
                           '&:hover': { backgroundColor: '#1B5E20' },
+                          '&:disabled': { backgroundColor: '#A5D6A7' },
                         }}
-                        startIcon={<Person />}
+                        startIcon={loadingInscription ? <CircularProgress size={20} sx={{ color: '#FFFFFF' }} /> : <Person />}
                       >
-                        S'inscrire
+                        {loadingInscription ? 'Inscription...' : "S'inscrire"}
                       </Button>
                     </Box>
                   )}

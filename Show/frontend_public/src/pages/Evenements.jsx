@@ -1,5 +1,5 @@
 // src/pages/Evenements.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Container,
@@ -13,151 +13,200 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Divider,
+  TextField,
+  InputAdornment,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  Pagination,
   Paper,
-  useTheme,
-  useMediaQuery,
+  Skeleton,
+  Avatar,
 } from '@mui/material';
 import {
+  Search,
+  Event,
   CalendarToday,
   LocationOn,
   People,
-  Event as EventIcon,
+  AttachMoney,
   ArrowForward,
+  Clear,
+  FilterList,
+  Star,
   CheckCircle,
+  Pending,
   Cancel,
 } from '@mui/icons-material';
 import { evenementService } from '../services/evenementService';
-
-// Import de l'image par défaut
 import heroImage from '../assets/images/tibetia.jpeg';
 
 const Evenements = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [evenements, setEvenements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('A_VENIR'); // A_VENIR, EN_COURS, TERMINE
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatut, setFilterStatut] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const statuts = [
+    { value: 'A_VENIR', label: 'À venir', color: '#3B82F6' },
+    { value: 'EN_COURS', label: 'En cours', color: '#EF4444' },
+    { value: 'TERMINE', label: 'Terminé', color: '#10B981' },
+    { value: 'ANNULE', label: 'Annulé', color: '#6B7280' },
+  ];
 
   useEffect(() => {
-    const fetchEvenements = async () => {
-      try {
-        setLoading(true);
-        const data = await evenementService.getEvenements({ statut: filter });
-        const evenementsList = Array.isArray(data) ? data : data.results || [];
-        setEvenements(evenementsList);
-        setError(null);
-      } catch (err) {
-        console.error('Erreur:', err);
-        setError('Impossible de charger les événements. Veuillez réessayer plus tard.');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchEvenements();
-  }, [filter]);
+  }, [page, filterStatut]);
 
-  const getStatusColor = (statut) => {
-    const colors = {
-      'A_VENIR': '#2C2C2C',
-      'EN_COURS': '#4CAF50',
-      'TERMINE': '#9E9E9E',
-      'ANNULE': '#F44336',
-    };
-    return colors[statut] || '#9E9E9E';
+  const fetchEvenements = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = {
+        page: page,
+        page_size: 9,
+      };
+      if (filterStatut) params.statut = filterStatut;
+      
+      const data = await evenementService.getEvenements(params);
+      console.log('📋 Événements reçus:', data);
+      
+      const evenementsList = data.results || data || [];
+      setEvenements(evenementsList);
+      setTotalCount(data.count || evenementsList.length || 0);
+      setTotalPages(Math.ceil((data.count || evenementsList.length || 0) / 9));
+    } catch (err) {
+      console.error('❌ Erreur chargement événements:', err);
+      setError('Impossible de charger les événements. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getStatusLabel = (statut) => {
-    const labels = {
-      'A_VENIR': 'À venir',
-      'EN_COURS': 'En cours',
-      'TERMINE': 'Terminé',
-      'ANNULE': 'Annulé',
-    };
-    return labels[statut] || statut;
+  const handleSearch = () => {
+    if (searchTerm.trim()) {
+      const filtered = evenements.filter(e => 
+        e.titre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        e.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        e.theme?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setEvenements(filtered);
+    } else {
+      fetchEvenements();
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    fetchEvenements();
+  };
+
+  const getStatutChip = (statut) => {
+    const config = statuts.find(s => s.value === statut);
+    if (!config) return <Chip label={statut} size="small" />;
+    
+    let icon = null;
+    if (statut === 'A_VENIR') icon = <Pending sx={{ fontSize: 14 }} />;
+    else if (statut === 'EN_COURS') icon = <CheckCircle sx={{ fontSize: 14 }} />;
+    else if (statut === 'TERMINE') icon = <CheckCircle sx={{ fontSize: 14 }} />;
+    else if (statut === 'ANNULE') icon = <Cancel sx={{ fontSize: 14 }} />;
+    
+    return (
+      <Chip
+        icon={icon}
+        label={config.label}
+        size="small"
+        sx={{
+          backgroundColor: `${config.color}15`,
+          color: config.color,
+          fontWeight: 600,
+          '& .MuiChip-icon': { color: config.color },
+        }}
+      />
+    );
   };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
-      weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   };
 
-  const filters = [
-    { value: 'A_VENIR', label: 'À venir' },
-    { value: 'EN_COURS', label: 'En cours' },
-    { value: 'TERMINE', label: 'Terminés' },
-  ];
+  const formatPrice = (price) => {
+    if (!price) return 'Gratuit';
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'XOF',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress sx={{ color: '#A0A0A0' }} />
+      <Box sx={{ bgcolor: '#FFF5F3', minHeight: '100vh', py: 6 }}>
+        <Container maxWidth="lg">
+          <Box sx={{ mb: 5, textAlign: 'center' }}>
+            <Skeleton variant="text" width={200} height={30} sx={{ mx: 'auto' }} />
+            <Skeleton variant="text" width={300} height={50} sx={{ mx: 'auto' }} />
+            <Skeleton variant="text" width={400} height={25} sx={{ mx: 'auto' }} />
+          </Box>
+          <Grid container spacing={3}>
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <Grid item xs={12} sm={6} md={4} key={item}>
+                <Card sx={{ borderRadius: '16px' }}>
+                  <Skeleton variant="rectangular" height={200} />
+                  <CardContent>
+                    <Skeleton variant="text" width="60%" />
+                    <Skeleton variant="text" width="80%" />
+                    <Skeleton variant="text" width="40%" />
+                    <Skeleton variant="rectangular" height={36} sx={{ mt: 2, borderRadius: '50px' }} />
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Container sx={{ py: 8 }}>
-        <Alert severity="error" sx={{ borderRadius: '12px' }}>
-          {error}
-        </Alert>
-      </Container>
+      <Box sx={{ bgcolor: '#FFF5F3', minHeight: '100vh', py: 6 }}>
+        <Container maxWidth="lg">
+          <Alert 
+            severity="error" 
+            sx={{ borderRadius: '12px' }}
+            action={
+              <Button color="inherit" size="small" onClick={fetchEvenements}>
+                Réessayer
+              </Button>
+            }
+          >
+            {error}
+          </Alert>
+        </Container>
+      </Box>
     );
   }
 
   return (
-    <Box>
-      {/* ===== HERO SECTION ÉVÉNEMENTS ===== */}
-      <Box
-        sx={{
-          position: 'relative',
-          height: { xs: '200px', md: '300px' },
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          backgroundColor: '#2C2C2C',
-        }}
-      >
-        <Box
-          component="img"
-          src={heroImage}
-          alt="Événements Madame Tibetia"
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center 20%',
-            opacity: 0.3,
-          }}
-        />
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'linear-gradient(135deg, rgba(44,44,44,0.8) 0%, rgba(44,44,44,0.4) 100%)',
-          }}
-        />
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+    <Box sx={{ bgcolor: '#FFF5F3', minHeight: '100vh', py: 4 }}>
+      <Container maxWidth="lg">
+        {/* ===== EN-TÊTE ===== */}
+        <Box sx={{ mb: 5, textAlign: 'center' }}>
           <Typography
             variant="overline"
             sx={{
-              color: '#A0A0A0',
-              letterSpacing: 3,
+              color: '#D4A5A0',
+              letterSpacing: 4,
               fontWeight: 600,
               fontSize: '0.75rem',
               display: 'block',
@@ -170,217 +219,230 @@ const Evenements = () => {
             variant="h2"
             sx={{
               fontWeight: 700,
-              color: '#FFFFFF',
               fontFamily: '"Playfair Display", serif',
-              fontSize: { xs: '2rem', md: '3.5rem' },
+              color: '#4A3728',
+              mb: 1,
+              fontSize: { xs: '2rem', md: '3rem' },
             }}
           >
-            Nos Événements
+            Événements
           </Typography>
           <Typography
             variant="body1"
             sx={{
-              color: '#E8E8E8',
-              mt: 1,
-              fontSize: { xs: '1rem', md: '1.2rem' },
+              color: '#7A5A4A',
+              maxWidth: '600px',
+              mx: 'auto',
+              fontSize: { xs: '0.95rem', md: '1.1rem' },
             }}
           >
-            Des moments d'élégance et de partage
+            Découvrez nos événements exclusifs et réservez votre place
           </Typography>
-        </Container>
-      </Box>
+          <Box
+            sx={{
+              width: '60px',
+              height: '3px',
+              bgcolor: '#D4A5A0',
+              mx: 'auto',
+              mt: 2,
+              borderRadius: '2px',
+            }}
+          />
+        </Box>
 
-      {/* ===== FILTRES ===== */}
-      <Box sx={{ py: 3, backgroundColor: '#F8F8F8', borderBottom: '1px solid #F0F0F0' }}>
-        <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {filters.map((f) => (
-              <Button
-                key={f.value}
-                variant={filter === f.value ? 'contained' : 'outlined'}
-                onClick={() => setFilter(f.value)}
-                sx={{
-                  borderRadius: '50px',
-                  textTransform: 'none',
-                  px: 3,
-                  py: 1,
-                  ...(filter === f.value
-                    ? {
-                        backgroundColor: '#2C2C2C',
-                        color: '#FFFFFF',
-                        '&:hover': { backgroundColor: '#A0A0A0' },
-                      }
-                    : {
-                        borderColor: '#D0D0D0',
-                        color: '#666666',
-                        '&:hover': {
-                          borderColor: '#A0A0A0',
-                          backgroundColor: 'rgba(160, 160, 160, 0.05)',
-                        },
-                      }),
-                }}
-              >
-                {f.label}
-              </Button>
-            ))}
+        {/* ===== BARRE DE RECHERCHE ===== */}
+        <Paper
+          sx={{
+            p: 2,
+            mb: 4,
+            borderRadius: '12px',
+            border: '1px solid #F5E8E5',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            alignItems: 'center',
+          }}
+        >
+          <Box sx={{ flex: 1, minWidth: 200 }}>
+            <TextField
+              fullWidth
+              placeholder="Rechercher un événement..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              size="small"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: '#94A3B8' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm && (
+                  <InputAdornment position="end">
+                    <Button size="small" onClick={handleClearSearch}>
+                      <Clear sx={{ fontSize: 16 }} />
+                    </Button>
+                  </InputAdornment>
+                ),
+              }}
+            />
           </Box>
-        </Container>
-      </Box>
 
-      {/* ===== LISTE DES ÉVÉNEMENTS ===== */}
-      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 } }}>
+          <Box sx={{ minWidth: 150 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Statut</InputLabel>
+              <Select
+                value={filterStatut}
+                onChange={(e) => setFilterStatut(e.target.value)}
+                label="Statut"
+              >
+                <MenuItem value="">Tous</MenuItem>
+                {statuts.map((s) => (
+                  <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          <Button
+            variant="outlined"
+            onClick={fetchEvenements}
+            startIcon={<FilterList />}
+            size="small"
+            sx={{ borderRadius: '8px', textTransform: 'none' }}
+          >
+            Actualiser
+          </Button>
+        </Paper>
+
+        {/* ===== STATISTIQUES ===== */}
+        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Typography variant="body2" sx={{ color: '#7A5A4A' }}>
+            <strong style={{ color: '#4A3728' }}>{totalCount}</strong> événement{totalCount > 1 ? 's' : ''} trouvé{totalCount > 1 ? 's' : ''}
+          </Typography>
+        </Box>
+
+        {/* ===== GRILLE ===== */}
         {evenements.length === 0 ? (
           <Paper
             sx={{
               p: 6,
               textAlign: 'center',
-              borderRadius: '20px',
-              backgroundColor: '#F8F8F8',
+              borderRadius: '16px',
+              bgcolor: '#FFFFFF',
+              border: '1px solid #F5E8E5',
             }}
           >
-            <EventIcon sx={{ fontSize: 60, color: '#D0D0D0', mb: 2 }} />
-            <Typography variant="h5" sx={{ color: '#666666', mb: 1 }}>
-              Aucun événement {filter === 'A_VENIR' ? 'à venir' : filter === 'EN_COURS' ? 'en cours' : 'terminé'}
+            <Event sx={{ fontSize: 60, color: '#D4A5A0', mb: 2 }} />
+            <Typography variant="h6" sx={{ color: '#4A3728', mb: 1 }}>
+              Aucun événement trouvé
             </Typography>
-            <Typography variant="body2" sx={{ color: '#999999' }}>
-              Revenez plus tard pour découvrir nos prochains événements.
+            <Typography variant="body2" sx={{ color: '#7A5A4A' }}>
+              {searchTerm || filterStatut ? 'Essayez de modifier vos filtres' : 'Revenez plus tard pour découvrir nos événements'}
             </Typography>
           </Paper>
         ) : (
-          <Grid container spacing={4}>
+          <Grid container spacing={3}>
             {evenements.map((evenement) => (
-              <Grid item xs={12} md={6} key={evenement.id}>
+              <Grid item xs={12} sm={6} md={4} key={evenement.id}>
                 <Card
                   sx={{
-                    borderRadius: '20px',
+                    borderRadius: '16px',
                     overflow: 'hidden',
-                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.08)',
-                    },
                     height: '100%',
                     display: 'flex',
-                    flexDirection: { xs: 'column', md: 'row' },
+                    flexDirection: 'column',
+                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-6px)',
+                      boxShadow: '0 20px 60px rgba(212, 165, 160, 0.25)',
+                    },
+                    border: '1px solid #F5E8E5',
+                    bgcolor: '#FFFFFF',
+                    position: 'relative',
                   }}
                 >
-                  {/* Image */}
+                  {/* Statut */}
                   <Box
                     sx={{
-                      width: { xs: '100%', md: '35%' },
-                      height: { xs: '200px', md: 'auto' },
-                      position: 'relative',
-                      flexShrink: 0,
+                      position: 'absolute',
+                      top: 12,
+                      right: 12,
+                      zIndex: 2,
                     }}
                   >
-                    <img
-                      src={evenement.image ? `${import.meta.env.VITE_MEDIA_URL}${evenement.image}` : heroImage}
-                      alt={evenement.titre}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                    {/* Badge statut */}
-                    <Chip
-                      label={getStatusLabel(evenement.statut)}
-                      size="small"
-                      sx={{
-                        position: 'absolute',
-                        top: 16,
-                        right: 16,
-                        backgroundColor: getStatusColor(evenement.statut),
-                        color: '#FFFFFF',
-                        fontWeight: 600,
-                        fontSize: '0.7rem',
-                      }}
-                    />
-                    {evenement.est_gratuit && (
-                      <Chip
-                        label="GRATUIT"
-                        size="small"
-                        sx={{
-                          position: 'absolute',
-                          bottom: 16,
-                          left: 16,
-                          backgroundColor: '#4CAF50',
-                          color: '#FFFFFF',
-                          fontWeight: 600,
-                          fontSize: '0.7rem',
-                        }}
-                      />
-                    )}
+                    {getStatutChip(evenement.statut)}
                   </Box>
 
-                  {/* Contenu */}
-                  <CardContent
-                    sx={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      p: 3,
-                    }}
-                  >
+                  {/* Image */}
+                  <CardMedia
+                    component="img"
+                    height={200}
+                    image={evenement.image ? `${import.meta.env.VITE_MEDIA_URL}${evenement.image}` : heroImage}
+                    alt={evenement.titre}
+                    sx={{ objectFit: 'cover' }}
+                  />
+
+                  <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
+                    {/* Thème */}
                     <Typography
                       variant="caption"
                       sx={{
-                        color: '#A0A0A0',
+                        color: '#D4A5A0',
                         fontWeight: 600,
+                        textTransform: 'uppercase',
                         letterSpacing: 0.5,
-                        mb: 1,
+                        display: 'block',
+                        mb: 0.5,
                       }}
                     >
                       {evenement.theme}
                     </Typography>
+
+                    {/* Titre */}
                     <Typography
-                      variant="h5"
-                      component="h3"
+                      variant="h6"
                       sx={{
                         fontWeight: 700,
-                        color: '#2C2C2C',
-                        mb: 2,
+                        color: '#4A3728',
                         fontFamily: '"Playfair Display", serif',
-                        fontSize: '1.4rem',
+                        fontSize: '1.05rem',
+                        lineHeight: 1.3,
+                        minHeight: '48px',
+                        mb: 1.5,
                       }}
                     >
                       {evenement.titre}
                     </Typography>
 
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: '#666666',
-                        mb: 2,
-                        lineHeight: 1.6,
-                        flexGrow: 1,
-                      }}
-                    >
-                      {evenement.description?.substring(0, 120)}...
-                    </Typography>
-
-                    <Divider sx={{ my: 1.5 }} />
-
                     {/* Infos */}
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <CalendarToday sx={{ color: '#A0A0A0', fontSize: 18 }} />
-                        <Typography variant="body2" sx={{ color: '#666666' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8, mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CalendarToday sx={{ fontSize: 16, color: '#D4A5A0' }} />
+                        <Typography variant="body2" sx={{ color: '#7A5A4A', fontSize: '0.85rem' }}>
                           {formatDate(evenement.date_debut)}
                         </Typography>
                       </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <LocationOn sx={{ color: '#A0A0A0', fontSize: 18 }} />
-                        <Typography variant="body2" sx={{ color: '#666666' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <LocationOn sx={{ fontSize: 16, color: '#D4A5A0' }} />
+                        <Typography variant="body2" sx={{ color: '#7A5A4A', fontSize: '0.85rem' }}>
                           {evenement.lieu}
                         </Typography>
                       </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <People sx={{ color: '#A0A0A0', fontSize: 18 }} />
-                        <Typography variant="body2" sx={{ color: '#666666' }}>
-                          {evenement.places_restantes} / {evenement.places_total} places
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <People sx={{ fontSize: 16, color: '#D4A5A0' }} />
+                        <Typography variant="body2" sx={{ color: '#7A5A4A', fontSize: '0.85rem' }}>
+                          {evenement.places_restantes || 0} places restantes
                         </Typography>
                       </Box>
+                      {!evenement.est_gratuit && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <AttachMoney sx={{ fontSize: 16, color: '#D4A5A0' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#4A3728' }}>
+                            {formatPrice(evenement.prix)}
+                          </Typography>
+                        </Box>
+                      )}
                     </Box>
 
                     {/* Bouton */}
@@ -389,30 +451,25 @@ const Evenements = () => {
                       to={`/evenements/${evenement.id}`}
                       variant="contained"
                       fullWidth
+                      disabled={evenement.places_restantes === 0 || evenement.statut === 'ANNULE'}
                       sx={{
-                        mt: 2,
-                        backgroundColor: '#2C2C2C',
-                        color: '#FFFFFF',
+                        backgroundColor: evenement.places_restantes === 0 ? '#E8E0DD' : '#4A3728',
+                        color: evenement.places_restantes === 0 ? '#B0A8A5' : '#FFF5F3',
                         borderRadius: '50px',
-                        py: 1.2,
+                        py: 1,
                         textTransform: 'none',
-                        fontSize: '0.95rem',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        transition: 'all 0.3s ease',
                         '&:hover': {
-                          backgroundColor: '#A0A0A0',
-                        },
-                        '&.Mui-disabled': {
-                          backgroundColor: '#D0D0D0',
-                          color: '#999999',
+                          backgroundColor: '#D4A5A0',
+                          color: '#4A3728',
+                          transform: 'scale(1.02)',
                         },
                       }}
-                      disabled={evenement.places_restantes === 0 || evenement.statut === 'TERMINE'}
-                      endIcon={evenement.places_restantes > 0 && evenement.statut !== 'TERMINE' ? <ArrowForward /> : null}
+                      endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
                     >
-                      {evenement.places_restantes === 0
-                        ? 'Complet'
-                        : evenement.statut === 'TERMINE'
-                        ? 'Terminé'
-                        : 'Participer'}
+                      {evenement.places_restantes === 0 ? 'Complet' : 'Voir les détails'}
                     </Button>
                   </CardContent>
                 </Card>
@@ -420,75 +477,99 @@ const Evenements = () => {
             ))}
           </Grid>
         )}
-      </Container>
 
-      {/* ===== SECTION NEWSLETTER ===== */}
-      <Box
-        sx={{
-          py: { xs: 6, md: 8 },
-          backgroundColor: '#F5F5F5',
-          borderTop: '1px solid #F0F0F0',
-        }}
-      >
-        <Container maxWidth="md" sx={{ textAlign: 'center' }}>
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 700,
-              color: '#2C2C2C',
-              mb: 2,
-              fontFamily: '"Playfair Display", serif',
-            }}
-          >
-            Restez informé
-          </Typography>
-          <Typography variant="body1" sx={{ color: '#666666', mb: 4 }}>
-            Recevez nos actualités et les prochains événements en avant-première
-          </Typography>
-          <Box
-            component="form"
-            sx={{
-              display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              gap: 2,
-              maxWidth: '500px',
-              mx: 'auto',
-            }}
-          >
-            <input
-              type="email"
-              placeholder="Votre email"
-              style={{
-                flex: 1,
-                padding: '16px 24px',
-                borderRadius: '50px',
-                border: '1px solid #E8E8E8',
-                outline: 'none',
-                backgroundColor: '#FFFFFF',
-                color: '#2C2C2C',
-                fontSize: '1rem',
-              }}
-            />
-            <Button
-              type="submit"
-              variant="contained"
+        {/* ===== PAGINATION ===== */}
+        {evenements.length > 0 && totalPages > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={(e, value) => setPage(value)}
+              color="primary"
               sx={{
-                backgroundColor: '#2C2C2C',
-                color: '#FFFFFF',
-                borderRadius: '50px',
-                px: 4,
-                py: 1.5,
-                textTransform: 'none',
-                '&:hover': {
-                  backgroundColor: '#A0A0A0',
+                '& .MuiPaginationItem-root': {
+                  borderRadius: '8px',
+                  '&.Mui-selected': {
+                    backgroundColor: '#D4A5A0',
+                    color: '#FFFFFF',
+                    '&:hover': { backgroundColor: '#C08A85' },
+                  },
                 },
               }}
-            >
-              S'inscrire
-            </Button>
+            />
           </Box>
-        </Container>
-      </Box>
+        )}
+
+        {/* ===== BANDEAU CTA ===== */}
+        <Box
+          sx={{
+            mt: 6,
+            p: { xs: 4, md: 6 },
+            borderRadius: '16px',
+            backgroundColor: '#4A3728',
+            textAlign: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -50,
+              right: -50,
+              width: 200,
+              height: 200,
+              borderRadius: '50%',
+              backgroundColor: 'rgba(212, 165, 160, 0.1)',
+            }}
+          />
+          <Typography
+            sx={{
+              fontFamily: '"Playfair Display", serif',
+              color: '#FFFFFF',
+              fontSize: { xs: '1.5rem', md: '2.2rem' },
+              fontWeight: 300,
+              mb: 1.5,
+              position: 'relative',
+              zIndex: 1,
+            }}
+          >
+            Envie de plus d'élégance ?
+          </Typography>
+          <Typography
+            sx={{
+              color: 'rgba(255,255,255,0.7)',
+              mb: 3,
+              fontSize: '1rem',
+              position: 'relative',
+              zIndex: 1,
+            }}
+          >
+            Découvrez nos formations en ligne pour développer votre style
+          </Typography>
+          <Button
+            component={Link}
+            to="/formations"
+            variant="contained"
+            endIcon={<ArrowForward />}
+            sx={{
+              backgroundColor: '#FFFFFF',
+              color: '#4A3728',
+              borderRadius: 50,
+              px: 4,
+              py: 1.4,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.95rem',
+              position: 'relative',
+              zIndex: 1,
+              '&:hover': { backgroundColor: '#F5F0ED' },
+            }}
+          >
+            Voir les formations
+          </Button>
+        </Box>
+      </Container>
     </Box>
   );
 };
