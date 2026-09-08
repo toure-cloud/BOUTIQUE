@@ -165,6 +165,15 @@ export const formationService = {
       throw error;
     }
   },
+  verifierCode: async (data) => {
+  try {
+    const response = await api.post('/verifier-code/', data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Erreur vérification code:', error);
+    throw error;
+  }
+},
 };
 
 export default formationService;

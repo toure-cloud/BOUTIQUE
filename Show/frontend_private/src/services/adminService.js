@@ -1,5 +1,5 @@
 // src/services/adminService.js
-import api from './api';
+import api from "./api";
 
 export const adminService = {
   // =============================================
@@ -7,10 +7,10 @@ export const adminService = {
   // =============================================
   getDashboardStats: async () => {
     try {
-      const response = await api.get('/admin/dashboard/stats/');
+      const response = await api.get("/admin/dashboard/stats/");
       return response.data;
     } catch (error) {
-      console.error('❌ Erreur dashboard stats:', error);
+      console.error("❌ Erreur dashboard stats:", error);
       throw error;
     }
   },
@@ -19,16 +19,18 @@ export const adminService = {
   // PRODUITS
   // =============================================
   getProduits: async (params = {}) => {
-    const response = await api.get('/produits/', { params });
+    const response = await api.get("/produits/", { params });
     return response.data;
   },
 
   createProduitWithImages: async (formData, onProgress) => {
-    const response = await api.post('/produits/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const response = await api.post("/produits/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total,
+          );
           onProgress(progress);
         }
       },
@@ -37,16 +39,18 @@ export const adminService = {
   },
 
   createProduit: async (data) => {
-    const response = await api.post('/produits/', data);
+    const response = await api.post("/produits/", data);
     return response.data;
   },
 
   updateProduitWithImages: async (id, formData, onProgress) => {
     const response = await api.put(`/produits/${id}/`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total,
+          );
           onProgress(progress);
         }
       },
@@ -68,7 +72,7 @@ export const adminService = {
   // ÉVÉNEMENTS
   // =============================================
   getEvenements: async (params = {}) => {
-    const response = await api.get('/evenements/', { params });
+    const response = await api.get("/evenements/", { params });
     return response.data;
   },
 
@@ -78,11 +82,13 @@ export const adminService = {
   },
 
   createEvenementWithImage: async (formData, onProgress) => {
-    const response = await api.post('/evenements/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const response = await api.post("/evenements/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total,
+          );
           onProgress(progress);
         }
       },
@@ -91,7 +97,7 @@ export const adminService = {
   },
 
   createEvenement: async (data) => {
-    const response = await api.post('/evenements/', data);
+    const response = await api.post("/evenements/", data);
     return response.data;
   },
 
@@ -106,37 +112,66 @@ export const adminService = {
   },
 
   // =============================================
-  // PARTICIPATIONS (Inscriptions aux événements)
+  // PARTICIPATIONS ÉVÉNEMENTS (ADMIN)
   // =============================================
+  getParticipantsEvenements: async (params = {}) => {
+    try {
+      const response = await api.get("/admin/participations/", { params });
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur getParticipantsEvenements:", error);
+      throw error;
+    }
+  },
+
   getParticipantsByEvenement: async (evenementId) => {
-    const response = await api.get(`/participations/?evenement=${evenementId}`);
-    return response.data;
+    try {
+      const response = await api.get(
+        `/admin/participations/?evenement=${evenementId}`,
+      );
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur getParticipantsByEvenement:", error);
+      throw error;
+    }
   },
 
   deleteParticipation: async (id) => {
-    const response = await api.delete(`/participations/${id}/`);
-    return response.data;
+    try {
+      const response = await api.delete(`/admin/participations/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur deleteParticipation:", error);
+      throw error;
+    }
   },
 
   updateParticipation: async (id, data) => {
-    const response = await api.put(`/participations/${id}/`, data);
-    return response.data;
+    try {
+      const response = await api.put(`/admin/participations/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur updateParticipation:", error);
+      throw error;
+    }
   },
 
   // =============================================
   // FORMATIONS
   // =============================================
   getFormations: async (params = {}) => {
-    const response = await api.get('/formations/', { params });
+    const response = await api.get("/formations/", { params });
     return response.data;
   },
 
   createFormationWithImage: async (formData, onProgress) => {
-    const response = await api.post('/formations/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const response = await api.post("/formations/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total,
+          );
           onProgress(progress);
         }
       },
@@ -145,7 +180,7 @@ export const adminService = {
   },
 
   createFormation: async (data) => {
-    const response = await api.post('/formations/', data);
+    const response = await api.post("/formations/", data);
     return response.data;
   },
 
@@ -160,33 +195,103 @@ export const adminService = {
   },
 
   // =============================================
+  // INSCRIPTIONS FORMATIONS (ADMIN)
+  // =============================================
+  getInscriptionsFormations: async (params = {}) => {
+    try {
+      const response = await api.get("/admin/inscriptions-formation/", {
+        params,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur getInscriptionsFormations:", error);
+      throw error;
+    }
+  },
+
+  updateInscription: async (id, data) => {
+    try {
+      // ✅ Envoyer seulement le statut
+      const payload = {
+        statut: data.statut,
+      };
+      const response = await api.patch(
+        `/admin/inscriptions-formation/${id}/`,
+        payload,
+      );
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur updateInscription:", error);
+      throw error;
+    }
+  },
+
+  // src/services/adminService.js
+
+  // ✅ Générer un code d'accès
+  genererCodeAcces: async (inscriptionId, data) => {
+    try {
+      // ✅ Vérifier que l'URL est correcte
+      const response = await api.post(
+        `/admin/inscriptions-formation/${inscriptionId}/generer_code/`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur genererCodeAcces:", error);
+      console.error("📋 Réponse:", error.response?.data);
+      throw error;
+    }
+  },
+
+  // =============================================
   // PAIEMENTS
   // =============================================
   getPaiements: async (params = {}) => {
-    const response = await api.get('/admin/paiements/', { params });
-    return response.data;
+    try {
+      const response = await api.get("/admin/paiements/", { params });
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur getPaiements:", error);
+      throw error;
+    }
   },
 
   validerPaiement: async (id) => {
-    const response = await api.post(`/admin/paiements/${id}/valider/`);
-    return response.data;
+    try {
+      const response = await api.post(`/admin/paiements/${id}/valider/`);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur validerPaiement:", error);
+      throw error;
+    }
   },
 
   annulerPaiement: async (id) => {
-    const response = await api.post(`/admin/paiements/${id}/annuler/`);
-    return response.data;
+    try {
+      const response = await api.post(`/admin/paiements/${id}/annuler/`);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur annulerPaiement:", error);
+      throw error;
+    }
   },
 
   rembourserPaiement: async (id) => {
-    const response = await api.post(`/admin/paiements/${id}/rembourser/`);
-    return response.data;
+    try {
+      const response = await api.post(`/admin/paiements/${id}/rembourser/`);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur rembourserPaiement:", error);
+      throw error;
+    }
   },
 
   // =============================================
   // CLIENTS / UTILISATEURS
   // =============================================
   getClients: async (params = {}) => {
-    const response = await api.get('/admin/clients/', { params });
+    const response = await api.get("/admin/clients/", { params });
     return response.data;
   },
 
@@ -196,7 +301,7 @@ export const adminService = {
   },
 
   createClient: async (data) => {
-    const response = await api.post('/admin/clients/', data);
+    const response = await api.post("/admin/clients/", data);
     return response.data;
   },
 
@@ -211,15 +316,48 @@ export const adminService = {
   },
 
   // =============================================
+  // COMMANDES
+  // =============================================
+  getCommandes: async (params = {}) => {
+  try {
+    const response = await api.get('/admin/commandes/', { params });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Erreur getCommandes:', error);
+    throw error;
+  }
+},
+
+  getCommande: async (id) => {
+    try {
+      const response = await api.get(`/admin/commandes/${id}/`);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur getCommande(${id}):`, error);
+      throw error;
+    }
+  },
+
+  updateCommande: async (id, data) => {
+    try {
+      const response = await api.patch(`/admin/commandes/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur updateCommande(${id}):`, error);
+      throw error;
+    }
+  },
+
+  // =============================================
   // FORFAITS
   // =============================================
   getForfaits: async (params = {}) => {
-    const response = await api.get('/forfaits/', { params });
+    const response = await api.get("/forfaits/", { params });
     return response.data;
   },
 
   createForfait: async (data) => {
-    const response = await api.post('/forfaits/', data);
+    const response = await api.post("/forfaits/", data);
     return response.data;
   },
 
@@ -237,12 +375,12 @@ export const adminService = {
   // RELOOKING FEMME
   // =============================================
   getRubriquesFemme: async (params = {}) => {
-    const response = await api.get('/relooking-femme/', { params });
+    const response = await api.get("/relooking-femme/", { params });
     return response.data;
   },
 
   createRubriqueFemme: async (data) => {
-    const response = await api.post('/relooking-femme/', data);
+    const response = await api.post("/relooking-femme/", data);
     return response.data;
   },
 
@@ -260,12 +398,12 @@ export const adminService = {
   // RELOOKING HOMME
   // =============================================
   getRubriquesHomme: async (params = {}) => {
-    const response = await api.get('/relooking-homme/', { params });
+    const response = await api.get("/relooking-homme/", { params });
     return response.data;
   },
 
   createRubriqueHomme: async (data) => {
-    const response = await api.post('/relooking-homme/', data);
+    const response = await api.post("/relooking-homme/", data);
     return response.data;
   },
 
@@ -283,12 +421,12 @@ export const adminService = {
   // ATELIERS
   // =============================================
   getAteliers: async (params = {}) => {
-    const response = await api.get('/ateliers/', { params });
+    const response = await api.get("/ateliers/", { params });
     return response.data;
   },
 
   createAtelier: async (data) => {
-    const response = await api.post('/ateliers/', data);
+    const response = await api.post("/ateliers/", data);
     return response.data;
   },
 
@@ -306,23 +444,22 @@ export const adminService = {
   // PARAMÈTRES / CONFIGURATION
   // =============================================
   getSiteSettings: async () => {
-    const response = await api.get('/admin/site-settings/');
+    const response = await api.get("/admin/site-settings/");
     return response.data;
   },
 
   updateSiteSettings: async (data) => {
-    const response = await api.put('/admin/site-settings/', data);
+    const response = await api.put("/admin/site-settings/", data);
     return response.data;
   },
 
-  // Moyens de paiement
   getMoyensPaiement: async () => {
-    const response = await api.get('/admin/moyens-paiement/');
+    const response = await api.get("/moyens-paiement/");
     return response.data;
   },
 
   updateMoyensPaiement: async (id, data) => {
-    const response = await api.put(`/admin/moyens-paiement/${id}/`, data);
+    const response = await api.put(`/moyens-paiement/${id}/`, data);
     return response.data;
   },
 
@@ -330,33 +467,9 @@ export const adminService = {
   // LOGS
   // =============================================
   getLogs: async (params = {}) => {
-    const response = await api.get('/admin/admin-logs/', { params });
+    const response = await api.get("/admin/admin-logs/", { params });
     return response.data;
   },
-updateInscription: async (id, data) => {
-  try {
-    // ✅ Envoyer seulement le statut
-    const payload = {
-      statut: data.statut
-    };
-    const response = await api.patch(`/admin/inscriptions-formation/${id}/`, payload);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Erreur updateInscription:', error);
-    throw error;
-  }
-},
-
-// ✅ Générer un code d'accès
-genererCodeAcces: async (inscriptionId, data) => {
-  try {
-    const response = await api.post(`/admin/inscriptions-formation/${inscriptionId}/generer_code/`, data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Erreur genererCodeAcces:', error);
-    throw error;
-  }
-},
 };
 
 export default adminService;

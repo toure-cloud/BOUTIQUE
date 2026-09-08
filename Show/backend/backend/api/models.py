@@ -2,8 +2,48 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
-from datetime import datetime
 from django.utils import timezone
+
+
+# =============================================
+# ✅ AUTHENTIFICATION & UTILISATEURS
+# =============================================
+
+class Client(models.Model):
+    """Modèle pour les clients (avec authentification par mot de passe)"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    nom = models.CharField(max_length=100)
+    prenom = models.CharField(max_length=100)
+    email = models.EmailField(unique=True)
+    telephone = models.CharField(max_length=20)
+    adresse = models.TextField(blank=True)
+    password = models.CharField(max_length=128, blank=True)  # ✅ Mot de passe haché
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def set_password(self, raw_password):
+        """Hache et enregistre le mot de passe"""
+        from django.contrib.auth.hashers import make_password
+        self.password = make_password(raw_password)
+        self.save()
+
+    def check_password(self, raw_password):
+        """Vérifie si le mot de passe est correct"""
+        from django.contrib.auth.hashers import check_password
+        return check_password(raw_password, self.password)
+
+    def __str__(self):
+        return f"{self.prenom} {self.nom}"
+
+    class Meta:
+        verbose_name = "Client"
+        verbose_name_plural = "Clients"
+        ordering = ['-created_at']
+
+
+# =============================================
+# ✅ COACH & FORFAITS
+# =============================================
 
 class Coach(models.Model):
     """Modèle pour le coach (Madame T)"""
@@ -15,7 +55,7 @@ class Coach(models.Model):
     email = models.EmailField()
     telephone = models.CharField(max_length=20)
     specialites = models.TextField()
-    experience = models.IntegerField()  # Années d'expérience
+    experience = models.IntegerField()
     facebook = models.URLField(blank=True, null=True)
     instagram = models.URLField(blank=True, null=True)
     linkedin = models.URLField(blank=True, null=True)
@@ -50,62 +90,18 @@ class Forfait(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"{self.nom} - {self.prix} CFA"
+
     class Meta:
         verbose_name = "Forfait"
         verbose_name_plural = "Forfaits"
         ordering = ['-created_at']
 
-    def __str__(self):
-        return f"{self.nom} - {self.prix} CFA"
 
-
-# api/models.py
-class Client(models.Model):
-    """Modèle pour les clients"""
-    user = models.OneToOneField(
-        User, 
-        on_delete=models.CASCADE,
-        null=True,  # ✅ Permettre NULL
-        blank=True  # ✅ Permettre vide
-    )
-    nom = models.CharField(max_length=100)
-    prenom = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
-    telephone = models.CharField(max_length=20)
-    adresse = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.prenom} {self.nom}"
-
-    class Meta:
-        verbose_name = "Client"
-        verbose_name_plural = "Clients"
-
-
-class RendezVous(models.Model):
-    """Modèle pour les rendez-vous"""
-    STATUT_CHOICES = [
-        ('EN_ATTENTE', 'En attente'),
-        ('CONFIRME', 'Confirmé'),
-        ('ANNULE', 'Annulé'),
-        ('TERMINE', 'Terminé'),
-    ]
-    
-    client = models.ForeignKey(Client, on_delete=models.CASCADE)
-    coach = models.ForeignKey(Coach, on_delete=models.CASCADE)
-    forfait = models.ForeignKey(Forfait, on_delete=models.CASCADE)
-    date_rendez_vous = models.DateTimeField()
-    duree = models.IntegerField(help_text="Durée en minutes")
-    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='EN_ATTENTE')
-    notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.client} - {self.date_rendez_vous}"
-
+# =============================================
+# ✅ ÉVÉNEMENTS & PARTICIPATIONS
+# =============================================
 
 class Evenement(models.Model):
     """Modèle pour les événements"""
@@ -138,6 +134,17 @@ class Evenement(models.Model):
 
     def __str__(self):
         return f"{self.titre} - {self.date_debut}"
+    
+    @property
+    def image_url(self):
+        if self.image:
+            return self.image.url
+        return None
+
+    class Meta:
+        verbose_name = "Événement"
+        verbose_name_plural = "Événements"
+        ordering = ['-date_debut']
 
 
 class ParticipationEvenement(models.Model):
@@ -157,10 +164,17 @@ class ParticipationEvenement(models.Model):
     
     class Meta:
         unique_together = ['evenement', 'client']
+        verbose_name = "Participation événement"
+        verbose_name_plural = "Participations événements"
 
     def __str__(self):
         return f"{self.client} - {self.evenement}"
-    
+
+
+# =============================================
+# ✅ PRODUITS & BOUTIQUE
+# =============================================
+
 class Produit(models.Model):
     """Modèle pour les produits de la boutique"""
     CATEGORIE_CHOICES = [
@@ -177,8 +191,6 @@ class Produit(models.Model):
     prix = models.DecimalField(max_digits=10, decimal_places=2)
     categorie = models.CharField(max_length=20, choices=CATEGORIE_CHOICES)
     image_principale = models.ImageField(upload_to='produits/')
-    # ✅ Supprimer ou commenter images_secondaires
-    # images_secondaires = models.JSONField(default=list, blank=True)  # ❌ À SUPPRIMER
     taille = models.CharField(max_length=20, blank=True)
     quantite_stock = models.IntegerField(validators=[MinValueValidator(0)])
     est_disponible = models.BooleanField(default=True)
@@ -202,6 +214,12 @@ class Produit(models.Model):
     @property
     def prix_formate(self):
         return f"{int(self.prix_actuel)} CFA"
+    
+    @property
+    def image_url(self):
+        if self.image_principale:
+            return self.image_principale.url
+        return None
 
     class Meta:
         verbose_name = "Produit"
@@ -209,7 +227,6 @@ class Produit(models.Model):
         ordering = ['-created_at']
 
 
-# ✅ NOUVEAU MODÈLE : Images secondaires
 class ImageProduit(models.Model):
     """Modèle pour les images secondaires d'un produit"""
     produit = models.ForeignKey(Produit, on_delete=models.CASCADE, related_name='images_secondaires')
@@ -226,14 +243,41 @@ class ImageProduit(models.Model):
         ordering = ['ordre']
 
 
+class AvisProduit(models.Model):
+    """Modèle pour les avis sur les produits"""
+    produit = models.ForeignKey(Produit, on_delete=models.CASCADE, related_name='avis')
+    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    note = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    commentaire = models.TextField()
+    date_creation = models.DateTimeField(auto_now_add=True)
+    est_approuve = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return f"{self.client} - {self.produit} - {self.note} étoiles"
+    
+    class Meta:
+        verbose_name = "Avis produit"
+        verbose_name_plural = "Avis produits"
+        ordering = ['-date_creation']
+        unique_together = ['produit', 'client']
+
+
+# =============================================
+# ✅ PANIER & COMMANDES
+# =============================================
+
 class Panier(models.Model):
     """Modèle pour le panier d'achat"""
-    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='paniers')
     date_creation = models.DateTimeField(auto_now_add=True)
     est_valide = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Panier de {self.client}"
+
+    class Meta:
+        verbose_name = "Panier"
+        verbose_name_plural = "Paniers"
 
 
 class LignePanier(models.Model):
@@ -249,6 +293,10 @@ class LignePanier(models.Model):
 
     def __str__(self):
         return f"{self.produit} x {self.quantite}"
+
+    class Meta:
+        verbose_name = "Ligne panier"
+        verbose_name_plural = "Lignes panier"
 
 
 class Commande(models.Model):
@@ -275,6 +323,11 @@ class Commande(models.Model):
     def __str__(self):
         return f"Commande #{self.id} - {self.client}"
 
+    class Meta:
+        verbose_name = "Commande"
+        verbose_name_plural = "Commandes"
+        ordering = ['-date_commande']
+
 
 class LigneCommande(models.Model):
     """Modèle pour les lignes de commande"""
@@ -290,6 +343,14 @@ class LigneCommande(models.Model):
     def __str__(self):
         return f"{self.produit} x {self.quantite}"
 
+    class Meta:
+        verbose_name = "Ligne commande"
+        verbose_name_plural = "Lignes commande"
+
+
+# =============================================
+# ✅ RELOOKING & ATELIERS
+# =============================================
 
 class RubriqueRelookingFemme(models.Model):
     """Modèle pour les rubriques de relooking femme"""
@@ -323,6 +384,12 @@ class RubriqueRelookingFemme(models.Model):
     @property
     def prix_formate(self):
         return f"{int(self.prix)} CFA"
+    
+    @property
+    def image_url(self):
+        if self.image:
+            return self.image.url
+        return None
     
     class Meta:
         verbose_name = "Rubrique Relooking Femme"
@@ -359,6 +426,12 @@ class RubriqueRelookingHomme(models.Model):
     @property
     def prix_formate(self):
         return f"{int(self.prix)} CFA"
+    
+    @property
+    def image_url(self):
+        if self.image:
+            return self.image.url
+        return None
     
     class Meta:
         verbose_name = "Rubrique Relooking Homme"
@@ -401,11 +474,21 @@ class RubriqueAtelier(models.Model):
     def places_display(self):
         return f"{self.nb_personnes_min} - {self.nb_personnes_max} personnes"
     
+    @property
+    def image_url(self):
+        if self.image:
+            return self.image.url
+        return None
+    
     class Meta:
         verbose_name = "Atelier Relooking en Groupe"
         verbose_name_plural = "Ateliers Relooking en Groupe"
         ordering = ['ordre', 'nom']
 
+
+# =============================================
+# ✅ FORMATIONS EN LIGNE & INSCRIPTIONS
+# =============================================
 
 class FormationEnLigne(models.Model):
     """Modèle pour les formations en ligne (Elegance Times online)"""
@@ -445,6 +528,12 @@ class FormationEnLigne(models.Model):
     @property
     def est_replay(self):
         return self.statut == 'REPLAY'
+    
+    @property
+    def image_url(self):
+        if self.image:
+            return self.image.url
+        return None
     
     class Meta:
         verbose_name = "Formation en ligne"
@@ -515,6 +604,10 @@ class InscriptionFormation(models.Model):
         unique_together = ['formation', 'client']
 
 
+# =============================================
+# ✅ PAIEMENTS & TRANSACTIONS
+# =============================================
+
 class MoyenPaiement(models.Model):
     """Modèle pour les moyens de paiement disponibles"""
     TYPE_CHOICES = [
@@ -528,11 +621,20 @@ class MoyenPaiement(models.Model):
     nom = models.CharField(max_length=50)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     logo = models.ImageField(upload_to='paiement/', null=True, blank=True)
+    description = models.TextField(blank=True, help_text="Description du moyen de paiement")
     est_actif = models.BooleanField(default=True)
     ordre = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return self.nom
+    
+    @property
+    def logo_url(self):
+        if self.logo:
+            return self.logo.url
+        return None
     
     class Meta:
         verbose_name = "Moyen de paiement"
@@ -570,26 +672,9 @@ class TransactionPaiement(models.Model):
         ordering = ['-date_creation']
 
 
-# ========== NOUVEAUX MODÈLES AJOUTÉS ==========
-
-class AvisProduit(models.Model):
-    """Modèle pour les avis sur les produits"""
-    produit = models.ForeignKey(Produit, on_delete=models.CASCADE, related_name='avis')
-    client = models.ForeignKey(Client, on_delete=models.CASCADE)
-    note = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
-    commentaire = models.TextField()
-    date_creation = models.DateTimeField(auto_now_add=True)
-    est_approuve = models.BooleanField(default=True)
-    
-    def __str__(self):
-        return f"{self.client} - {self.produit} - {self.note} étoiles"
-    
-    class Meta:
-        verbose_name = "Avis produit"
-        verbose_name_plural = "Avis produits"
-        ordering = ['-date_creation']
-        unique_together = ['produit', 'client']
-
+# =============================================
+# ✅ PROMOTIONS & WISHLIST
+# =============================================
 
 class Promotion(models.Model):
     """Modèle pour les promotions spéciales"""
@@ -641,6 +726,37 @@ class Wishlist(models.Model):
         return f"{self.client} - {self.produit}"
 
 
+# =============================================
+# ✅ RENDEZ-VOUS & ACTUALITÉS & FAQ
+# =============================================
+
+class RendezVous(models.Model):
+    """Modèle pour les rendez-vous"""
+    STATUT_CHOICES = [
+        ('EN_ATTENTE', 'En attente'),
+        ('CONFIRME', 'Confirmé'),
+        ('ANNULE', 'Annulé'),
+        ('TERMINE', 'Terminé'),
+    ]
+    
+    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    coach = models.ForeignKey(Coach, on_delete=models.CASCADE)
+    forfait = models.ForeignKey(Forfait, on_delete=models.CASCADE)
+    date_rendez_vous = models.DateTimeField()
+    duree = models.IntegerField(help_text="Durée en minutes")
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='EN_ATTENTE')
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.client} - {self.date_rendez_vous}"
+
+    class Meta:
+        verbose_name = "Rendez-vous"
+        verbose_name_plural = "Rendez-vous"
+
+
 class Actualite(models.Model):
     """Modèle pour les actualités / blog"""
     titre = models.CharField(max_length=200)
@@ -659,6 +775,12 @@ class Actualite(models.Model):
     
     def __str__(self):
         return self.titre
+    
+    @property
+    def image_url(self):
+        if self.image:
+            return self.image.url
+        return None
     
     class Meta:
         verbose_name = "Actualité"
@@ -682,6 +804,10 @@ class FAQ(models.Model):
         verbose_name_plural = "FAQ"
         ordering = ['ordre']
 
+
+# =============================================
+# ✅ NEWSLETTER, CONTACT & NOTIFICATIONS
+# =============================================
 
 class Newsletter(models.Model):
     """Modèle pour les abonnés à la newsletter"""
@@ -755,10 +881,9 @@ class Notification(models.Model):
         ordering = ['-date_creation']
 
 
-
-  #### partie frontend private
-
-  # api/models.py - Ajoutez ces modèles pour l'administration
+# =============================================
+# ✅ ADMIN & CONFIGURATION
+# =============================================
 
 class AdminLog(models.Model):
     """Journal des actions des administrateurs"""
@@ -809,13 +934,8 @@ class SiteSettings(models.Model):
     
     class Meta:
         verbose_name = "Paramètre du site"
-        verbose_name_plural = "Paramètres du site"      
+        verbose_name_plural = "Paramètres du site"
 
-
-
-# api/models.py - Ajoutez à la fin du fichier
-
-# ========== MODÈLES POUR L'AUTHENTIFICATION ET OTP ==========
 
 class OTPCode(models.Model):
     """Modèle pour les codes OTP"""

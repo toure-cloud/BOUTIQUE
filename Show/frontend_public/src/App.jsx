@@ -17,10 +17,14 @@ import RelookingFemme from './pages/RelookingFemme';
 import RelookingAtelier from './pages/RelookingAtelier';
 import FormationDetail from './pages/FormationDetail'; 
 import RelookingHommeDetail from './pages/RelookingHommeDetail'; 
-import Panier from './pages/Panier';
+import Panier from './pages/Panier'; // ✅ UN SEUL IMPORT
 import EleganceTimesOnline from './components/EleganceTimesOnline';
 import DetailsProduits from './pages/ProduitDetail';
 import EvenementDetail from './pages/EvenementDetail';
+import VerifierCode from './pages/VerifierCode';
+import FormationLive from './pages/FormationLive';
+import CommandeSuccess from './pages/CommandeSuccess';
+import Commande from './pages/Commande';
 
 const theme = createTheme({
   // ... votre thème ...
@@ -51,11 +55,13 @@ function App() {
                 <Route path="/relooking/homme/:id" element={<RelookingHommeDetail />} />
                 <Route path="/formations/:id" element={<FormationDetail />} />
                 <Route path="/formations" element={<Formations />} />
-                <Route path="/panier" element={<Panier />} />
+                <Route path="/panier" element={<Panier />} /> {/* ✅ UNE SEULE ROUTE */}
                 <Route path="/elegance-times" element={<EleganceTimesOnline />} />
                 <Route path="/produit/:id" element={<DetailsProduits />} />
-                
-                
+                <Route path="/verifier-code" element={<VerifierCode />} />
+                <Route path="/formation/:id/live" element={<FormationLive />} />
+                <Route path="/commande/success" element={<CommandeSuccess />} />
+                <Route path="/commande" element={<Commande />} />
               </Routes>
             </Box>
             <Footer />

@@ -1,22 +1,24 @@
 // frontend_private/src/App.jsx
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
-import NouveauProduit from './pages/Admin/Produits/NouveauProduit';
-import NouvelEvenement from './pages/Admin/Evenements/NouvelEvenement';
-import NouvelleFormation from './pages/Admin/Formations/NouvelleFormation';
-import ProduitsList from './pages/Admin/Produits/ProduitsList';
-import EvenementsList from './pages/Admin/Evenements/EvenementsList';
-import FormationsList from './pages/Admin/Formations/FormationsList';
-import PaiementsList from './pages/Admin/Paiements/PaiementsList';
-import ClientsList from './pages/Admin/Clients/ClientsList'; 
-import ParticipantsList from './pages/Admin/Evenements/ParticipantsList'; // ✅ AJOUTER CET IMPORT
-import './index.css';
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
+import NouveauProduit from "./pages/Admin/Produits/NouveauProduit";
+import NouvelEvenement from "./pages/Admin/Evenements/NouvelEvenement";
+import NouvelleFormation from "./pages/Admin/Formations/NouvelleFormation";
+import ProduitsList from "./pages/Admin/Produits/ProduitsList";
+import EvenementsList from "./pages/Admin/Evenements/EvenementsList";
+import FormationsList from "./pages/Admin/Formations/FormationsList";
+import PaiementsList from "./pages/Admin/Paiements/PaiementsList";
+import ClientsList from "./pages/Admin/Clients/ClientsList";
+import ParticipantsList from "./pages/Admin/Evenements/ParticipantsList";
+import ParticipantsEvenements from "./pages/Admin/Evenements/ParticipantsEvenements";
+import CommandesList from "./pages/Admin/Commandes/CommandesList";
+import InscriptionsFormations from "./pages/Admin/Formations/InscriptionsFormations"; // ✅ AJOUTER CET IMPORT
+import "./index.css";
 
 // Composant de redirection intelligente
 const HomeRedirect = () => {
@@ -24,14 +26,16 @@ const HomeRedirect = () => {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontSize: '1.2rem',
-        color: '#666'
-      }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          fontSize: "1.2rem",
+          color: "#666",
+        }}
+      >
         Chargement...
       </div>
     );
@@ -55,7 +59,6 @@ const App = () => {
         <Routes>
           {/* Routes publiques */}
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
 
           {/* Dashboard Admin */}
           <Route
@@ -66,6 +69,14 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/commandes"
+            element={
+              <ProtectedRoute requireAdmin>
+                <CommandesList />
+              </ProtectedRoute>
+            }
+          />
 
           {/* ✅ Routes Admin - Produits */}
           <Route
@@ -73,6 +84,23 @@ const App = () => {
             element={
               <ProtectedRoute requireAdmin>
                 <ProduitsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/participants-evenements"
+            element={
+              <ProtectedRoute requireAdmin>
+                <ParticipantsEvenements />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/inscriptions-formations"
+            element={
+              <ProtectedRoute requireAdmin>
+                <InscriptionsFormations />
               </ProtectedRoute>
             }
           />
@@ -103,13 +131,13 @@ const App = () => {
             }
           />
           <Route
-  path="/admin/evenements/:id/participants"
-  element={
-    <ProtectedRoute requireAdmin>
-      <ParticipantsList />
-    </ProtectedRoute>
-  }
-/>
+            path="/admin/evenements/:id/participants"
+            element={
+              <ProtectedRoute requireAdmin>
+                <ParticipantsList />
+              </ProtectedRoute>
+            }
+          />
 
           {/* ✅ Routes Admin - Formations */}
           <Route
@@ -134,7 +162,7 @@ const App = () => {
             path="/admin/clients"
             element={
               <ProtectedRoute requireAdmin>
-                <ClientsList />  {/* ✅ AJOUTER CETTE ROUTE */}
+                <ClientsList /> {/* ✅ AJOUTER CETTE ROUTE */}
               </ProtectedRoute>
             }
           />

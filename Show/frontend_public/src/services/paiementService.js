@@ -1,34 +1,52 @@
-// src/services/paiementService.js
+// frontend_public/src/services/paiementService.js
 import api from './api';
 
 export const paiementService = {
-  // Récupérer les moyens de paiement disponibles
+  // ✅ Récupérer les moyens de paiement
   getMoyensPaiement: async () => {
-    const response = await api.get('/moyens-paiement/');
-    return response.data;
+    try {
+      const response = await api.get('/moyens-paiement/');
+      const data = response.data;
+      return Array.isArray(data) ? data : data.results || [];
+    } catch (error) {
+      console.error('❌ Erreur getMoyensPaiement:', error);
+      throw error;
+    }
   },
 
-  // Créer une transaction de paiement
-  creerTransaction: async (data) => {
-    const response = await api.post('/transactions/', data);
-    return response.data;
+  // ✅ Générer un QR code de paiement
+  genererQRCode: async (montant, moyenPaiementId) => {
+    try {
+      const response = await api.post('/paiements/generer-qr/', {
+        montant: montant,
+        moyen_paiement: moyenPaiementId,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur generation QR code:', error);
+      throw error;
+    }
   },
 
-  // Confirmer un paiement
-  confirmerPaiement: async (transactionId) => {
-    const response = await api.post(`/transactions/${transactionId}/confirmer_paiement/`);
-    return response.data;
+  // ✅ Effectuer un paiement par carte bancaire
+  paiementCarte: async (data) => {
+    try {
+      const response = await api.post('/paiements/carte/', data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur paiement carte:', error);
+      throw error;
+    }
   },
 
-  // Annuler un paiement
-  annulerPaiement: async (transactionId) => {
-    const response = await api.post(`/transactions/${transactionId}/annuler_paiement/`);
-    return response.data;
-  },
-
-  // Récupérer les transactions du client
-  getMesTransactions: async () => {
-    const response = await api.get('/transactions/');
-    return response.data;
+  // ✅ Vérifier le statut d'un paiement
+  verifierStatutPaiement: async (reference) => {
+    try {
+      const response = await api.get(`/paiements/statut/${reference}/`);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur verification statut:', error);
+      throw error;
+    }
   },
 };

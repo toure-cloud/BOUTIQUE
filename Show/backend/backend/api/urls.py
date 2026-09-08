@@ -1,11 +1,19 @@
 # api/urls.py
 from django.urls import path, include
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.routers import DefaultRouter
+from .views import CommandeDepuisPanierView
 from .views import (
     CustomTokenObtainView,
     CustomTokenRefreshView,
     CurrentUserView,
     DashboardStatsView,
+    RequestOTPView,
+    VerifyOTPView,
+    RegisterView,
+    ClientRegisterView,   # ✅ Vue (pas serializer)
+    ClientLoginView,
+    PanierView,
     PaiementViewSet,
     FormationEnLigneViewSet,
     EvenementViewSet,
@@ -52,18 +60,22 @@ router.register(r'actualites', ActualiteViewSet, basename='actualites')
 router.register(r'faq', FAQViewSet, basename='faq')
 router.register(r'moyens-paiement', MoyenPaiementViewSet, basename='moyens-paiement')
 router.register(r'participations', ParticipationEvenementViewSet, basename='participations')
-router.register(r'paiements', PaiementViewSet, basename='paiements')
+router.register(r'paiements', PaiementViewSet, basename='paiements-public')
 router.register(r'inscriptions-formation', InscriptionFormationViewSet, basename='inscriptions-formation')
 router.register(r'transactions', TransactionPaiementViewSet, basename='transactions')
 
+# ✅ Route publique pour la création de commandes
+router.register(r'commandes', CommandeViewSet, basename='commandes-public')
+
 # =============================================
-# ✅ ROUTES ADMIN
+# ✅ ROUTES ADMIN (avec préfixe admin)
 # =============================================
 router.register(r'admin/clients', ClientViewSet, basename='admin-clients')
 router.register(r'admin/rendezvous', RendezVousViewSet, basename='admin-rendezvous')
 router.register(r'admin/participations', ParticipationEvenementViewSet, basename='admin-participations')
 router.register(r'admin/paniers', PanierViewSet, basename='admin-paniers')
 router.register(r'admin/commandes', CommandeViewSet, basename='admin-commandes')
+
 router.register(r'admin/codes-acces', CodeAccesFormationViewSet, basename='admin-codes-acces')
 router.register(r'admin/inscriptions-formation', InscriptionFormationViewSet, basename='admin-inscriptions-formation')
 router.register(r'admin/moyens-paiement', MoyenPaiementViewSet, basename='admin-moyens-paiement')
@@ -75,12 +87,28 @@ router.register(r'admin/contacts', ContactMessageViewSet, basename='admin-contac
 router.register(r'admin/notifications', NotificationViewSet, basename='admin-notifications')
 router.register(r'admin/admin-logs', AdminLogViewSet, basename='admin-admin-logs')
 router.register(r'admin/site-settings', SiteSettingsViewSet, basename='admin-site-settings')
-router.register(r'admin/paiements', PaiementViewSet, basename='admin-paiements')
 
+# =============================================
+# ✅ URL PATTERNS
+# =============================================
 urlpatterns = [
     path('token/', CustomTokenObtainView.as_view(), name='token_obtain'),
     path('token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('me/', CurrentUserView.as_view(), name='current_user'),
+    
+    path('send-otp/', csrf_exempt(RequestOTPView.as_view()), name='send-otp'),
+    path('verify-otp/', csrf_exempt(VerifyOTPView.as_view()), name='verify-otp'),
+    path('register/', csrf_exempt(RegisterView.as_view()), name='register'),
+    
     path('', include(router.urls)),
+    
+    # ✅ Routes Client
+    path('client/register/', csrf_exempt(ClientRegisterView.as_view()), name='client-register'),
+    path('client/login/', csrf_exempt(ClientLoginView.as_view()), name='client-login'),
+    path('client/panier/<int:client_id>/', csrf_exempt(PanierView.as_view()), name='client-panier'),
+    path('client/panier/<int:client_id>/commander/', csrf_exempt(CommandeDepuisPanierView.as_view()), name='commande-depuis-panier'),
+    
     path('admin/dashboard/stats/', DashboardStatsView.as_view(), name='dashboard_stats'),
+    
+    path('verifier-code/', InscriptionFormationViewSet.as_view({'post': 'verifier_code'}), name='verifier-code'),
 ]

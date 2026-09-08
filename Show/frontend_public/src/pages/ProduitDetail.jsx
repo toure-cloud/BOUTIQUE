@@ -12,6 +12,7 @@ import {
   Paper,
   Divider,
   TextField,
+  InputAdornment,
   Alert,
   Snackbar,
   Dialog,
@@ -19,13 +20,10 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
-  InputAdornment,
-  useTheme,
-  useMediaQuery,
   Skeleton,
-  Avatar,
-  Stack,
   Rating,
+  Breadcrumbs, // ✅ AJOUTÉ
+  Stack,        // ✅ AJOUTÉ
 } from '@mui/material';
 import {
   ArrowBack,
@@ -33,7 +31,6 @@ import {
   Remove,
   Favorite,
   FavoriteBorder,
-  Star,
   LocalOffer,
   ShoppingBag,
   CheckCircle,
@@ -45,20 +42,17 @@ import {
   Lock,
   Verified,
   Share,
-  Visibility,
-  ThumbUp,
-  ThumbDown,
+  Home,
 } from '@mui/icons-material';
 import { produitService } from '../services/produitService';
+import { panierService } from '../services/panierService';
+import { authService } from '../services/authService';
 import heroImage from '../assets/images/tibetia.jpeg';
 
 const ProduitDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // ✅ État
   const [produit, setProduit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -68,85 +62,58 @@ const ProduitDetail = () => {
   const [imagePrincipale, setImagePrincipale] = useState('');
   const [imagesSecondaires, setImagesSecondaires] = useState([]);
 
-  // ✅ Formulaire de commande
-  const [formData, setFormData] = useState({
-    nom: '',
-    prenom: '',
-    email: '',
-    telephone: '',
-    adresse: '',
-    ville: '',
-    codePostal: '',
-    notes: '',
-  });
-  const [formErrors, setFormErrors] = useState({});
+  // ✅ États pour l'authentification et le panier
+  const [client, setClient] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isLoginMode, setIsLoginMode] = useState(false);
+  const [authForm, setAuthForm] = useState({ email: '', password: '', nom: '', prenom: '', telephone: '' });
+  const [authError, setAuthError] = useState(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  // ✅ États UI
+  // Formulaire de commande
+  const [formData, setFormData] = useState({ nom: '', prenom: '', email: '', telephone: '', adresse: '', ville: '', codePostal: '', notes: '' });
+  const [formErrors, setFormErrors] = useState({});
   const [commandeOk, setCommandeOk] = useState(false);
   const [loadingPaiement, setLoadingPaiement] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
-  // ✅ Chargement du produit
   useEffect(() => {
     const fetchProduit = async () => {
       try {
         setLoading(true);
         const data = await produitService.getProduitById(parseInt(id));
-        console.log('📋 Produit reçu:', data);
         setProduit(data);
         setImagePrincipale(data.image_principale);
-        
-        // Récupérer les images secondaires
-        if (data.images_secondaires && data.images_secondaires.length > 0) {
-          setImagesSecondaires(data.images_secondaires);
-        }
+        if (data.images_secondaires && data.images_secondaires.length > 0) setImagesSecondaires(data.images_secondaires);
         setError(null);
       } catch (err) {
-        console.error('❌ Erreur:', err);
         setError('Impossible de charger les détails du produit');
       } finally {
         setLoading(false);
       }
     };
-    if (id) {
-      fetchProduit();
-    }
+    if (id) fetchProduit();
   }, [id]);
 
-  // ✅ Récupérer le panier depuis localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('tibetia_panier');
-    if (saved) {
-      try {
-        setPanier(JSON.parse(saved));
-      } catch (e) {}
+    const storedClient = localStorage.getItem('client_data');
+    if (storedClient) {
+      setClient(JSON.parse(storedClient));
     }
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('tibetia_panier', JSON.stringify(panier));
-  }, [panier]);
-
-  // ✅ Gestion du formulaire
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (formErrors[e.target.name]) {
-      setFormErrors({ ...formErrors, [e.target.name]: null });
-    }
+    if (formErrors[e.target.name]) setFormErrors({ ...formErrors, [e.target.name]: null });
   };
 
   const validateForm = () => {
     const errors = {};
     if (!formData.nom.trim()) errors.nom = 'Le nom est requis';
     if (!formData.prenom.trim()) errors.prenom = 'Le prénom est requis';
-    if (!formData.email.trim()) {
-      errors.email = "L'email est requis";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Email invalide';
-    }
+    if (!formData.email.trim()) errors.email = "L'email est requis";
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Email invalide';
     if (!formData.telephone.trim()) errors.telephone = 'Le téléphone est requis';
     if (!formData.adresse.trim()) errors.adresse = "L'adresse est requise";
     if (!formData.ville.trim()) errors.ville = 'La ville est requise';
@@ -155,814 +122,221 @@ const ProduitDetail = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // ✅ Gestion de la commande
   const handleCommande = () => {
     if (!validateForm()) return;
     setConfirmDialogOpen(true);
   };
 
-  const handleConfirmerCommande = () => {
-    setConfirmDialogOpen(false);
-    setLoadingPaiement(true);
-
-    setTimeout(() => {
-      setLoadingPaiement(false);
-      setCommandeOk(true);
-      setSnackbarMessage('✅ Commande confirmée !');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-
-      const newPanier = { ...panier, [produit.id]: (panier[produit.id] || 0) + quantite };
-      setPanier(newPanier);
-      localStorage.setItem('tibetia_panier', JSON.stringify(newPanier));
-    }, 2000);
-  };
-
-  // ✅ Gestion du panier
-  const ajouterAuPanier = () => {
-    const newPanier = { ...panier, [produit.id]: (panier[produit.id] || 0) + quantite };
-    setPanier(newPanier);
-    localStorage.setItem('tibetia_panier', JSON.stringify(newPanier));
-    setSnackbarMessage(`✅ ${produit.nom} ajouté au panier !`);
-    setSnackbarSeverity('success');
-    setSnackbarOpen(true);
-  };
-
-  const updateQuantite = (delta) => {
-    setQuantite((prev) => Math.max(1, Math.min(prev + delta, produit?.quantite_stock || 10)));
-  };
-
-  // ✅ Favoris
-  const toggleFavori = () => {
-    setFavoris(!favoris);
-    setSnackbarMessage(favoris ? 'Retiré des favoris' : 'Ajouté aux favoris');
-    setSnackbarSeverity('success');
-    setSnackbarOpen(true);
-  };
-
-  // ✅ Partage
-  const handleShare = async () => {
+  // ✅ Fonction pour ajouter au panier (connecté ou invité)
+  const handleAjouterAuPanier = async () => {
+    if (!client) {
+      setShowAuthModal(true);
+      return;
+    }
     try {
-      await navigator.share({
-        title: produit?.nom,
-        text: `Découvrez ${produit?.nom} sur Madame Tibetia`,
-        url: window.location.href,
-      });
-    } catch {
-      navigator.clipboard.writeText(window.location.href);
-      setSnackbarMessage('Lien copié dans le presse-papier !');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
+      await panierService.ajouterProduit(client.id, produit.id, quantite);
+      setSnackbar({ open: true, message: '✅ Ajouté au panier !', severity: 'success' });
+    } catch (error) {
+      console.error('❌ Erreur ajout panier:', error);
     }
   };
 
-  // ✅ Utilitaires
-  const formatPrice = (price) =>
-    new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'XOF',
-      minimumFractionDigits: 0,
-    }).format(price);
-
-  const prixTotal = () => {
-    const prix = produit?.prix_promotion || produit?.prix || 0;
-    return prix * quantite;
+  // ✅ Fonction pour se connecter / inscrire
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      if (isLoginMode) {
+        const response = await authService.clientLogin(authForm.email, authForm.password);
+        if (response.success) {
+          setClient(response.client);
+          localStorage.setItem('client_data', JSON.stringify(response.client));
+          setShowAuthModal(false);
+          setSnackbar({ open: true, message: '✅ Connecté !', severity: 'success' });
+        } else {
+          setAuthError(response.error);
+        }
+      } else {
+        const response = await authService.clientRegister(authForm);
+        if (response.success) {
+          const loginResponse = await authService.clientLogin(authForm.email, authForm.password);
+          if (loginResponse.success) {
+            setClient(loginResponse.client);
+            localStorage.setItem('client_data', JSON.stringify(loginResponse.client));
+            setShowAuthModal(false);
+            setSnackbar({ open: true, message: '✅ Compte créé et connecté !', severity: 'success' });
+          }
+        } else {
+          setAuthError(Object.values(response)[0] || 'Erreur lors de l\'inscription');
+        }
+      }
+    } catch (error) {
+      setAuthError('Erreur de connexion');
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return heroImage;
-    return `${import.meta.env.VITE_MEDIA_URL}${imagePath}`;
+  const toggleFavori = () => {
+    setFavoris(!favoris);
+    setSnackbar({ open: true, message: favoris ? 'Retiré des favoris' : 'Ajouté aux favoris', severity: 'success' });
   };
 
-  // ✅ Skeleton de chargement
-  if (loading) {
-    return (
-      <Box sx={{ backgroundColor: '#FAFAFA', minHeight: '100vh', py: 4 }}>
-        <Container maxWidth="lg">
-          <Skeleton variant="text" width={200} height={40} sx={{ mb: 3 }} />
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 3 }} />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Skeleton variant="text" height={40} width="60%" />
-              <Skeleton variant="text" height={30} width="40%" sx={{ mt: 2 }} />
-              <Skeleton variant="text" height={100} sx={{ mt: 2 }} />
-              <Skeleton variant="rectangular" height={50} sx={{ mt: 3, borderRadius: 50 }} />
-            </Grid>
-          </Grid>
-        </Container>
-      </Box>
-    );
-  }
+  const handleShare = async () => {
+    try {
+      await navigator.share({ title: produit?.nom, text: `Découvrez ${produit?.nom} sur Madame Tibetia`, url: window.location.href });
+    } catch {
+      navigator.clipboard.writeText(window.location.href);
+      setSnackbar({ open: true, message: 'Lien copié !', severity: 'success' });
+    }
+  };
 
-  if (error || !produit) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 10, textAlign: 'center' }}>
-        <Alert severity="error" sx={{ borderRadius: '12px' }}>
-          {error || 'Produit non trouvé'}
-        </Alert>
-        <Button
-          component={Link}
-          to="/boutique"
-          variant="contained"
-          startIcon={<ArrowBack />}
-          sx={{ mt: 3, borderRadius: 50 }}
-        >
-          Retour à la boutique
-        </Button>
-      </Container>
-    );
-  }
+  const formatPrice = (price) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 }).format(price);
+  const prixTotal = () => (produit?.prix_promotion || produit?.prix || 0) * quantite;
+  const imageUrl = produit?.image_url || produit?.image_principale || heroImage;
 
-  // Images du produit
-  const allImages = [produit.image_principale, ...(produit.images_secondaires?.map(img => img.image) || [])];
-  const imagePrincipalUrl = getImageUrl(imagePrincipale || produit.image_principale);
+  if (loading) return <Box sx={{ minHeight: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}><CircularProgress sx={{ color: '#1A1A1A' }} /></Box>;
+  if (error || !produit) return <Container maxWidth="lg" sx={{ py: 10, textAlign: 'center' }}><Alert severity="error">{error || 'Produit non trouvé'}</Alert><Button component={Link} to="/boutique" variant="contained" startIcon={<ArrowBack />} sx={{ mt: 3, borderRadius: 50 }}>Retour à la boutique</Button></Container>;
 
   return (
     <Box sx={{ backgroundColor: '#FAFAFA', minHeight: '100vh', py: 4 }}>
       <Container maxWidth="lg">
-        {/* ===== BOUTON RETOUR ===== */}
-        <Button
-          component={Link}
-          to="/boutique"
-          startIcon={<ArrowBack />}
-          sx={{ mb: 3, color: '#666', fontWeight: 500 }}
-        >
-          Retour à la boutique
-        </Button>
+        {/* Bouton Mon Panier */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<ShoppingBag />}
+            onClick={() => navigate('/panier')}
+            sx={{ backgroundColor: '#1A1A1A', color: '#fff', borderRadius: '50px', px: 3 }}
+          >
+            Mon Panier {client ? `(${client.prenom})` : ''}
+          </Button>
+        </Box>
 
-        {/* ===== GRILLE PRINCIPALE ===== */}
-        <Grid container spacing={3}>
-          
-          {/* ===== COLONNE 1 : MINIATURES ===== */}
-          <Grid item xs={12} sm={2} md={2}>
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'row', sm: 'column' },
-                gap: 1.5,
-                overflowX: { xs: 'auto', sm: 'visible' },
-                pb: { xs: 2, sm: 0 },
-              }}
-            >
-              {allImages.map((img, index) => (
-                <Box
-                  key={index}
-                  onClick={() => setImagePrincipale(img)}
-                  onMouseEnter={() => setImagePrincipale(img)}
-                  sx={{
-                    width: { xs: 70, sm: '100%' },
-                    height: { xs: 70, sm: 80 },
-                    minWidth: { xs: 70, sm: 'auto' },
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    border: imagePrincipale === img ? '3px solid #2E7D32' : '2px solid #E8E8E8',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s ease',
-                    '&:hover': {
-                      borderColor: '#66BB6A',
-                      transform: 'scale(1.05)',
-                    },
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={getImageUrl(img)}
-                    alt={`Vue ${index + 1}`}
-                    sx={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
+        <Breadcrumbs sx={{ mb: 3 }}>
+          <Link to="/" style={{ textDecoration: 'none', color: '#666' }}><Home sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} /> Accueil</Link>
+          <Link to="/boutique" style={{ textDecoration: 'none', color: '#666' }}>Boutique</Link>
+          <Typography color="text.primary">{produit.nom}</Typography>
+        </Breadcrumbs>
+
+        <Grid container spacing={4}>
+          {/* IMAGE */}
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ borderRadius: 3, overflow: 'hidden', border: '1px solid #EEE', position: 'sticky', top: 100 }}>
+              <Box sx={{ position: 'relative', backgroundColor: '#F9F9F9' }}>
+                {produit.est_en_promotion && produit.prix_promotion && (
+                  <Chip icon={<LocalOffer sx={{ fontSize: 14, color: '#fff !important' }} />} label={`-${Math.round((1 - produit.prix_promotion / produit.prix) * 100)}%`} sx={{ position: 'absolute', top: 16, left: 16, backgroundColor: '#C62828', color: '#fff', fontWeight: 700, zIndex: 2, height: 26 }} />
+                )}
+                <Box component="img" src={imageUrl} alt={produit.nom} onError={(e) => { e.target.onerror = null; e.target.src = heroImage; }} sx={{ width: '100%', height: { xs: 300, md: 500 }, objectFit: 'cover' }} />
+                <IconButton onClick={toggleFavori} sx={{ position: 'absolute', top: 16, right: 16, backgroundColor: 'rgba(255,255,255,0.9)', '&:hover': { backgroundColor: '#fff' }, boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+                  {favoris ? <Favorite sx={{ color: '#C62828' }} /> : <FavoriteBorder />}
+                </IconButton>
+              </Box>
+
+              {produit.images_secondaires && produit.images_secondaires.length > 0 && (
+                <Box sx={{ p: 2, display: 'flex', gap: 1.5, justifyContent: 'center', backgroundColor: '#FFF' }}>
+                  {produit.images_secondaires.map((img, index) => (
+                    <Box key={index} component="img" src={img.image_url || heroImage} alt={`Vue ${index + 1}`} sx={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 2, border: index === 0 ? '2px solid #1A1A1A' : '1px solid #DDD', cursor: 'pointer', '&:hover': { borderColor: '#1A1A1A' } }} />
+                  ))}
                 </Box>
-              ))}
-            </Box>
-          </Grid>
-
-          {/* ===== COLONNE 2 : IMAGE PRINCIPALE ===== */}
-          <Grid item xs={12} sm={6} md={5}>
-            <Paper
-              sx={{
-                borderRadius: 3,
-                overflow: 'hidden',
-                backgroundColor: '#FFF',
-                border: '1px solid #EEE',
-                position: 'relative',
-              }}
-            >
-              <Box
-                component="img"
-                src={imagePrincipalUrl}
-                alt={produit.nom}
-                sx={{
-                  width: '100%',
-                  height: { xs: 300, sm: 400, md: 500 },
-                  objectFit: 'cover',
-                }}
-              />
-              {produit.est_en_promotion && produit.prix_promotion && (
-                <Chip
-                  icon={<LocalOffer sx={{ fontSize: 16, color: '#fff !important' }} />}
-                  label={`-${Math.round((1 - produit.prix_promotion / produit.prix) * 100)}%`}
-                  sx={{
-                    position: 'absolute',
-                    top: 16,
-                    left: 16,
-                    backgroundColor: '#C62828',
-                    color: '#fff',
-                    fontWeight: 700,
-                    height: 32,
-                  }}
-                />
-              )}
-              {/* Badge stock */}
-              {produit.quantite_stock <= 5 && produit.quantite_stock > 0 && (
-                <Chip
-                  label={`⚠️ Plus que ${produit.quantite_stock} pièces`}
-                  sx={{
-                    position: 'absolute',
-                    bottom: 16,
-                    left: 16,
-                    backgroundColor: '#FFA726',
-                    color: '#fff',
-                    fontWeight: 700,
-                  }}
-                />
               )}
             </Paper>
           </Grid>
 
-          {/* ===== COLONNE 3 : DÉTAILS ===== */}
-          <Grid item xs={12} sm={4} md={5}>
-            <Paper
-              sx={{
-                p: { xs: 3, md: 4 },
-                borderRadius: 3,
-                border: '1px solid #EEE',
-                backgroundColor: '#FFF',
-                height: '100%',
-              }}
-            >
-              {/* Catégorie */}
-              <Typography
-                variant="overline"
-                sx={{
-                  color: '#999',
-                  fontWeight: 600,
-                  fontSize: '0.7rem',
-                  letterSpacing: 1,
-                  display: 'block',
-                  mb: 0.5,
-                }}
-              >
-                {produit.categorie}
-              </Typography>
+          {/* DÉTAILS */}
+          <Grid item xs={12} md={6}>
+            <Box>
+              <Typography variant="overline" sx={{ color: '#999', fontWeight: 700, letterSpacing: 1.5 }}>{produit.categorie}</Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700, fontFamily: '"Playfair Display", serif', color: '#1A1A1A', mb: 1 }}>{produit.nom}</Typography>
 
-              {/* Nom */}
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 700,
-                  color: '#1A1A1A',
-                  fontFamily: '"Playfair Display", serif',
-                  mb: 1.5,
-                  fontSize: { xs: '1.5rem', md: '2rem' },
-                }}
-              >
-                {produit.nom}
-              </Typography>
-
-              {/* Note étoiles */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <Rating
-                  value={produit.note || 4.5}
-                  precision={0.5}
-                  readOnly
-                  size="small"
-                  sx={{ color: '#D4A017' }}
-                />
-                <Typography sx={{ color: '#999', fontSize: '0.85rem' }}>
-                  ({produit.nb_avis || 0} avis)
-                </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                <Rating value={parseFloat(produit.note || 4.5)} precision={0.5} readOnly sx={{ color: '#D4A017' }} />
+                <Typography variant="body2" sx={{ color: '#888' }}>({produit.nb_avis || 0} avis)</Typography>
               </Box>
 
-              {/* Prix */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ mb: 2.5 }}>
                 {produit.est_en_promotion && produit.prix_promotion ? (
-                  <>
-                    <Typography
-                      variant="h3"
-                      sx={{
-                        fontWeight: 700,
-                        color: '#C62828',
-                        fontSize: { xs: '1.6rem', md: '2rem' },
-                      }}
-                    >
-                      {formatPrice(produit.prix_promotion)}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        color: '#AAA',
-                        textDecoration: 'line-through',
-                        fontSize: '1rem',
-                      }}
-                    >
-                      {formatPrice(produit.prix)}
-                    </Typography>
-                    <Chip
-                      label={`-${Math.round((1 - produit.prix_promotion / produit.prix) * 100)}%`}
-                      size="small"
-                      sx={{ backgroundColor: '#C62828', color: '#fff', fontWeight: 700 }}
-                    />
-                  </>
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#C62828' }}>{formatPrice(produit.prix_promotion)}</Typography>
+                    <Typography variant="h6" sx={{ color: '#AAA', textDecoration: 'line-through' }}>{formatPrice(produit.prix)}</Typography>
+                  </Box>
                 ) : (
-                  <Typography
-                    variant="h3"
-                    sx={{
-                      fontWeight: 700,
-                      color: '#1A1A1A',
-                      fontSize: { xs: '1.6rem', md: '2rem' },
-                    }}
-                  >
-                    {formatPrice(produit.prix)}
-                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 800, color: '#1A1A1A' }}>{formatPrice(produit.prix)}</Typography>
                 )}
               </Box>
 
-              {/* Stock */}
-              <Box sx={{ mb: 3 }}>
-                <Chip
-                  label={
-                    produit.quantite_stock > 0
-                      ? `✅ En stock (${produit.quantite_stock} pièces)`
-                      : '❌ Rupture de stock'
-                  }
-                  sx={{
-                    backgroundColor: produit.quantite_stock > 0 ? '#E8F5E9' : '#FFEBEE',
-                    color: produit.quantite_stock > 0 ? '#2E7D32' : '#C62828',
-                    fontWeight: 600,
-                  }}
-                />
+              <Box sx={{ mb: 2.5 }}>
+                <Chip icon={<CheckCircle sx={{ fontSize: 16, color: '#2E7D32 !important' }} />} label={`En stock (${produit.quantite_stock} pièces)`} sx={{ backgroundColor: '#E8F5E9', color: '#2E7D32', fontWeight: 600, height: 28 }} />
+                {produit.est_disponible === false && <Chip label="Indisponible" sx={{ backgroundColor: '#FFEBEE', color: '#C62828', fontWeight: 600, height: 28 }} />}
               </Box>
 
-              {/* Description */}
-              <Typography
-                variant="body1"
-                sx={{
-                  color: '#555',
-                  lineHeight: 1.8,
-                  mb: 3,
-                }}
-              >
-                {produit.description}
-              </Typography>
+              <Typography variant="body1" sx={{ color: '#555', lineHeight: 1.8, mb: 3 }}>{produit.description || 'Aucune description disponible.'}</Typography>
 
               <Divider sx={{ mb: 3 }} />
 
-              {/* Quantité */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  mb: 3,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Quantité :
-                </Typography>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    backgroundColor: '#F5F5F5',
-                    borderRadius: 50,
-                    px: 0.5,
-                  }}
-                >
-                  <IconButton
-                    size="small"
-                    onClick={() => updateQuantite(-1)}
-                    disabled={quantite <= 1}
-                  >
-                    <Remove fontSize="small" />
-                  </IconButton>
-                  <Typography sx={{ fontWeight: 700, minWidth: 36, textAlign: 'center' }}>
-                    {quantite}
-                  </Typography>
-                  <IconButton
-                    size="small"
-                    onClick={() => updateQuantite(1)}
-                    disabled={quantite >= produit.quantite_stock}
-                  >
-                    <Add fontSize="small" />
-                  </IconButton>
+              {/* Quantité et panier */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                <Typography variant="body1" sx={{ fontWeight: 600, color: '#333' }}>Quantité :</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid #DDD', borderRadius: 50, overflow: 'hidden' }}>
+                  <IconButton size="small" onClick={() => setQuantite(Math.max(1, quantite - 1))} sx={{ p: 1.5 }}><Remove fontSize="small" /></IconButton>
+                  <Typography sx={{ minWidth: 30, textAlign: 'center', fontWeight: 700 }}>{quantite}</Typography>
+                  <IconButton size="small" onClick={() => setQuantite(quantite + 1)} sx={{ p: 1.5 }}><Add fontSize="small" /></IconButton>
                 </Box>
-                <Typography variant="body2" sx={{ color: '#999' }}>
-                  Total : <strong style={{ color: '#1A1A1A' }}>
-                    {formatPrice(prixTotal())}
-                  </strong>
-                </Typography>
+                <Typography variant="body1" sx={{ color: '#888' }}>Total : <span style={{ fontWeight: 800, color: '#1A1A1A' }}>{formatPrice(prixTotal())}</span></Typography>
               </Box>
 
-              {/* Boutons */}
               <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
                 <Button
                   variant="contained"
                   fullWidth
-                  onClick={ajouterAuPanier}
+                  onClick={handleAjouterAuPanier}
                   disabled={produit.quantite_stock <= 0}
                   startIcon={<ShoppingBag />}
-                  sx={{
-                    backgroundColor: '#1A1A1A',
-                    color: '#fff',
-                    borderRadius: 50,
-                    py: 1.5,
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    '&:hover': { backgroundColor: '#333' },
-                    '&.Mui-disabled': { backgroundColor: '#E0E0E0', color: '#999' },
-                  }}
+                  sx={{ backgroundColor: '#1A1A1A', color: '#fff', borderRadius: 50, py: 1.5, fontWeight: 600, textTransform: 'none', '&:hover': { backgroundColor: '#333' } }}
                 >
                   Ajouter au panier
                 </Button>
-                <IconButton
-                  onClick={toggleFavori}
-                  sx={{
-                    border: '1px solid #E0E0E0',
-                    borderRadius: 50,
-                    width: 56,
-                    height: 56,
-                  }}
-                >
-                  {favoris ? (
-                    <Favorite sx={{ color: '#C62828' }} />
-                  ) : (
-                    <FavoriteBorder />
-                  )}
-                </IconButton>
-                <IconButton
-                  onClick={handleShare}
-                  sx={{
-                    border: '1px solid #E0E0E0',
-                    borderRadius: 50,
-                    width: 56,
-                    height: 56,
-                  }}
-                >
-                  <Share />
-                </IconButton>
+                <IconButton onClick={toggleFavori} sx={{ border: '1px solid #E0E0E0', borderRadius: 50, width: 48, height: 48 }}>{favoris ? <Favorite sx={{ color: '#C62828' }} /> : <FavoriteBorder />}</IconButton>
+                <IconButton onClick={handleShare} sx={{ border: '1px solid #E0E0E0', borderRadius: 50, width: 48, height: 48 }}><Share /></IconButton>
               </Box>
-
-              {/* Conditions de vente */}
-              <Alert
-                severity="info"
-                icon={<Verified />}
-                sx={{
-                  borderRadius: 2,
-                  backgroundColor: '#F5F5F5',
-                  border: '1px solid #E0E0E0',
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 600, color: '#1A1A1A' }}>
-                  Conditions de vente
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#666' }}>
-                  • Aucun remboursement n'est autorisé<br />
-                  • Aucun retour de produit n'est accepté<br />
-                  • Sauf si la commande est erronée ou produit défectueux
-                </Typography>
-              </Alert>
-            </Paper>
+            </Box>
           </Grid>
         </Grid>
 
-        {/* ===== FORMULAIRE DE COMMANDE ===== */}
-        <Paper
-          sx={{
-            mt: 4,
-            p: { xs: 3, md: 4 },
-            borderRadius: 3,
-            border: '1px solid #EEE',
-            backgroundColor: '#FFF',
-          }}
-        >
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 700,
-              fontFamily: '"Playfair Display", serif',
-              color: '#1A1A1A',
-              mb: 3,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-            }}
-          >
-            <Payment sx={{ color: '#2E7D32' }} />
-            Passer commande
-          </Typography>
-
-          {!commandeOk ? (
-            <Box>
-              <Grid container spacing={2.5}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Nom *"
-                    name="nom"
-                    value={formData.nom}
-                    onChange={handleChange}
-                    error={!!formErrors.nom}
-                    helperText={formErrors.nom}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Person sx={{ color: '#2E7D32' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Prénom *"
-                    name="prenom"
-                    value={formData.prenom}
-                    onChange={handleChange}
-                    error={!!formErrors.prenom}
-                    helperText={formErrors.prenom}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Person sx={{ color: '#2E7D32' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Email *"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    error={!!formErrors.email}
-                    helperText={formErrors.email}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Email sx={{ color: '#2E7D32' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Téléphone *"
-                    name="telephone"
-                    value={formData.telephone}
-                    onChange={handleChange}
-                    error={!!formErrors.telephone}
-                    helperText={formErrors.telephone}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Phone sx={{ color: '#2E7D32' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Adresse de livraison *"
-                    name="adresse"
-                    value={formData.adresse}
-                    onChange={handleChange}
-                    error={!!formErrors.adresse}
-                    helperText={formErrors.adresse}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LocationOn sx={{ color: '#2E7D32' }} />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Ville *"
-                    name="ville"
-                    value={formData.ville}
-                    onChange={handleChange}
-                    error={!!formErrors.ville}
-                    helperText={formErrors.ville}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Code postal *"
-                    name="codePostal"
-                    value={formData.codePostal}
-                    onChange={handleChange}
-                    error={!!formErrors.codePostal}
-                    helperText={formErrors.codePostal}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="Notes / Instructions (optionnel)"
-                    name="notes"
-                    multiline
-                    rows={2}
-                    value={formData.notes}
-                    onChange={handleChange}
-                  />
-                </Grid>
-              </Grid>
-
-              <Box
-                sx={{
-                  mt: 3,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 2,
-                }}
-              >
-                <Box>
-                  <Typography variant="body2" sx={{ color: '#666' }}>
-                    Total :{' '}
-                    <strong style={{ color: '#1A1A1A', fontSize: '1.2rem' }}>
-                      {formatPrice(prixTotal())}
-                    </strong>
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: '#999', display: 'block' }}>
-                    Livraison estimée : 3-5 jours ouvrés
-                  </Typography>
-                </Box>
-                <Button
-                  variant="contained"
-                  onClick={handleCommande}
-                  disabled={produit.quantite_stock <= 0}
-                  startIcon={<Payment />}
-                  sx={{
-                    backgroundColor: '#2E7D32',
-                    color: '#fff',
-                    borderRadius: 50,
-                    px: 4,
-                    py: 1.5,
-                    fontWeight: 700,
-                    textTransform: 'none',
-                    '&:hover': { backgroundColor: '#1B5E20' },
-                    '&.Mui-disabled': { backgroundColor: '#E0E0E0', color: '#999' },
-                  }}
-                >
-                  Confirmer la commande
-                </Button>
-              </Box>
-            </Box>
-          ) : (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <CheckCircle sx={{ fontSize: 80, color: '#2E7D32', mb: 2 }} />
-              <Typography variant="h5" sx={{ fontWeight: 700, color: '#1A1A1A', mb: 1 }}>
-                ✅ Commande confirmée !
-              </Typography>
-              <Typography sx={{ color: '#666', mb: 3 }}>
-                Vous recevrez un email de confirmation avec les détails de votre commande.
-              </Typography>
-              <Button
-                component={Link}
-                to="/boutique"
-                variant="contained"
-                sx={{
-                  backgroundColor: '#1A1A1A',
-                  color: '#fff',
-                  borderRadius: 50,
-                  px: 4,
-                  py: 1.2,
-                  textTransform: 'none',
-                  '&:hover': { backgroundColor: '#333' },
-                }}
-              >
-                Continuer vos achats
-              </Button>
-            </Box>
-          )}
-        </Paper>
-
-        {/* ===== POLITIQUE DE CONFIDENTIALITÉ ===== */}
-        <Paper
-          sx={{
-            mt: 3,
-            p: 3,
-            borderRadius: 3,
-            border: '1px solid #E8F5E9',
-            backgroundColor: '#FAFFFA',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-            <Lock sx={{ color: '#2E7D32' }} />
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#1A1A1A' }}>
-              Politique de confidentialité
-            </Typography>
+        {/* Modal Authentification */}
+        <Dialog open={showAuthModal} onClose={() => setShowAuthModal(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700 }}>{isLoginMode ? 'Connexion' : 'Créer un compte'}</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              {!isLoginMode && (
+                <>
+                  <TextField label="Nom" value={authForm.nom} onChange={(e) => setAuthForm({ ...authForm, nom: e.target.value })} fullWidth />
+                  <TextField label="Prénom" value={authForm.prenom} onChange={(e) => setAuthForm({ ...authForm, prenom: e.target.value })} fullWidth />
+                  <TextField label="Téléphone" value={authForm.telephone} onChange={(e) => setAuthForm({ ...authForm, telephone: e.target.value })} fullWidth />
+                </>
+              )}
+              <TextField label="Email" type="email" value={authForm.email} onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })} fullWidth />
+              <TextField label="Mot de passe" type="password" value={authForm.password} onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })} fullWidth />
+              {authError && <Alert severity="error">{authError}</Alert>}
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowAuthModal(false)}>Annuler</Button>
+            <Button variant="contained" onClick={handleAuthSubmit} disabled={authLoading}>
+              {authLoading ? <CircularProgress size={20} /> : isLoginMode ? 'Se connecter' : 'Créer mon compte'}
+            </Button>
+          </DialogActions>
+          <Box sx={{ textAlign: 'center', pb: 2 }}>
+            <Button onClick={() => setIsLoginMode(!isLoginMode)} sx={{ textTransform: 'none' }}>
+              {isLoginMode ? 'Pas de compte ? Créer un compte' : 'Déjà un compte ? Se connecter'}
+            </Button>
           </Box>
-          <Typography variant="body2" sx={{ color: '#666', lineHeight: 1.8, fontSize: '0.9rem' }}>
-            • Vos données personnelles sont sécurisées et ne seront jamais partagées avec des tiers.<br />
-            • Aucun remboursement n'est autorisé après validation de la commande.<br />
-            • Aucun retour de produit n'est accepté, sauf en cas de produit défectueux ou de commande erronée.<br />
-            • Vous disposez d'un délai de 14 jours pour signaler tout problème concernant votre commande.<br />
-            • Pour toute question, contactez-nous à <strong>contact@madametibetia.com</strong>
-          </Typography>
-        </Paper>
+        </Dialog>
       </Container>
 
-      {/* ===== DIALOG CONFIRMATION ===== */}
-      <Dialog
-        open={confirmDialogOpen}
-        onClose={() => setConfirmDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: '16px', p: 1 },
-        }}
-      >
-        <DialogTitle sx={{ fontWeight: 700 }}>💳 Confirmation de la commande</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ mb: 2 }}>
-            Vous confirmez la commande de <strong>{quantite} x {produit.nom}</strong> pour un total de{' '}
-            <strong style={{ color: '#2E7D32', fontSize: '1.2rem' }}>
-              {formatPrice(prixTotal())}
-            </strong>
-          </Typography>
-          <Alert severity="warning" sx={{ borderRadius: 2 }}>
-            ⚠️ Aucun remboursement n'est autorisé après confirmation.
-          </Alert>
-          <Box sx={{ mt: 2, p: 2, backgroundColor: '#F5F5F5', borderRadius: 2 }}>
-            <Typography variant="caption" sx={{ color: '#666' }}>
-              Livraison à : {formData.adresse}, {formData.codePostal} {formData.ville}
-            </Typography>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmDialogOpen(false)}>Annuler</Button>
-          <Button
-            onClick={handleConfirmerCommande}
-            variant="contained"
-            disabled={loadingPaiement}
-            sx={{
-              backgroundColor: '#2E7D32',
-              '&:hover': { backgroundColor: '#1B5E20' },
-              borderRadius: 50,
-              px: 3,
-            }}
-          >
-            {loadingPaiement ? (
-              <CircularProgress size={20} sx={{ color: '#fff' }} />
-            ) : (
-              'Confirmer'
-            )}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* ===== SNACKBAR ===== */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={5000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity={snackbarSeverity}
-          sx={{ borderRadius: 2.5, width: '100%' }}
-        >
-          {snackbarMessage}
-        </Alert>
+      <Snackbar open={snackbar.open} autoHideDuration={5000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ borderRadius: 2.5 }}>{snackbar.message}</Alert>
       </Snackbar>
     </Box>
   );

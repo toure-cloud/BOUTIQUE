@@ -12,13 +12,18 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-import json
+from .utils import envoyer_sms_confirmation
+import base64
+import qrcode
+from io import BytesIO
+from datetime import datetime, timedelta
 import random
+import json
 import string
-from datetime import timedelta
 
 from .models import (
     FormationEnLigne,
+    LigneCommande,
     Evenement,
     Produit,
     Forfait,
@@ -44,6 +49,7 @@ from .models import (
     Notification,
     AdminLog,
     SiteSettings,
+    LignePanier,  # ✅ Ajouté
 )
 from .serializers import (
     FormationEnLigneSerializer,
@@ -72,6 +78,10 @@ from .serializers import (
     NotificationSerializer,
     AdminLogSerializer,
     SiteSettingsSerializer,
+    # ✅ Nouveaux serializers pour l'authentification client
+    ClientRegisterSerializer,
+    ClientLoginSerializer,
+    LignePanierSerializer,
 )
 
 
@@ -86,25 +96,25 @@ class CustomTokenObtainView(APIView):
     CSRF exempté UNIQUEMENT pour cette vue
     """
     permission_classes = [AllowAny]
-    
+
     def post(self, request):
         try:
             if request.content_type and 'application/json' in request.content_type:
                 data = json.loads(request.body)
             else:
                 data = request.POST
-            
+
             username = data.get('username')
             password = data.get('password')
-            
+
             if not username or not password:
                 return Response(
                     {'error': 'Nom d\'utilisateur et mot de passe requis'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             user = authenticate(username=username, password=password)
-            
+
             if user is not None:
                 refresh = RefreshToken.for_user(user)
                 return Response({
@@ -144,22 +154,22 @@ class CustomTokenRefreshView(APIView):
     CSRF exempté UNIQUEMENT pour cette vue
     """
     permission_classes = [AllowAny]
-    
+
     def post(self, request):
         try:
             if request.content_type and 'application/json' in request.content_type:
                 data = json.loads(request.body)
             else:
                 data = request.POST
-            
+
             refresh_token = data.get('refresh')
-            
+
             if not refresh_token:
                 return Response(
                     {'error': 'Token de rafraîchissement requis'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             try:
                 refresh = RefreshToken(refresh_token)
                 return Response({
@@ -183,21 +193,21 @@ class CurrentUserView(APIView):
     Vue pour récupérer l'utilisateur connecté
     CSRF exempté UNIQUEMENT pour cette vue
     """
-    
+
     def get(self, request):
         auth_header = request.headers.get('Authorization')
         if not auth_header:
             return Response({'error': 'Token requis'}, status=status.HTTP_401_UNAUTHORIZED)
-        
+
         try:
             from rest_framework_simplejwt.authentication import JWTAuthentication
             from rest_framework_simplejwt.exceptions import InvalidToken
-            
+
             auth = JWTAuthentication()
             token = auth_header.split(' ')[1]
             validated_token = auth.get_validated_token(token)
             user = auth.get_user(validated_token)
-            
+
             return Response({
                 'id': user.id,
                 'username': user.username,
@@ -220,15 +230,172 @@ class CurrentUserView(APIView):
 
 
 # =============================================
+# ✅ VUES PUBLIQUES POUR OTP & INSCRIPTION
+# =============================================
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RequestOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        # Votre logique pour générer et envoyer le code OTP
+        return Response({'success': True, 'message': 'Code envoyé', 'email': email})
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class VerifyOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        code = request.data.get('otp')
+        # Votre logique de vérification du code
+        return Response({'success': True, 'message': 'Code vérifié'})
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        # Votre logique d'inscription (création de l'utilisateur Django)
+        return Response({'success': True, 'message': 'Utilisateur créé'})
+
+
+# =============================================
+# ✅ VUES CLIENT (Authentification & Panier)
+# =============================================
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ClientRegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ClientRegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            client = serializer.save()
+            return Response({'success': True, 'client_id': client.id}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ClientLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ClientLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            password = serializer.validated_data['password']
+            try:
+                client = Client.objects.get(email=email)
+                if client.check_password(password):  # ✅ Utiliser check_password()
+                    return Response({
+                        'success': True,
+                        'client': ClientSerializer(client).data
+                    })
+                return Response({'error': 'Mot de passe incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+            except Client.DoesNotExist:
+                return Response({'error': 'Client non trouvé'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# api/views.py
+
+class PanierView(APIView):
+    def get(self, request, client_id):
+        panier, created = Panier.objects.get_or_create(client_id=client_id, est_valide=False)
+        serializer = PanierSerializer(panier, context={'request': request})  # ✅ AJOUTEZ CECI
+        return Response(serializer.data)
+
+    def post(self, request, client_id):
+        panier, created = Panier.objects.get_or_create(client_id=client_id, est_valide=False)
+        produit_id = request.data.get('produit_id')
+        quantite = int(request.data.get('quantite', 1))
+        produit = Produit.objects.get(id=produit_id)
+        ligne, created = LignePanier.objects.get_or_create(
+            panier=panier, produit=produit,
+            defaults={'quantite': quantite, 'prix_unitaire': produit.prix}
+        )
+        if not created:
+            ligne.quantite += quantite
+            ligne.save()
+        return Response(PanierSerializer(panier, context={'request': request}).data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, client_id):
+        ligne_id = request.data.get('ligne_id')
+        panier, _ = Panier.objects.get_or_create(client_id=client_id, est_valide=False)
+        LignePanier.objects.filter(id=ligne_id, panier=panier).delete()
+        return Response(PanierSerializer(panier, context={'request': request}).data)
+    
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CommandeDepuisPanierView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, client_id):
+        try:
+            # 1. Récupérer le panier du client
+            panier = Panier.objects.filter(client_id=client_id, est_valide=False).first()
+            if not panier or not panier.lignes.exists():
+                return Response({'error': 'Panier vide'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 2. Calculer le total
+            total = sum(ligne.sous_total for ligne in panier.lignes.all())
+
+            
+            commande = Commande.objects.create(
+                client_id=client_id,
+                statut='EN_ATTENTE',
+                total=total,
+                adresse_livraison=request.data.get('adresse', ''),
+                ville=request.data.get('ville', ''),
+                code_postal=request.data.get('codePostal', ''),
+                telephone=request.data.get('telephone', ''),
+                notes=request.data.get('notes', '')
+            )
+
+            
+            for ligne in panier.lignes.all():
+                LigneCommande.objects.create(
+                    commande=commande,
+                    produit=ligne.produit,
+                    quantite=ligne.quantite,
+                    prix_unitaire=ligne.prix_unitaire
+                )
+                # Mettre à jour le stock
+                produit = ligne.produit
+                produit.quantite_stock -= ligne.quantite
+                if produit.quantite_stock < 0:
+                    produit.quantite_stock = 0
+                produit.save()
+
+          
+            panier.est_valide = True
+            panier.save()
+
+            
+            client = Client.objects.get(id=client_id)
+            try:
+                envoyer_sms_confirmation(client, commande, ligne.produit, ligne.quantite, total)
+            except Exception as e:
+                print(f"❌ Erreur SMS: {str(e)}")
+                
+
+            return Response({'success': True, 'commande_id': commande.id, 'total': total}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# =============================================
 # ✅ BASE VIEWSET POUR LE PUBLIC
 # =============================================
+
 class PublicViewSet(viewsets.ModelViewSet):
     """
     ViewSet de base :
     - Lecture (GET) : Public (AllowAny)
     - Écriture (POST, PUT, DELETE) : Admin uniquement (IsAdminUser)
     """
-    
+
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
@@ -238,11 +405,12 @@ class PublicViewSet(viewsets.ModelViewSet):
 # =============================================
 # ✅ ADMIN ONLY VIEWSET
 # =============================================
+
 class AdminOnlyViewSet(viewsets.ModelViewSet):
     """
     ViewSet réservé aux admins (lecture + écriture)
     """
-    
+
     def get_permissions(self):
         return [IsAdminUser()]
 
@@ -257,18 +425,18 @@ class FormationEnLigneViewSet(PublicViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        
+
         statut = self.request.query_params.get('statut')
         if statut:
             queryset = queryset.filter(statut=statut)
-        
+
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
                 Q(titre__icontains=search) |
                 Q(description__icontains=search)
             )
-        
+
         return queryset.order_by('ordre', '-created_at')
 
 
@@ -276,13 +444,18 @@ class EvenementViewSet(PublicViewSet):
     queryset = Evenement.objects.filter(statut__in=['A_VENIR', 'EN_COURS'])
     serializer_class = EvenementSerializer
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
     def get_queryset(self):
         queryset = super().get_queryset()
-        
+
         statut = self.request.query_params.get('statut')
         if statut:
             queryset = queryset.filter(statut=statut)
-        
+
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
@@ -290,7 +463,7 @@ class EvenementViewSet(PublicViewSet):
                 Q(description__icontains=search) |
                 Q(theme__icontains=search)
             )
-        
+
         return queryset
 
     def create(self, request, *args, **kwargs):
@@ -299,7 +472,7 @@ class EvenementViewSet(PublicViewSet):
         """
         try:
             data = request.data.copy()
-            
+
             if 'places_total' in data:
                 try:
                     data['places_restantes'] = int(data['places_total'])
@@ -308,14 +481,14 @@ class EvenementViewSet(PublicViewSet):
                         {'places_total': 'Le nombre de places doit être un nombre valide'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-            
+
             if 'est_gratuit' in data:
                 if data['est_gratuit'] in ['true', 'True', True, '1', 1]:
                     data['est_gratuit'] = True
                     data['prix'] = 0
                 else:
                     data['est_gratuit'] = False
-            
+
             if 'prix' in data:
                 if data['prix'] == '' or data['prix'] is None:
                     data['prix'] = 0
@@ -323,18 +496,18 @@ class EvenementViewSet(PublicViewSet):
                     data['prix'] = float(data['prix'])
                 except (ValueError, TypeError):
                     data['prix'] = 0
-            
+
             if 'image' in request.FILES:
                 data['image'] = request.FILES['image']
-            
+
             serializer = self.get_serializer(data=data)
-            
+
             if serializer.is_valid():
                 self.perform_create(serializer)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-                
+
         except Exception as e:
             return Response(
                 {'error': str(e)},
@@ -346,20 +519,25 @@ class ProduitViewSet(PublicViewSet):
     queryset = Produit.objects.filter(est_disponible=True)
     serializer_class = ProduitSerializer
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
     def get_queryset(self):
         queryset = super().get_queryset()
-        
+
         categorie = self.request.query_params.get('categorie')
         if categorie:
             queryset = queryset.filter(categorie=categorie)
-        
+
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
                 Q(nom__icontains=search) |
                 Q(description__icontains=search)
             )
-        
+
         return queryset
 
 
@@ -404,11 +582,11 @@ class MoyenPaiementViewSet(PublicViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        
+
         type_paiement = self.request.query_params.get('type')
         if type_paiement:
             queryset = queryset.filter(type=type_paiement)
-        
+
         return queryset.order_by('ordre')
 
 
@@ -420,156 +598,145 @@ class MoyenPaiementViewSet(PublicViewSet):
 class PaiementViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour les paiements
-    - CREATE : Public (AllowAny) - pour effectuer un paiement
+    - CREATE, GENERER_QR, CARTE : Public (AllowAny)
     - LIST, RETRIEVE, UPDATE, DELETE : Admin uniquement (IsAdminUser)
     """
     queryset = TransactionPaiement.objects.all().order_by('-date_creation')
     serializer_class = TransactionPaiementSerializer
 
     def get_permissions(self):
-        if self.action == 'create':
+        if self.action in ['create', 'generer_qr', 'carte']:
             return [AllowAny()]
         return [IsAdminUser()]
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        
-        statut = self.request.query_params.get('statut')
-        if statut:
-            queryset = queryset.filter(statut=statut)
-        
-        date_debut = self.request.query_params.get('date_debut')
-        if date_debut:
-            queryset = queryset.filter(date_creation__gte=date_debut)
-        
-        date_fin = self.request.query_params.get('date_fin')
-        if date_fin:
-            queryset = queryset.filter(date_creation__lte=date_fin)
-        
-        search = self.request.query_params.get('search')
-        if search:
-            queryset = queryset.filter(
-                Q(reference__icontains=search) |
-                Q(details__email__icontains=search) |
-                Q(numero_transaction__icontains=search)
-            )
-        
-        return queryset
-
-    def create(self, request, *args, **kwargs):
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def generer_qr(self, request):
         """
-        ✅ Création d'un paiement par un client (public)
+        Générer un QR code pour un paiement (accès public)
         """
         try:
-            data = request.data.copy()
-            
-            email = data.get('email')
-            montant = data.get('montant')
-            moyen_paiement = data.get('moyen_paiement')
-            
-            if not email or not montant:
+            montant = request.data.get('montant')
+            moyen_paiement_id = request.data.get('moyen_paiement')
+            inscription_id = request.data.get('inscription')
+
+            if not montant or not moyen_paiement_id:
                 return Response(
-                    {'error': 'L\'email et le montant sont requis'},
+                    {'error': 'Montant et moyen de paiement requis'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             try:
-                client = Client.objects.get(email=email)
-            except Client.DoesNotExist:
-                client = Client.objects.create(
-                    nom=data.get('nom', 'Client'),
-                    prenom=data.get('prenom', 'Inconnu'),
-                    email=email,
-                    telephone=data.get('telephone', '')
+                moyen_paiement = MoyenPaiement.objects.get(id=moyen_paiement_id)
+            except MoyenPaiement.DoesNotExist:
+                return Response(
+                    {'error': 'Moyen de paiement invalide'},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
+            reference = f"QR-{datetime.now().strftime('%Y%m%d')}-{''.join(random.choices(string.ascii_uppercase + string.digits, k=8))}"
+
+            qr_data = {
+                'reference': reference,
+                'montant': float(montant),
+                'moyen_paiement': moyen_paiement_id,
+                'moyen_paiement_nom': moyen_paiement.nom,
+                'inscription': inscription_id,
+                'date': datetime.now().isoformat(),
+                'expiration': (datetime.now() + timedelta(seconds=60)).isoformat(),
+            }
+
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(json.dumps(qr_data))
+            qr.make(fit=True)
+
+            img = qr.make_image(fill_color="black", back_color="white")
+            buffer = BytesIO()
+            img.save(buffer, format="PNG")
+            qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
             transaction = TransactionPaiement.objects.create(
-                montant=float(montant),
-                moyen_paiement_id=moyen_paiement if moyen_paiement else None,
+                reference=reference,
+                montant=montant,
+                moyen_paiement=moyen_paiement,
                 statut='EN_ATTENTE',
-                reference=f"PAY-{timezone.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}",
+                date_creation=timezone.now(),
                 details={
-                    'email': email,
-                    'nom': data.get('nom', ''),
-                    'prenom': data.get('prenom', ''),
-                    'telephone': data.get('telephone', ''),
-                    'inscription': data.get('inscription'),
+                    'qr_code': True,
+                    'inscription_id': inscription_id,
+                    'expiration': (timezone.now() + timedelta(seconds=60)).isoformat(),
                 }
             )
-            
-            serializer = self.get_serializer(transaction)
-            
+
             return Response({
                 'success': True,
-                'message': 'Paiement enregistré avec succès',
-                'data': serializer.data,
-                'reference': transaction.reference,
-            }, status=status.HTTP_201_CREATED)
-            
+                'qr_code': qr_base64,
+                'reference': reference,
+                'expiration': (timezone.now() + timedelta(seconds=60)).isoformat(),
+                'transaction_id': transaction.id,
+                'montant': float(montant),
+                'moyen_paiement': moyen_paiement.nom,
+            })
+
         except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['get'])
+    def statut(self, request, pk=None):
+        try:
+            transaction = self.get_object()
+            return Response({
+                'statut': transaction.statut,
+                'reference': transaction.reference,
+                'montant': transaction.montant,
+                'date_validation': transaction.date_validation,
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def carte(self, request):
+        try:
+            data = request.data
+
+            inscription_id = data.get('inscription')
+            if not inscription_id:
+                return Response({'error': 'Inscription requise'}, status=status.HTTP_400_BAD_REQUEST)
+
+            inscription = get_object_or_404(InscriptionFormation, id=inscription_id)
+
+            numero_carte = data.get('numero_carte', '')
+            if len(numero_carte) < 16:
+                return Response({'error': 'Numéro de carte invalide'}, status=status.HTTP_400_BAD_REQUEST)
+
+            transaction = TransactionPaiement.objects.create(
+                inscription=inscription,
+                montant=inscription.montant,
+                statut='REUSSI',
+                reference=f"CRD-{datetime.now().strftime('%Y%m%d')}-{''.join(random.choices(string.ascii_uppercase + string.digits, k=6))}",
+                date_validation=timezone.now(),
+                details={
+                    'type': 'CARTE_BANCAIRE',
+                    'titulaire': data.get('titulaire', ''),
+                    'dernier_chiffres': numero_carte[-4:],
+                }
             )
 
-    @action(detail=True, methods=['post'])
-    def valider(self, request, pk=None):
-        try:
-            paiement = self.get_object()
-            if paiement.statut == 'EN_ATTENTE':
-                paiement.statut = 'REUSSI'
-                paiement.date_validation = timezone.now()
-                paiement.save()
-                return Response({
-                    'success': True,
-                    'message': 'Paiement validé avec succès',
-                    'data': self.get_serializer(paiement).data
-                })
-            else:
-                return Response({
-                    'success': False,
-                    'message': f'Le paiement est déjà {paiement.get_statut_display()}'
-                }, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            inscription.statut = 'PAYEE'
+            inscription.reference_paiement = transaction.reference
+            inscription.save()
 
-    @action(detail=True, methods=['post'])
-    def annuler(self, request, pk=None):
-        try:
-            paiement = self.get_object()
-            if paiement.statut in ['EN_ATTENTE', 'EN_COURS']:
-                paiement.statut = 'ANNULE'
-                paiement.save()
-                return Response({
-                    'success': True,
-                    'message': 'Paiement annulé avec succès',
-                    'data': self.get_serializer(paiement).data
-                })
-            else:
-                return Response({
-                    'success': False,
-                    'message': 'Le paiement ne peut pas être annulé'
-                }, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({
+                'success': True,
+                'message': 'Paiement effectué avec succès',
+                'reference': transaction.reference,
+                'data': TransactionPaiementSerializer(transaction).data,
+            })
 
-    @action(detail=True, methods=['post'])
-    def rembourser(self, request, pk=None):
-        try:
-            paiement = self.get_object()
-            if paiement.statut == 'REUSSI':
-                paiement.statut = 'REMBOURSE'
-                paiement.save()
-                return Response({
-                    'success': True,
-                    'message': 'Paiement remboursé avec succès',
-                    'data': self.get_serializer(paiement).data
-                })
-            else:
-                return Response({
-                    'success': False,
-                    'message': 'Seul un paiement réussi peut être remboursé'
-                }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -593,6 +760,24 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         return [IsAdminUser()]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queryset = queryset.select_related('client', 'formation', 'code_acces')
+
+        formation_id = self.request.query_params.get('formation')
+        if formation_id:
+            queryset = queryset.filter(formation_id=formation_id)
+
+        client_id = self.request.query_params.get('client')
+        if client_id:
+            queryset = queryset.filter(client_id=client_id)
+
+        statut = self.request.query_params.get('statut')
+        if statut:
+            queryset = queryset.filter(statut=statut)
+
+        return queryset.order_by('-date_inscription')
+
     def create(self, request, *args, **kwargs):
         """
         ✅ Inscription à une formation (accessible au public)
@@ -600,23 +785,17 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
         try:
             data = request.data.copy()
             print(f"📦 Données reçues: {data}")
-            
+
             formation_id = data.get('formation')
             if not formation_id:
-                return Response(
-                    {'error': 'La formation est requise'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
+                return Response({'error': 'La formation est requise'}, status=status.HTTP_400_BAD_REQUEST)
+
             formation = get_object_or_404(FormationEnLigne, id=formation_id)
-            
+
             email = data.get('email')
             if not email:
-                return Response(
-                    {'error': 'L\'email est requis'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
+                return Response({'error': 'L\'email est requis'}, status=status.HTTP_400_BAD_REQUEST)
+
             try:
                 client = Client.objects.get(email=email)
             except Client.DoesNotExist:
@@ -626,18 +805,15 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
                     prenom=data.get('prenom', 'Inconnu'),
                     telephone=data.get('telephone', '')
                 )
-            
+
             existing = InscriptionFormation.objects.filter(
                 formation=formation,
                 client=client
             ).first()
-            
+
             if existing:
-                return Response(
-                    {'error': 'Vous êtes déjà inscrit à cette formation'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
+                return Response({'error': 'Vous êtes déjà inscrit à cette formation'}, status=status.HTTP_400_BAD_REQUEST)
+
             inscription = InscriptionFormation.objects.create(
                 formation=formation,
                 client=client,
@@ -645,147 +821,158 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
                 montant=formation.prix,
                 notes=data.get('notes', '')
             )
-            
+
             serializer = self.get_serializer(inscription)
-            
+
             return Response({
                 'success': True,
                 'message': 'Inscription réussie',
                 'data': serializer.data,
                 'id': inscription.id,
             }, status=status.HTTP_201_CREATED)
-            
+
         except Exception as e:
             print(f"❌ Erreur inscription: {str(e)}")
             import traceback
             traceback.print_exc()
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    # ✅ CORRECTION: update et partial_update
     def update(self, request, *args, **kwargs):
         """
-        ✅ Mise à jour complète d'une inscription (admin)
+        ✅ Mise à jour d'une inscription (admin)
         """
         try:
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
-            
-            # ✅ Récupérer uniquement les champs modifiables
+
             data = {}
-            allowed_fields = ['statut', 'notes']  # ✅ Seuls ces champs sont modifiables
-            
+            allowed_fields = ['statut', 'notes']
+
             for field in allowed_fields:
                 if field in request.data:
                     data[field] = request.data[field]
-            
-            # ✅ Gérer le cas du statut
+
             if 'statut' in data:
-                # ✅ Vérifier que le statut est valide
                 valid_statuts = ['EN_ATTENTE', 'PAYEE', 'ANNULEE', 'REMBOURSEE']
                 if data['statut'] not in valid_statuts:
                     return Response(
                         {'error': f'Statut invalide. Choisir parmi: {", ".join(valid_statuts)}'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-            
+
             serializer = self.get_serializer(instance, data=data, partial=partial)
-            
+
             if serializer.is_valid():
                 self.perform_update(serializer)
-                
-                # ✅ Si le statut devient PAYEE, vérifier le paiement
-                if data.get('statut') == 'PAYEE':
-                    # Vérifier si un paiement existe
-                    paiement = TransactionPaiement.objects.filter(
-                        inscription=instance
-                    ).first()
-                    if not paiement:
-                        # Créer un paiement simulé si nécessaire
-                        TransactionPaiement.objects.create(
-                            inscription=instance,
-                            montant=instance.montant,
-                            statut='REUSSI',
-                            reference=f"PAY-{timezone.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}",
-                            date_validation=timezone.now(),
-                            details={'type': 'validation_manuelle'}
-                        )
-                
                 return Response(serializer.data)
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-                
+
         except Exception as e:
             print(f"❌ Erreur mise à jour: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def partial_update(self, request, *args, **kwargs):
-        """
-        ✅ Mise à jour partielle d'une inscription (admin)
-        """
         kwargs['partial'] = True
         return self.update(request, *args, **kwargs)
 
     @action(detail=True, methods=['post'])
     def generer_code(self, request, pk=None):
         """
-        Générer un code d'accès pour une inscription
+        Générer un code d'accès pour une inscription (admin uniquement)
         """
         try:
-            import random
-            import string
-            from datetime import timedelta
-            
             inscription = self.get_object()
-            
-            # Vérifier que l'inscription est payée
+
             if inscription.statut != 'PAYEE':
-                return Response(
-                    {'error': 'L\'inscription doit être payée pour générer un code d\'accès'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Vérifier si un code existe déjà
+                return Response({'error': 'L\'inscription doit être payée pour générer un code d\'accès'}, status=status.HTTP_400_BAD_REQUEST)
+
             if inscription.code_acces:
                 return Response({
                     'success': True,
                     'message': 'Un code d\'accès existe déjà',
                     'code': inscription.code_acces.code,
+                    'data': CodeAccesFormationSerializer(inscription.code_acces).data
                 })
-            
-            # Générer un nouveau code
+
             code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-            
-            # Créer le code d'accès
+
             code_acces = CodeAccesFormation.objects.create(
                 formation=inscription.formation,
                 client=inscription.client,
                 code=code,
                 date_expiration=timezone.now() + timedelta(days=30),
                 montant_paye=inscription.montant,
-                reference_paiement=inscription.reference_paiement,
+                reference_paiement=inscription.reference_paiement or '',
             )
-            
+
             inscription.code_acces = code_acces
             inscription.save()
-            
+
             return Response({
                 'success': True,
                 'message': 'Code d\'accès généré avec succès',
                 'code': code,
-                'data': CodeAccesFormationSerializer(code_acces).data,
+                'data': CodeAccesFormationSerializer(code_acces).data
             })
-            
+
         except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'], permission_classes=[AllowAny])
+    def verifier_code(self, request, pk=None):
+        """
+        Vérifier un code d'accès (public)
+        """
+        try:
+            code = request.data.get('code')
+            email = request.data.get('email')
+
+            if not code or not email:
+                return Response({'error': 'Le code et l\'email sont requis'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                code_acces = CodeAccesFormation.objects.get(
+                    code=code,
+                    client__email=email,
+                    statut='ACTIF'
+                )
+            except CodeAccesFormation.DoesNotExist:
+                return Response({'error': 'Code d\'accès invalide ou expiré'}, status=status.HTTP_404_NOT_FOUND)
+
+            if code_acces.date_expiration < timezone.now():
+                code_acces.statut = 'EXPIRE'
+                code_acces.save()
+                return Response({'error': 'Code d\'accès expiré'}, status=status.HTTP_400_BAD_REQUEST)
+
+            inscription = InscriptionFormation.objects.filter(
+                code_acces=code_acces,
+                statut='PAYEE'
+            ).first()
+
+            if not inscription:
+                return Response({'error': 'Aucune inscription trouvée'}, status=status.HTTP_404_NOT_FOUND)
+
+            return Response({
+                'success': True,
+                'message': 'Code valide',
+                'formation': {
+                    'id': inscription.formation.id,
+                    'titre': inscription.formation.titre,
+                    'video_url': inscription.formation.video_url,
+                    'replay_url': inscription.formation.replay_url,
+                },
+                'client': {
+                    'id': inscription.client.id,
+                    'nom': inscription.client.nom,
+                    'prenom': inscription.client.prenom,
+                    'email': inscription.client.email,
+                },
+                'code_acces': code_acces.code,
+            })
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
     def valider_paiement(self, request, pk=None):
@@ -794,18 +981,13 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
         """
         try:
             inscription = self.get_object()
-            
+
             if inscription.statut == 'PAYEE':
-                return Response({
-                    'success': False,
-                    'message': 'Le paiement est déjà validé'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # ✅ Mettre à jour le statut
+                return Response({'success': False, 'message': 'Le paiement est déjà validé'}, status=status.HTTP_400_BAD_REQUEST)
+
             inscription.statut = 'PAYEE'
             inscription.save()
-            
-            # ✅ Créer une transaction de paiement
+
             TransactionPaiement.objects.create(
                 inscription=inscription,
                 montant=inscription.montant,
@@ -817,18 +999,11 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
                     'valide_par': request.user.username if request.user.is_authenticated else 'admin'
                 }
             )
-            
-            return Response({
-                'success': True,
-                'message': 'Paiement validé avec succès',
-                'data': self.get_serializer(inscription).data
-            })
-            
+
+            return Response({'success': True, 'message': 'Paiement validé avec succès', 'data': self.get_serializer(inscription).data})
+
         except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
     def refuser(self, request, pk=None):
@@ -837,27 +1012,19 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
         """
         try:
             inscription = self.get_object()
-            
+
             if inscription.statut == 'ANNULEE':
-                return Response({
-                    'success': False,
-                    'message': 'L\'inscription est déjà annulée'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
+                return Response({'success': False, 'message': 'L\'inscription est déjà annulée'}, status=status.HTTP_400_BAD_REQUEST)
+
             inscription.statut = 'ANNULEE'
             inscription.save()
-            
-            return Response({
-                'success': True,
-                'message': 'Inscription refusée avec succès',
-                'data': self.get_serializer(inscription).data
-            })
-            
+
+            return Response({'success': True, 'message': 'Inscription refusée avec succès', 'data': self.get_serializer(inscription).data})
+
         except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # =============================================
 # ✅ TRANSACTION PAIEMENT (PUBLIC + ADMIN)
 # =============================================
@@ -883,16 +1050,13 @@ class TransactionPaiementViewSet(viewsets.ModelViewSet):
         """
         try:
             data = request.data.copy()
-            
+
             inscription_id = data.get('inscription')
             if not inscription_id:
-                return Response(
-                    {'error': 'L\'inscription est requise'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
+                return Response({'error': 'L\'inscription est requise'}, status=status.HTTP_400_BAD_REQUEST)
+
             inscription = get_object_or_404(InscriptionFormation, id=inscription_id)
-            
+
             transaction = TransactionPaiement.objects.create(
                 inscription=inscription,
                 moyen_paiement_id=data.get('moyen_paiement'),
@@ -901,11 +1065,11 @@ class TransactionPaiementViewSet(viewsets.ModelViewSet):
                 reference=f"TXN-{timezone.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}",
                 details=data.get('details', {})
             )
-            
+
             inscription.statut = 'PAYEE'
             inscription.reference_paiement = transaction.reference
             inscription.save()
-            
+
             if inscription.formation:
                 code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
                 CodeAccesFormation.objects.create(
@@ -916,21 +1080,124 @@ class TransactionPaiementViewSet(viewsets.ModelViewSet):
                     montant_paye=inscription.montant,
                     reference_paiement=transaction.reference
                 )
-            
+
             serializer = self.get_serializer(transaction)
-            
+
             return Response({
                 'success': True,
                 'message': 'Paiement effectué avec succès',
                 'data': serializer.data,
                 'reference': transaction.reference,
             }, status=status.HTTP_201_CREATED)
-            
+
         except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# =============================================
+# ✅ PARTICIPATION ÉVÉNEMENT (PUBLIC + ADMIN)
+# =============================================
+
+class ParticipationEvenementViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour les participations aux événements
+    - CREATE : Public (AllowAny)
+    - LIST, RETRIEVE, UPDATE, DELETE : Admin uniquement (IsAdminUser)
+    """
+    queryset = ParticipationEvenement.objects.all()
+    serializer_class = ParticipationEvenementSerializer
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [AllowAny()]
+        return [IsAdminUser()]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        evenement_id = self.request.query_params.get('evenement')
+        if evenement_id:
+            queryset = queryset.filter(evenement_id=evenement_id)
+
+        client_id = self.request.query_params.get('client')
+        if client_id:
+            queryset = queryset.filter(client_id=client_id)
+
+        queryset = queryset.select_related('client', 'evenement')
+
+        return queryset.order_by('-date_inscription')
+
+    def create(self, request, *args, **kwargs):
+        """
+        ✅ Inscription à un événement (accessible au public)
+        """
+        try:
+            data = request.data.copy()
+            print(f"📦 Données reçues pour participation: {data}")
+
+            evenement_id = data.get('evenement')
+            if not evenement_id:
+                return Response({'error': 'L\'événement est requis'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                evenement = Evenement.objects.get(id=evenement_id)
+            except Evenement.DoesNotExist:
+                return Response({'error': 'Événement non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+
+            if evenement.places_restantes <= 0:
+                return Response({'error': 'Cet événement est complet'}, status=status.HTTP_400_BAD_REQUEST)
+
+            email = data.get('email')
+            if not email:
+                return Response({'error': 'L\'email est requis'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if '@' not in email:
+                return Response({'error': 'Email invalide'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                client = Client.objects.get(email=email)
+                print(f"✅ Client existant: {client.id}")
+            except Client.DoesNotExist:
+                client = Client.objects.create(
+                    nom=data.get('nom', 'Client'),
+                    prenom=data.get('prenom', 'Inconnu'),
+                    email=email,
+                    telephone=data.get('telephone', '')
+                )
+                print(f"✅ Nouveau client créé: {client.id}")
+
+            existing = ParticipationEvenement.objects.filter(
+                evenement=evenement,
+                client=client
+            ).first()
+
+            if existing:
+                return Response({'error': 'Vous êtes déjà inscrit à cet événement'}, status=status.HTTP_400_BAD_REQUEST)
+
+            participation = ParticipationEvenement.objects.create(
+                evenement=evenement,
+                client=client,
+                statut='INSCRIT',
+                notes=data.get('notes', '')
             )
+
+            evenement.places_restantes -= 1
+            evenement.save()
+
+            serializer = self.get_serializer(participation)
+
+            return Response({
+                'success': True,
+                'message': 'Inscription réussie',
+                'data': serializer.data,
+                'places_restantes': evenement.places_restantes,
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            print(f"❌ Erreur inscription: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # =============================================
@@ -950,11 +1217,6 @@ class RendezVousViewSet(AdminOnlyViewSet):
 class PanierViewSet(AdminOnlyViewSet):
     queryset = Panier.objects.all()
     serializer_class = PanierSerializer
-
-
-class CommandeViewSet(AdminOnlyViewSet):
-    queryset = Commande.objects.all()
-    serializer_class = CommandeSerializer
 
 
 class CodeAccesFormationViewSet(AdminOnlyViewSet):
@@ -998,132 +1260,136 @@ class SiteSettingsViewSet(AdminOnlyViewSet):
 
 
 # =============================================
-# ✅ PARTICIPATION ÉVÉNEMENT (PUBLIC + ADMIN)
+# ✅ COMMANDE VIEWSET
 # =============================================
 
-@method_decorator(csrf_exempt, name='dispatch')
-class ParticipationEvenementViewSet(viewsets.ModelViewSet):
+class CommandeViewSet(viewsets.ModelViewSet):
     """
-    ViewSet pour les participations aux événements
-    - CREATE : Public (AllowAny) - pour s'inscrire
+    ViewSet pour les commandes
+    - CREATE (POST) : Public (AllowAny) - Pour passer commande
     - LIST, RETRIEVE, UPDATE, DELETE : Admin uniquement (IsAdminUser)
     """
-    queryset = ParticipationEvenement.objects.all()
-    serializer_class = ParticipationEvenementSerializer
+    queryset = Commande.objects.all().order_by('-date_commande')
+    serializer_class = CommandeSerializer
 
     def get_permissions(self):
         if self.action == 'create':
             return [AllowAny()]
         return [IsAdminUser()]
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
     def get_queryset(self):
         queryset = super().get_queryset()
+        queryset = queryset.select_related('client').prefetch_related('lignes__produit')
         
-        evenement_id = self.request.query_params.get('evenement')
-        if evenement_id:
-            queryset = queryset.filter(evenement_id=evenement_id)
-        
+        statut = self.request.query_params.get('statut')
+        if statut:
+            queryset = queryset.filter(statut=statut)
+
         client_id = self.request.query_params.get('client')
         if client_id:
             queryset = queryset.filter(client_id=client_id)
-        
-        return queryset.order_by('-date_inscription')
+
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(id__icontains=search) |
+                Q(client__nom__icontains=search) |
+                Q(client__prenom__icontains=search) |
+                Q(adresse_livraison__icontains=search)
+            )
+
+        return queryset
 
     def create(self, request, *args, **kwargs):
         """
-        ✅ Inscription à un événement (accessible au public)
+        ✅ Création d'une commande (accessible au public)
         """
         try:
             data = request.data.copy()
-            
-            evenement_id = data.get('evenement')
-            if not evenement_id:
-                return Response(
-                    {'error': 'L\'événement est requis'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            evenement = get_object_or_404(Evenement, id=evenement_id)
-            
-            if evenement.places_restantes <= 0:
-                return Response(
-                    {'error': 'Cet événement est complet'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
+            print(f"📦 Données commande reçues: {data}")
+
+            # 1. Récupérer ou créer le client
             email = data.get('email')
             if not email:
-                return Response(
-                    {'error': 'L\'email est requis'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
+                return Response({'error': "L'email est requis"}, status=status.HTTP_400_BAD_REQUEST)
+
             try:
                 client = Client.objects.get(email=email)
-                created = False
             except Client.DoesNotExist:
-                username = email.split('@')[0]
-                if User.objects.filter(username=username).exists():
-                    suffix = ''.join(random.choices(string.digits, k=4))
-                    username = f"{username}{suffix}"
-                
-                password = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
-                
-                user = User.objects.create_user(
-                    username=username,
-                    email=email,
-                    password=password,
-                    first_name=data.get('prenom', ''),
-                    last_name=data.get('nom', '')
-                )
-                
                 client = Client.objects.create(
-                    user=user,
-                    nom=data.get('nom', ''),
-                    prenom=data.get('prenom', ''),
+                    nom=data.get('nom', 'Client'),
+                    prenom=data.get('prenom', 'Inconnu'),
                     email=email,
-                    telephone=data.get('telephone', ''),
+                    telephone=data.get('telephone', '')
                 )
-                created = True
-            
-            if not created:
-                client.nom = data.get('nom', client.nom)
-                client.prenom = data.get('prenom', client.prenom)
-                client.telephone = data.get('telephone', client.telephone)
-                client.save()
-            
-            existing_participation = ParticipationEvenement.objects.filter(
-                evenement=evenement,
-                client=client
-            ).first()
-            
-            if existing_participation:
-                return Response(
-                    {'error': 'Vous êtes déjà inscrit à cet événement'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            participation = ParticipationEvenement.objects.create(
-                evenement=evenement,
+
+            # 2. Récupérer le produit
+            produit_id = data.get('produit_id')
+            if not produit_id:
+                return Response({'error': "Le produit est requis"}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                produit = Produit.objects.get(id=produit_id)
+            except Produit.DoesNotExist:
+                return Response({'error': 'Produit non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+
+            quantite = int(data.get('quantite', 1))
+            if quantite <= 0:
+                return Response({'error': 'Quantité invalide'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 3. Calculer le total
+            prix_unitaire = produit.prix_promotion if produit.est_en_promotion and produit.prix_promotion else produit.prix
+            total = float(prix_unitaire) * quantite
+
+            # 4. Créer la commande
+            commande = Commande.objects.create(
                 client=client,
-                statut='INSCRIT',
+                statut='EN_ATTENTE',
+                total=total,
+                adresse_livraison=data.get('adresse', ''),
+                ville=data.get('ville', ''),
+                code_postal=data.get('codePostal', ''),
+                telephone=client.telephone,
                 notes=data.get('notes', '')
             )
-            
-            evenement.places_restantes -= 1
-            evenement.save()
-            
-            serializer = self.get_serializer(participation)
-            
+
+            # 5. Créer la ligne de commande
+            LigneCommande.objects.create(
+                commande=commande,
+                produit=produit,
+                quantite=quantite,
+                prix_unitaire=prix_unitaire
+            )
+
+            # 6. Mettre à jour le stock
+            produit.quantite_stock -= quantite
+            if produit.quantite_stock < 0:
+                produit.quantite_stock = 0
+            produit.save()
+
+            # ✅ 7. ENVOYER LE SMS DE CONFIRMATION AU CLIENT
+            try:
+                envoyer_sms_confirmation(client, commande, produit, quantite, total)
+            except Exception as e:
+                print(f"❌ Erreur lors de l'envoi du SMS: {str(e)}")
+                # On n'empêche pas la commande de réussir si le SMS échoue
+
+            serializer = self.get_serializer(commande)
             return Response({
                 'success': True,
-                'message': 'Inscription réussie',
+                'message': 'Commande créée avec succès',
                 'data': serializer.data,
-                'places_restantes': evenement.places_restantes,
-                'client_created': created,
+                'id': commande.id,
             }, status=status.HTTP_201_CREATED)
-            
+
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -1133,7 +1399,6 @@ class ParticipationEvenementViewSet(viewsets.ModelViewSet):
 # =============================================
 # ✅ DASHBOARD STATS
 # =============================================
-# api/views.py - DashboardStatsView modifié
 
 class DashboardStatsView(APIView):
     """
@@ -1141,12 +1406,12 @@ class DashboardStatsView(APIView):
     Réservé aux admins
     """
     permission_classes = [IsAdminUser]
-    
+
     def get(self, request):
         try:
             now = timezone.now()
             first_day_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            
+
             # ===== STATISTIQUES DE BASE =====
             stats = {
                 'users': User.objects.count(),
@@ -1158,20 +1423,19 @@ class DashboardStatsView(APIView):
                 'pending_payments': TransactionPaiement.objects.filter(statut='EN_ATTENTE').count(),
                 'revenue': 0,
             }
-            
+
             # Revenu total
             successful_transactions = TransactionPaiement.objects.filter(statut='REUSSI')
             total_revenue = successful_transactions.aggregate(total=Sum('montant'))['total'] or 0
             stats['revenue'] = float(total_revenue)
-            
+
             # ===== ACTIVITÉS RÉCENTES =====
             recent_activities = []
-            
-            # Inscriptions formations
+
             recent_inscriptions = InscriptionFormation.objects.select_related(
                 'client', 'formation'
             ).order_by('-date_inscription')[:5]
-            
+
             for ins in recent_inscriptions:
                 recent_activities.append({
                     'id': ins.id,
@@ -1184,12 +1448,11 @@ class DashboardStatsView(APIView):
                     'montant': float(ins.montant),
                     'formation_id': ins.formation.id,
                 })
-            
-            # Transactions récentes
+
             recent_transactions = TransactionPaiement.objects.select_related(
                 'inscription'
             ).order_by('-date_creation')[:3]
-            
+
             for trans in recent_transactions:
                 recent_activities.append({
                     'id': trans.id,
@@ -1201,11 +1464,10 @@ class DashboardStatsView(APIView):
                     'statut': trans.statut,
                     'montant': float(trans.montant),
                 })
-            
-            # Trier par date
+
             recent_activities.sort(key=lambda x: x['created_at'], reverse=True)
             recent_activities = recent_activities[:10]
-            
+
             # ===== STATISTIQUES DU MOIS =====
             monthly_stats = {
                 'new_users': User.objects.filter(date_joined__gte=first_day_of_month).count(),
@@ -1225,20 +1487,19 @@ class DashboardStatsView(APIView):
                     ).aggregate(total=Sum('montant'))['total'] or 0
                 ),
             }
-            
-            # ===== ✅ LISTE DES INSCRIPTIONS FORMATIONS EN ATTENTE =====
+
+            # ===== LISTE DES INSCRIPTIONS FORMATIONS EN ATTENTE =====
             inscriptions_attente = InscriptionFormation.objects.filter(
                 statut='EN_ATTENTE'
             ).select_related('client', 'formation').order_by('-date_inscription')[:15]
-            
+
             inscriptions_data = []
             for ins in inscriptions_attente:
-                # Vérifier si un paiement existe
                 paiement = TransactionPaiement.objects.filter(
                     inscription=ins,
                     statut='REUSSI'
                 ).first()
-                
+
                 inscriptions_data.append({
                     'id': ins.id,
                     'client': {
@@ -1259,7 +1520,7 @@ class DashboardStatsView(APIView):
                     'paiement_effectue': paiement is not None,
                     'code_acces': ins.code_acces.code if ins.code_acces else None,
                 })
-            
+
             # ===== STATISTIQUES DES FORMATIONS =====
             formation_stats = {
                 'total_inscriptions': InscriptionFormation.objects.count(),
@@ -1267,15 +1528,87 @@ class DashboardStatsView(APIView):
                 'payees': InscriptionFormation.objects.filter(statut='PAYEE').count(),
                 'inscriptions_recents': inscriptions_data,
             }
-            
+
+            # ===== ✅ LISTE DES PARTICIPANTS À L'ÉVÉNEMENT LE PLUS RÉCENT =====
+            dernier_evenement = Evenement.objects.filter(
+                id__in=ParticipationEvenement.objects.values_list('evenement_id', flat=True).distinct()
+            ).order_by('-date_debut').first()
+
+            evenement_clients = []
+            evenement_titre = "Aucun événement avec participants"
+            evenement_id = None
+            total_inscrits = 0
+
+            if dernier_evenement:
+                evenement_titre = dernier_evenement.titre
+                evenement_id = dernier_evenement.id
+
+                participations = ParticipationEvenement.objects.filter(
+                    evenement=dernier_evenement,
+                    statut='INSCRIT'
+                ).select_related('client').order_by('-date_inscription')[:10]
+
+                total_inscrits = ParticipationEvenement.objects.filter(
+                    evenement=dernier_evenement,
+                    statut='INSCRIT'
+                ).count()
+
+                for participation in participations:
+                    client = participation.client
+                    evenement_clients.append({
+                        'id': client.id,
+                        'nom': client.nom,
+                        'prenom': client.prenom,
+                        'email': client.email,
+                        'telephone': client.telephone,
+                        'statut_inscription': participation.statut,
+                        'date_inscription': participation.date_inscription.isoformat(),
+                    })
+
+            evenement_stats = {
+                'total_participations': ParticipationEvenement.objects.filter(statut='INSCRIT').count(),
+                'evenement_recent': {
+                    'id': evenement_id,
+                    'titre': evenement_titre,
+                    'clients': evenement_clients,
+                    'total_inscrits': total_inscrits,
+                }
+            }
+
+            # ===== ✅ STATISTIQUES DES COMMANDES =====
+            commandes_stats = {
+                'total': Commande.objects.count(),
+                'en_attente': Commande.objects.filter(statut='EN_ATTENTE').count(),
+                'en_preparation': Commande.objects.filter(statut='EN_PREPARATION').count(),
+                'livrees': Commande.objects.filter(statut='LIVREE').count(),
+                'recents': [],
+            }
+
+            recent_commandes = Commande.objects.select_related('client').order_by('-date_commande')[:10]
+
+            for cmd in recent_commandes:
+                commandes_stats['recents'].append({
+                    'id': cmd.id,
+                    'client': {
+                        'id': cmd.client.id,
+                        'nom': cmd.client.nom,
+                        'prenom': cmd.client.prenom,
+                    } if cmd.client else None,
+                    'total': float(cmd.total),
+                    'statut': cmd.statut,
+                    'date_commande': cmd.date_commande.isoformat(),
+                })
+
             return Response({
                 'success': True,
                 'stats': stats,
                 'recent_activities': recent_activities,
                 'monthly_stats': monthly_stats,
                 'formation_stats': formation_stats,
+                'evenement_stats': evenement_stats,
+                'commandes_stats': commandes_stats,
             })
-            
+
         except Exception as e:
             import traceback
             traceback.print_exc()

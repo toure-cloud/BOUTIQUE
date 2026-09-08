@@ -173,6 +173,10 @@ CORS_ALLOW_METHODS = [
     'POST',
     'PUT',
 ]
+CORS_EXPOSE_HEADERS = [
+    'content-type',
+    'authorization',
+]
 
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',

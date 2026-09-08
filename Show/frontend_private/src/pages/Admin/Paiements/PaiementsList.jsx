@@ -1,3 +1,4 @@
+// src/pages/Admin/Paiements/PaiementsList.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -5,6 +6,7 @@ import {
   Paper,
   Typography,
   Box,
+  Button,
   Table,
   TableBody,
   TableCell,
@@ -15,25 +17,67 @@ import {
   IconButton,
   CircularProgress,
   Alert,
-  Button,
+  TextField,
+  InputAdornment,
+  Card,
+  CardContent,
+  Grid,
+  Avatar,
   Tooltip,
+  Pagination,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import {
+  Search,
   Refresh,
-  Visibility,
-  Receipt,
+  People,
   AttachMoney,
   CheckCircle,
   Cancel,
   Pending,
+  Clear,
+  Dashboard as DashboardIcon,
+  Receipt,
+  Visibility,
+  Print,
+  FilterList,
 } from '@mui/icons-material';
 import { adminService } from '../../../services/adminService';
 
 const PaiementsList = () => {
   const navigate = useNavigate();
   const [paiements, setPaiements] = useState([]);
+  const [filteredPaiements, setFilteredPaiements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatut, setFilterStatut] = useState('all');
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(10);
+  
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
+  const statuts = [
+    { value: 'all', label: 'Tous' },
+    { value: 'EN_ATTENTE', label: 'En attente' },
+    { value: 'REUSSI', label: 'Réussi' },
+    { value: 'ECHOUE', label: 'Échoué' },
+    { value: 'ANNULE', label: 'Annulé' },
+    { value: 'REMBOURSE', label: 'Remboursé' },
+  ];
 
   useEffect(() => {
     fetchPaiements();
@@ -43,141 +87,323 @@ const PaiementsList = () => {
     setLoading(true);
     setError(null);
     try {
+      // ✅ Utiliser la route correcte
       const data = await adminService.getPaiements();
-      setPaiements(Array.isArray(data) ? data : data.results || []);
+      console.log('📋 Paiements reçus:', data);
+      
+      const paiementsList = Array.isArray(data) ? data : data.results || [];
+      setPaiements(paiementsList);
+      setFilteredPaiements(paiementsList);
     } catch (err) {
-      console.error('Erreur:', err);
+      console.error('❌ Erreur:', err);
       setError('Impossible de charger les paiements');
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatutChip = (statut) => {
-    const configs = {
-      REUSSI: { label: 'Réussi', color: '#10B981', bg: '#D1FAE5', icon: <CheckCircle sx={{ fontSize: 14 }} /> },
-      EN_ATTENTE: { label: 'En attente', color: '#F59E0B', bg: '#FEF3C7', icon: <Pending sx={{ fontSize: 14 }} /> },
-      ECHOUE: { label: 'Échoué', color: '#EF4444', bg: '#FEE2E2', icon: <Cancel sx={{ fontSize: 14 }} /> },
-      ANNULE: { label: 'Annulé', color: '#6B7280', bg: '#F3F4F6', icon: <Cancel sx={{ fontSize: 14 }} /> },
-      REMBOURSE: { label: 'Remboursé', color: '#8B5CF6', bg: '#EDE9FE', icon: <CheckCircle sx={{ fontSize: 14 }} /> },
-    };
-    return configs[statut] || configs.EN_ATTENTE;
+  useEffect(() => {
+    let result = paiements;
+
+    if (searchTerm) {
+      result = result.filter(
+        (p) =>
+          p.reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.client_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.client_nom?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (filterStatut !== 'all') {
+      result = result.filter((p) => p.statut === filterStatut);
+    }
+
+    setFilteredPaiements(result);
+    setPage(1);
+  }, [searchTerm, filterStatut, paiements]);
+
+  const formatPrice = (price) => {
+    if (!price) return '0 CFA';
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'XOF',
+      minimumFractionDigits: 0,
+    }).format(price);
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const getStatutChip = (statut) => {
+    const configs = {
+      EN_ATTENTE: { label: 'En attente', color: '#F59E0B', icon: <Pending sx={{ fontSize: 14 }} /> },
+      REUSSI: { label: 'Réussi', color: '#10B981', icon: <CheckCircle sx={{ fontSize: 14 }} /> },
+      ECHOUE: { label: 'Échoué', color: '#EF4444', icon: <Cancel sx={{ fontSize: 14 }} /> },
+      ANNULE: { label: 'Annulé', color: '#6B7280', icon: <Cancel sx={{ fontSize: 14 }} /> },
+      REMBOURSE: { label: 'Remboursé', color: '#3B82F6', icon: <CheckCircle sx={{ fontSize: 14 }} /> },
+    };
+    const config = configs[statut] || configs.EN_ATTENTE;
+    return (
+      <Chip
+        icon={config.icon}
+        label={config.label}
+        size="small"
+        sx={{
+          bgcolor: `${config.color}20`,
+          color: config.color,
+          fontWeight: 600,
+        }}
+      />
+    );
   };
+
+  const paginatedPaiements = filteredPaiements.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
+  const totalPages = Math.ceil(filteredPaiements.length / rowsPerPage);
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress sx={{ color: '#6366F1' }} />
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', flexDirection: 'column', gap: 2 }}>
+        <CircularProgress sx={{ color: '#2C2C2C' }} />
+        <Typography variant="body2" sx={{ color: '#666666' }}>Chargement des paiements...</Typography>
       </Box>
     );
   }
 
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert 
+          severity="error" 
+          sx={{ borderRadius: '12px' }} 
+          action={
+            <Button color="inherit" size="small" onClick={fetchPaiements} startIcon={<Refresh />}>
+              Réessayer
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
+
+  const totalMontant = filteredPaiements
+    .filter(p => p.statut === 'REUSSI')
+    .reduce((acc, p) => acc + parseFloat(p.montant || 0), 0);
+
   return (
     <Container maxWidth="lg">
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: '#1E293B' }}>
-            Gestion des paiements
-          </Typography>
-          <Typography variant="body2" sx={{ color: '#666666' }}>
-            {paiements.length} paiement{paiements.length > 1 ? 's' : ''} au total
-          </Typography>
+      {/* ===== EN-TÊTE ===== */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<DashboardIcon />}
+            onClick={() => navigate('/admin/dashboard')}
+            sx={{
+              borderColor: '#E0E0E0',
+              color: '#666666',
+              borderRadius: '50px',
+              textTransform: 'none',
+              fontWeight: 500,
+              '&:hover': { borderColor: '#2C2C2C', color: '#2C2C2C', bgcolor: 'rgba(44,44,44,0.04)' },
+              px: 2.5,
+            }}
+          >
+            Dashboard
+          </Button>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<Refresh />}
-          onClick={fetchPaiements}
-          sx={{ borderRadius: '12px', textTransform: 'none' }}
-        >
-          Actualiser
-        </Button>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#2C2C2C', fontFamily: '"Playfair Display", serif' }}>
+              Gestion des paiements
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#666666', mt: 0.5 }}>
+              {filteredPaiements.length} paiement{filteredPaiements.length > 1 ? 's' : ''}
+            </Typography>
+          </Box>
+        </Box>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 3, borderRadius: '8px' }}>{error}</Alert>}
+      {/* ===== STATISTIQUES ===== */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {[
+          { label: 'Total paiements', value: filteredPaiements.length, icon: <Receipt />, color: '#2C2C2C' },
+          { label: 'En attente', value: filteredPaiements.filter(p => p.statut === 'EN_ATTENTE').length, icon: <Pending />, color: '#F59E0B' },
+          { label: 'Réussis', value: filteredPaiements.filter(p => p.statut === 'REUSSI').length, icon: <CheckCircle />, color: '#10B981' },
+          { label: 'Montant total', value: formatPrice(totalMontant), icon: <AttachMoney />, color: '#6366F1' },
+        ].map((stat, index) => (
+          <Grid item xs={6} sm={3} key={`stat-${index}`}>  {/* ✅ Clé unique */}
+            <Card sx={{ borderRadius: '16px', border: '1px solid #F0F0F0', boxShadow: 'none' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#999999', fontWeight: 500 }}>
+                      {stat.label}
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#2C2C2C', mt: 0.5 }}>
+                      {stat.value}
+                    </Typography>
+                  </Box>
+                  <Avatar sx={{ bgcolor: `${stat.color}15`, color: stat.color, width: 40, height: 40 }}>
+                    {stat.icon}
+                  </Avatar>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
 
-      <Paper sx={{ p: 3, borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+      {/* ===== FILTRES ===== */}
+      <Paper sx={{ p: 2, mb: 3, borderRadius: '16px', border: '1px solid #F0F0F0', boxShadow: 'none' }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <TextField
+            size="small"
+            placeholder="Rechercher par référence, email, nom..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{ flexGrow: 1, maxWidth: '400px', '& .MuiOutlinedInput-root': { borderRadius: '50px', bgcolor: '#F8F8F8' } }}
+            InputProps={{
+              startAdornment: <InputAdornment position="start"><Search sx={{ color: '#BDBDBD' }} /></InputAdornment>,
+              endAdornment: searchTerm && (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearchTerm('')}>
+                    <Clear sx={{ fontSize: 18, color: '#BDBDBD' }} />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          <FormControl size="small" sx={{ minWidth: '150px' }}>
+            <InputLabel>Statut</InputLabel>
+            <Select
+              value={filterStatut}
+              onChange={(e) => setFilterStatut(e.target.value)}
+              label="Statut"
+              sx={{ borderRadius: '50px' }}
+            >
+              {statuts.map((s) => (
+                <MenuItem key={`statut-${s.value}`} value={s.value}>  {/* ✅ Clé unique */}
+                  {s.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <IconButton onClick={fetchPaiements} sx={{ color: '#666666' }}>
+            <Refresh />
+          </IconButton>
+
+          <Box sx={{ flexGrow: 1 }} />
+          <Typography variant="caption" sx={{ color: '#999999' }}>
+            {filteredPaiements.length} résultat{filteredPaiements.length > 1 ? 's' : ''}
+          </Typography>
+        </Box>
+      </Paper>
+
+      {/* ===== TABLEAU ===== */}
+      <Paper sx={{ borderRadius: '16px', border: '1px solid #F0F0F0', boxShadow: 'none', overflow: 'hidden' }}>
         <TableContainer>
           <Table>
             <TableHead>
-              <TableRow sx={{ bgcolor: '#F8FAFC' }}>
-                <TableCell sx={{ fontWeight: 600 }}>Référence</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Client</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Formation</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="right">Montant</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="center">Statut</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="center">Actions</TableCell>
+              <TableRow sx={{ bgcolor: '#F8F8F8' }}>
+                <TableCell sx={{ fontWeight: 600, color: '#2C2C2C', fontSize: '0.85rem' }}>Référence</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#2C2C2C', fontSize: '0.85rem' }}>Client</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#2C2C2C', fontSize: '0.85rem' }} align="right">Montant</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#2C2C2C', fontSize: '0.85rem' }}>Moyen paiement</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#2C2C2C', fontSize: '0.85rem' }} align="center">Statut</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#2C2C2C', fontSize: '0.85rem' }} align="center">Date</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {paiements.length === 0 ? (
+              {paginatedPaiements.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
-                    <Receipt sx={{ fontSize: 48, color: '#94A3B8', mb: 2 }} />
-                    <Typography variant="body2" sx={{ color: '#94A3B8' }}>
-                      Aucun paiement trouvé
-                    </Typography>
+                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Receipt sx={{ fontSize: 48, color: '#BDBDBD', mb: 2 }} />
+                      <Typography variant="h6" sx={{ color: '#666666', mb: 1 }}>Aucun paiement</Typography>
+                      <Typography variant="body2" sx={{ color: '#999999' }}>
+                        {searchTerm || filterStatut !== 'all' ? 'Aucun paiement ne correspond à vos critères' : 'Aucun paiement enregistré'}
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ) : (
-                paiements.map((paiement) => {
-                  const statut = getStatutChip(paiement.statut);
-                  return (
-                    <TableRow key={paiement.id} hover>
-                      <TableCell sx={{ fontWeight: 500, fontSize: '0.85rem' }}>
+                paginatedPaiements.map((paiement, index) => (  // ✅ Utiliser index comme fallback
+                  <TableRow 
+                    key={paiement.id || `paiement-${index}`}  // ✅ Clé unique
+                    hover 
+                    sx={{ '&:hover': { bgcolor: '#F8F8F8' } }}
+                  >
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#2C2C2C' }}>
                         {paiement.reference || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {paiement.client_nom || paiement.client || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {paiement.inscription_formation || 'N/A'}
-                      </TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>
-                        {paiement.montant} CFA
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="caption" sx={{ color: '#666666' }}>
-                          {formatDate(paiement.date_creation)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: '#2C2C2C' }}>
+                          {paiement.client_nom || 'Client inconnu'}
                         </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          icon={statut.icon}
-                          label={statut.label}
-                          size="small"
-                          sx={{
-                            bgcolor: statut.bg,
-                            color: statut.color,
-                            fontWeight: 600,
-                            fontSize: '0.7rem',
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Voir les détails">
-                          <IconButton size="small" sx={{ color: '#6366F1' }}>
-                            <Visibility fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                        <Typography variant="caption" sx={{ color: '#999999' }}>
+                          {paiement.client_email || 'Email non renseigné'}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#2C2C2C' }}>
+                        {formatPrice(paiement.montant)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ color: '#666666' }}>
+                        {paiement.moyen_paiement_nom || 'Non spécifié'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      {getStatutChip(paiement.statut)}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Typography variant="caption" sx={{ color: '#666666' }}>
+                        {paiement.date_creation 
+                          ? new Date(paiement.date_creation).toLocaleDateString('fr-FR', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })
+                          : 'N/A'}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
         </TableContainer>
+
+        {filteredPaiements.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2, borderTop: '1px solid #F0F0F0' }}>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={(e, value) => setPage(value)}
+              color="primary"
+              sx={{ 
+                '& .MuiPaginationItem-root': { 
+                  borderRadius: '8px',
+                  '&.Mui-selected': {
+                    bgcolor: '#2C2C2C',
+                    color: '#FFFFFF',
+                  }
+                } 
+              }}
+            />
+          </Box>
+        )}
       </Paper>
     </Container>
   );
