@@ -1,4 +1,6 @@
 # api/views.py
+from urllib import request
+
 from rest_framework import viewsets, status
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
@@ -22,7 +24,7 @@ import json
 import string
 
 from .models import (
-    FormationEnLigne,
+    FormationEnLigne,InscriptionRelooking,
     LigneCommande,
     Evenement,
     Produit,
@@ -80,7 +82,7 @@ from .serializers import (
     SiteSettingsSerializer,
     # ✅ Nouveaux serializers pour l'authentification client
     ClientRegisterSerializer,
-    ClientLoginSerializer,
+    ClientLoginSerializer,InscriptionRelooking,InscriptionRelookingSerializer,
     LignePanierSerializer,
 )
 
@@ -1137,23 +1139,33 @@ class ParticipationEvenementViewSet(viewsets.ModelViewSet):
 
             evenement_id = data.get('evenement')
             if not evenement_id:
-                return Response({'error': 'L\'événement est requis'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': "L'événement est requis"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
             try:
                 evenement = Evenement.objects.get(id=evenement_id)
             except Evenement.DoesNotExist:
-                return Response({'error': 'Événement non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {'error': 'Événement non trouvé'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
 
             if evenement.places_restantes <= 0:
-                return Response({'error': 'Cet événement est complet'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': 'Cet événement est complet'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
             email = data.get('email')
             if not email:
-                return Response({'error': 'L\'email est requis'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': "L'email est requis"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-            if '@' not in email:
-                return Response({'error': 'Email invalide'}, status=status.HTTP_400_BAD_REQUEST)
-
+            # Récupérer ou créer le client
             try:
                 client = Client.objects.get(email=email)
                 print(f"✅ Client existant: {client.id}")
@@ -1166,21 +1178,27 @@ class ParticipationEvenementViewSet(viewsets.ModelViewSet):
                 )
                 print(f"✅ Nouveau client créé: {client.id}")
 
+            # Vérifier si déjà inscrit
             existing = ParticipationEvenement.objects.filter(
                 evenement=evenement,
                 client=client
             ).first()
 
             if existing:
-                return Response({'error': 'Vous êtes déjà inscrit à cet événement'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': 'Vous êtes déjà inscrit à cet événement'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
+            # Créer la participation
             participation = ParticipationEvenement.objects.create(
                 evenement=evenement,
                 client=client,
                 statut='INSCRIT',
-                notes=data.get('notes', '')
+                notes=data.get('message') or data.get('notes') or ''
             )
 
+            # Décrémenter les places restantes
             evenement.places_restantes -= 1
             evenement.save()
 
@@ -1197,8 +1215,10 @@ class ParticipationEvenementViewSet(viewsets.ModelViewSet):
             print(f"❌ Erreur inscription: {str(e)}")
             import traceback
             traceback.print_exc()
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 # =============================================
 # ✅ VIEWSETS ADMIN
@@ -1616,3 +1636,27 @@ class DashboardStatsView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+            # api/views.py (Ajoutez ces vues)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class InscriptionRelookingView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = InscriptionRelookingSerializer(data=request.data)
+        if serializer.is_valid():
+            inscription = serializer.save()
+            return Response({'success': True, 'id': inscription.id}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminInscriptionRelookingViewSet(AdminOnlyViewSet):
+    queryset = InscriptionRelooking.objects.all()
+    serializer_class = InscriptionRelookingSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        type_relooking = self.request.query_params.get('type')
+        if type_relooking:
+            queryset = queryset.filter(type=type_relooking)
+        return queryset

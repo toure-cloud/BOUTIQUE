@@ -11,7 +11,7 @@ from .views import (
     RequestOTPView,
     VerifyOTPView,
     RegisterView,
-    ClientRegisterView,   # ✅ Vue (pas serializer)
+    ClientRegisterView,   
     ClientLoginView,
     PanierView,
     PaiementViewSet,
@@ -40,7 +40,7 @@ from .views import (
     ContactMessageViewSet,
     NotificationViewSet,
     AdminLogViewSet,
-    SiteSettingsViewSet,
+    SiteSettingsViewSet,AdminInscriptionRelookingViewSet,InscriptionRelookingView
 )
 
 router = DefaultRouter()
@@ -87,7 +87,7 @@ router.register(r'admin/contacts', ContactMessageViewSet, basename='admin-contac
 router.register(r'admin/notifications', NotificationViewSet, basename='admin-notifications')
 router.register(r'admin/admin-logs', AdminLogViewSet, basename='admin-admin-logs')
 router.register(r'admin/site-settings', SiteSettingsViewSet, basename='admin-site-settings')
-
+router.register(r'admin/inscriptions-relooking', AdminInscriptionRelookingViewSet, basename='admin-inscriptions-relooking')
 # =============================================
 # ✅ URL PATTERNS
 # =============================================
@@ -109,6 +109,6 @@ urlpatterns = [
     path('client/panier/<int:client_id>/commander/', csrf_exempt(CommandeDepuisPanierView.as_view()), name='commande-depuis-panier'),
     
     path('admin/dashboard/stats/', DashboardStatsView.as_view(), name='dashboard_stats'),
-    
+    path('inscriptions-relooking/', csrf_exempt(InscriptionRelookingView.as_view()), name='inscription-relooking-create'),
     path('verifier-code/', InscriptionFormationViewSet.as_view({'post': 'verifier_code'}), name='verifier-code'),
 ]

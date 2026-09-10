@@ -8,7 +8,7 @@ from .models import (
     FormationEnLigne, CodeAccesFormation, InscriptionFormation,
     MoyenPaiement, TransactionPaiement, AvisProduit, Promotion,
     Wishlist, Actualite, FAQ, Newsletter, ContactMessage,
-    Notification, AdminLog, SiteSettings, OTPCode
+    Notification, AdminLog, SiteSettings, OTPCode,InscriptionRelooking
 )
 
 
@@ -431,22 +431,24 @@ class CodeAccesFormationSerializer(serializers.ModelSerializer):
         ]
 
 
+# api/serializers.py
+
 class InscriptionFormationSerializer(serializers.ModelSerializer):
     client_name = serializers.CharField(source='client.full_name', read_only=True)
     formation_titre = serializers.CharField(source='formation.titre', read_only=True)
-    formation_prix = serializers.DecimalField(source='formation.prix', read_only=True, max_digits=10, decimal_places=2)
-    statut_display = serializers.CharField(source='get_statut_display', read_only=True)
-    code_acces_data = CodeAccesFormationSerializer(source='code_acces', read_only=True)
-
+    
+    # ✅ AJOUTEZ CECI : Renvoyer les objets complets
+    client_details = ClientSerializer(source='client', read_only=True)
+    formation_details = FormationEnLigneSerializer(source='formation', read_only=True)
+    
     class Meta:
         model = InscriptionFormation
         fields = [
-            'id', 'formation', 'formation_titre', 'formation_prix',
-            'client', 'client_name', 'code_acces', 'code_acces_data',
-            'statut', 'statut_display', 'date_inscription', 'montant',
+            'id', 'formation', 'formation_titre', 'formation_details',
+            'client', 'client_name', 'client_details',
+            'code_acces', 'statut', 'date_inscription', 'montant',
             'reference_paiement', 'notes'
         ]
-
 
 # =============================================
 # ✅ PAIEMENTS
@@ -641,3 +643,9 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.favicon.url)
             return obj.favicon.url
         return None
+    # api/serializers.py (Ajoutez à la fin)
+
+class InscriptionRelookingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InscriptionRelooking
+        fields = '__all__'

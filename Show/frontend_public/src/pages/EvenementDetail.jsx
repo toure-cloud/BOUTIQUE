@@ -1,274 +1,125 @@
 // src/pages/EvenementDetail.jsx
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Container,
-  Typography,
   Box,
-  Grid,
-  Paper,
+  Typography,
   Button,
   Chip,
-  Divider,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  Avatar,
-  Stack,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  InputAdornment,
-  useTheme,
-  useMediaQuery,
-  LinearProgress,
+  Grid,
+  CircularProgress,
+  Alert,
+  Divider,
+  Breadcrumbs,
   Skeleton,
-} from '@mui/material';
+  Paper,
+} from "@mui/material";
 import {
   ArrowBack,
   CalendarToday,
   LocationOn,
   People,
   AttachMoney,
-  CheckCircle,
-  Cancel,
-  Pending,
   Share,
-  Favorite,
-  FavoriteBorder,
+  CheckCircle,
   AccessTime,
-  Email,
-  Phone,
-  Person,
-  Send,
-  Close,
   Event,
+  NavigateNext,
+  LocalShipping,
   Verified,
-} from '@mui/icons-material';
-import { evenementService } from '../services/evenementService';
-import heroImage from '../assets/images/tibetia.jpeg';
+  Payment,
+  Security,
+} from "@mui/icons-material";
+import { evenementService } from "../services/evenementService";
+import heroImage from "../assets/images/tibetia.jpeg";
 
 const EvenementDetail = () => {
   const { id } = useParams();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
+  const navigate = useNavigate();
   const [evenement, setEvenement] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [favori, setFavori] = useState(false);
-  const [registerOpen, setRegisterOpen] = useState(false);
-  const [formSubmitted, setFormSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
-  
-  const [formData, setFormData] = useState({
-    nom: '',
-    prenom: '',
-    email: '',
-    telephone: '',
-    message: '',
-  });
-  const [formErrors, setFormErrors] = useState({});
+  const [isRegistering, setIsRegistering] = useState(false);
 
   useEffect(() => {
-    const fetchEvenement = async () => {
-      try {
-        setLoading(true);
-        const data = await evenementService.getEvenementById(parseInt(id));
-        console.log('📋 Événement reçu:', data);
-        setEvenement(data);
-        setError(null);
-      } catch (err) {
-        console.error('❌ Erreur:', err);
-        setError('Impossible de charger les détails de l\'événement');
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (id) {
-      fetchEvenement();
-    }
+    fetchEvenement();
   }, [id]);
 
-  const handleShare = async () => {
+  const fetchEvenement = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      await navigator.share({
-        title: evenement?.titre,
-        text: `Rejoignez-nous pour ${evenement?.titre}`,
-        url: window.location.href,
-      });
-    } catch {
-      navigator.clipboard.writeText(window.location.href);
-      setSnackbarMessage('Lien copié dans le presse-papier !');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-    }
-  };
-
-  const handleFavori = () => {
-    setFavori(!favori);
-    setSnackbarMessage(favori ? 'Retiré des favoris' : 'Ajouté aux favoris');
-    setSnackbarSeverity('success');
-    setSnackbarOpen(true);
-  };
-
-  const handleOpenRegister = () => {
-    setRegisterOpen(true);
-    setFormData({
-      nom: '',
-      prenom: '',
-      email: '',
-      telephone: '',
-      message: '',
-    });
-    setFormErrors({});
-    setFormSubmitted(false);
-  };
-  
-  const handleCloseRegister = () => {
-    setRegisterOpen(false);
-    setFormSubmitted(false);
-    setFormData({ nom: '', prenom: '', email: '', telephone: '', message: '' });
-    setFormErrors({});
-  };
-
-  const handleFormChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (formErrors[e.target.name]) {
-      setFormErrors({ ...formErrors, [e.target.name]: null });
-    }
-  };
-
-  const validateForm = () => {
-    const errors = {};
-    if (!formData.nom.trim()) errors.nom = 'Le nom est requis';
-    if (!formData.prenom.trim()) errors.prenom = 'Le prénom est requis';
-    if (!formData.email.trim()) {
-      errors.email = 'L\'email est requis';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Email invalide';
-    }
-    if (!formData.telephone.trim()) errors.telephone = 'Le téléphone est requis';
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // ✅ CORRECTION: Envoyer les données au backend
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setSubmitting(true);
-    
-    try {
-      // ✅ Créer l'objet d'inscription
-      const inscriptionData = {
-        evenement: evenement.id,
-        nom: formData.nom,
-        prenom: formData.prenom,
-        email: formData.email,
-        telephone: formData.telephone,
-        notes: formData.message || '',
-      };
-      
-      console.log('📝 Envoi de l\'inscription:', inscriptionData);
-      
-      // ✅ Appel API pour s'inscrire
-      const response = await evenementService.inscrireEvenement(inscriptionData);
-      
-      console.log('✅ Inscription réussie:', response);
-      
-      setFormSubmitted(true);
-      setSnackbarMessage('✅ Inscription réussie ! Vous recevrez un email de confirmation.');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-      
-      // Mettre à jour les places restantes
-      if (response && response.places_restantes !== undefined) {
-        setEvenement({
-          ...evenement,
-          places_restantes: response.places_restantes,
-        });
-      }
-      
-      setTimeout(() => {
-        setRegisterOpen(false);
-        setFormSubmitted(false);
-        setFormData({ nom: '', prenom: '', email: '', telephone: '', message: '' });
-      }, 2500);
-      
+      const data = await evenementService.getEvenementById(id);
+      setEvenement(data);
     } catch (err) {
-      console.error('❌ Erreur lors de l\'inscription:', err);
-      
-      let errorMessage = 'Erreur lors de l\'inscription. Veuillez réessayer.';
-      
-      if (err.response?.data) {
-        if (typeof err.response.data === 'object') {
-          const errors = err.response.data;
-          const firstError = Object.values(errors)[0];
-          if (Array.isArray(firstError)) {
-            errorMessage = firstError[0];
-          } else if (typeof firstError === 'string') {
-            errorMessage = firstError;
-          } else {
-            errorMessage = errors.detail || errors.message || errors.error || errorMessage;
-          }
-        } else if (typeof err.response.data === 'string') {
-          errorMessage = err.response.data;
-        }
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      setSnackbarMessage(`❌ ${errorMessage}`);
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
+      setError("Impossible de charger les détails de l'événement.");
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
-  };
-
-  const getStatutInfo = (statut) => {
-    const infos = {
-      A_VENIR: { label: 'À venir', color: '#1976D2', icon: <Pending /> },
-      EN_COURS: { label: 'En cours', color: '#2E7D32', icon: <CheckCircle /> },
-      TERMINE: { label: 'Terminé', color: '#616161', icon: <CheckCircle /> },
-      ANNULE: { label: 'Annulé', color: '#C62828', icon: <Cancel /> },
-    };
-    return infos[statut] || infos.A_VENIR;
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    if (!dateString) return "Date à confirmer";
+    const date = new Date(dateString);
+    return isNaN(date)
+      ? "Date à confirmer"
+      : date.toLocaleDateString("fr-FR", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
   };
 
+  const formatTime = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return isNaN(date)
+      ? ""
+      : date.toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+  };
+
+  const formatPrice = (price) => {
+    if (!price || price === 0) return "Gratuit";
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "XOF",
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const getStatutConfig = (statut) => {
+    const map = {
+      A_VENIR: { label: "À venir", color: "#2563EB", bg: "rgba(37, 99, 235, 0.1)" },
+      EN_COURS: { label: "En cours", color: "#DC2626", bg: "rgba(220, 38, 38, 0.1)" },
+      TERMINE: { label: "Terminé", color: "#059669", bg: "rgba(5, 150, 105, 0.1)" },
+      ANNULE: { label: "Annulé", color: "#6B7280", bg: "rgba(107, 114, 128, 0.1)" },
+    };
+    return map[statut] || { label: statut, color: "#6B7280", bg: "rgba(107, 114, 128, 0.1)" };
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // LOADING
+  // ─────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: '#FFF5F3' }}>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Skeleton variant="rectangular" height={300} sx={{ borderRadius: '16px', mb: 4 }} />
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={8}>
-              <Skeleton variant="text" height={40} />
-              <Skeleton variant="text" height={200} />
-              <Skeleton variant="text" height={100} />
+      <Box sx={{ backgroundColor: "#FAFAFA", minHeight: "100vh", py: 6 }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={6}>
+            <Grid item xs={12} md={7}>
+              <Skeleton variant="rectangular" sx={{ aspectRatio: "16/10", mb: 2 }} />
             </Grid>
-            <Grid item xs={12} md={4}>
-              <Skeleton variant="rectangular" height={300} sx={{ borderRadius: '16px' }} />
+            <Grid item xs={12} md={5}>
+              <Skeleton width="30%" height={18} sx={{ mb: 2 }} />
+              <Skeleton width="90%" height={40} sx={{ mb: 2 }} />
+              <Skeleton width="50%" height={24} sx={{ mb: 3 }} />
+              <Skeleton width="100%" height={80} sx={{ mb: 3 }} />
+              <Skeleton width="100%" height={52} />
             </Grid>
           </Grid>
         </Container>
@@ -276,652 +127,408 @@ const EvenementDetail = () => {
     );
   }
 
-  if (error || !evenement) {
+  if (error) {
     return (
-      <Container sx={{ py: 8 }}>
-        <Alert severity="error" sx={{ borderRadius: '12px' }}>
-          {error || 'Événement non trouvé'}
-        </Alert>
+      <Box sx={{ backgroundColor: "#FAFAFA", minHeight: "100vh", py: 10 }}>
+        <Container maxWidth="sm">
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={fetchEvenement}>
+                Réessayer
+              </Button>
+            }
+            sx={{ borderRadius: 0 }}
+          >
+            {error}
+          </Alert>
+        </Container>
+      </Box>
+    );
+  }
+
+  if (!evenement) return null;
+
+  const statutConfig = getStatutConfig(evenement.statut);
+  const isFull = (evenement.places_restantes ?? 0) === 0;
+  const isCancelled = evenement.statut === "ANNULE";
+  const isPast = evenement.statut === "TERMINE";
+  const canRegister = !isFull && !isCancelled && !isPast;
+  const imageUrl = evenement.image_url || heroImage;
+
+  return (
+    <Box sx={{ backgroundColor: "#FAFAFA", minHeight: "100vh", pb: { xs: 12, md: 8 } }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 3, md: 5 }, pb: 4 }}>
+        {/* Breadcrumbs */}
+        <Breadcrumbs
+          separator={<NavigateNext sx={{ fontSize: 16, color: "#999" }} />}
+          sx={{ mb: 3 }}
+        >
+          <Link to="/" style={{ textDecoration: "none", color: "#777", fontSize: "0.85rem" }}>
+            Accueil
+          </Link>
+          <Link
+            to="/evenements"
+            style={{ textDecoration: "none", color: "#777", fontSize: "0.85rem" }}
+          >
+            Événements
+          </Link>
+          <Typography sx={{ color: "#111", fontWeight: 500, fontSize: "0.85rem" }}>
+            {evenement.titre}
+          </Typography>
+        </Breadcrumbs>
+
+        {/* Bouton retour */}
         <Button
-          component={Link}
-          to="/evenements"
-          startIcon={<ArrowBack />}
-          sx={{ mt: 2 }}
+          startIcon={<ArrowBack sx={{ fontSize: 18 }} />}
+          onClick={() => navigate(-1)}
+          sx={{
+            mb: 4,
+            color: "#666",
+            textTransform: "none",
+            fontWeight: 500,
+            fontSize: "0.875rem",
+            px: 0,
+            "&:hover": { backgroundColor: "transparent", color: "#111" },
+          }}
         >
           Retour aux événements
         </Button>
-      </Container>
-    );
-  }
 
-  const statutInfo = getStatutInfo(evenement.statut);
-  const placesDisponibles = evenement.places_restantes || 0;
-  const placesTotal = evenement.places_total || 0;
-  const pourcentage = placesTotal > 0 ? (placesDisponibles / placesTotal) * 100 : 0;
-  const estComplet = placesDisponibles === 0;
-  const estTermine = evenement.statut === 'TERMINE' || evenement.statut === 'ANNULE';
-  const imageUrl = evenement.image ? `${import.meta.env.VITE_MEDIA_URL}${evenement.image}` : heroImage;
-
-  return (
-    <Box sx={{ bgcolor: '#FFF5F3', minHeight: '100vh' }}>
-      {/* ===== HERO ===== */}
-      <Box
-        sx={{
-          position: 'relative',
-          height: { xs: '300px', md: '400px' },
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          backgroundColor: '#4A3728',
-        }}
-      >
-        <Box
-          component="img"
-          src={imageUrl}
-          alt={evenement.titre}
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center 30%',
-            opacity: 0.3,
-          }}
-        />
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'linear-gradient(135deg, rgba(74,55,40,0.8) 0%, rgba(74,55,40,0.3) 100%)',
-          }}
-        />
-
-        <Box sx={{ position: 'absolute', top: 24, right: 24, zIndex: 2 }}>
-          <Chip
-            icon={statutInfo.icon}
-            label={statutInfo.label}
-            sx={{
-              bgcolor: `${statutInfo.color}20`,
-              color: statutInfo.color,
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              py: 1.5,
-              px: 2,
-              backdropFilter: 'blur(10px)',
-              backgroundColor: 'rgba(255,255,255,0.9)',
-            }}
-          />
-        </Box>
-
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-          <Typography
-            variant="overline"
-            sx={{
-              color: '#FDE8E5',
-              letterSpacing: 4,
-              fontWeight: 600,
-              fontSize: '0.75rem',
-              display: 'block',
-              mb: 2,
-              opacity: 0.8,
-            }}
-          >
-            {evenement.theme}
-          </Typography>
-          <Typography
-            variant="h1"
-            sx={{
-              fontWeight: 700,
-              color: '#FFFFFF',
-              fontFamily: '"Playfair Display", serif',
-              fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
-              textShadow: '0 4px 20px rgba(0,0,0,0.3)',
-              mb: 2,
-            }}
-          >
-            {evenement.titre}
-          </Typography>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 3,
-              flexWrap: 'wrap',
-              color: '#FDE8E5',
-              opacity: 0.9,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CalendarToday sx={{ fontSize: 18 }} />
-              <Typography variant="body2">
-                {formatDate(evenement.date_debut)}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <LocationOn sx={{ fontSize: 18 }} />
-              <Typography variant="body2">{evenement.lieu}</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <People sx={{ fontSize: 18 }} />
-              <Typography variant="body2">
-                {placesDisponibles} places restantes
-              </Typography>
-            </Box>
-          </Box>
-        </Container>
-      </Box>
-
-      {/* ===== CONTENU ===== */}
-      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
-        <Box sx={{ mb: 4 }}>
-          <Button
-            component={Link}
-            to="/evenements"
-            startIcon={<ArrowBack />}
-            sx={{
-              color: '#7A5A4A',
-              '&:hover': { color: '#4A3728' },
-            }}
-          >
-            Retour aux événements
-          </Button>
-        </Box>
-
-        <Grid container spacing={4}>
-          {/* ===== GAUCHE ===== */}
-          <Grid item xs={12} md={8}>
-            <Paper
-              sx={{
-                p: 4,
-                borderRadius: '16px',
-                border: '1px solid #F5E8E5',
-                boxShadow: 'none',
-                mb: 3,
-                bgcolor: '#FFFFFF',
-              }}
-            >
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 700,
-                  fontFamily: '"Playfair Display", serif',
-                  mb: 2,
-                  color: '#4A3728',
-                }}
-              >
-                À propos de cet événement
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  color: '#7A5A4A',
-                  lineHeight: 1.8,
-                  whiteSpace: 'pre-line',
-                }}
-              >
-                {evenement.description}
-              </Typography>
-              {evenement.est_gratuit && (
-                <Chip
-                  label="🎉 Événement gratuit"
-                  sx={{
-                    mt: 2,
-                    bgcolor: '#E8F5E9',
-                    color: '#2E7D32',
-                    fontWeight: 600,
-                  }}
-                />
-              )}
-            </Paper>
-
-            <Paper
-              sx={{
-                p: 4,
-                borderRadius: '16px',
-                border: '1px solid #F5E8E5',
-                boxShadow: 'none',
-                bgcolor: '#FFFFFF',
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  mb: 3,
-                  color: '#4A3728',
-                }}
-              >
-                Informations pratiques
-              </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: '#F5E8E5', color: '#4A3728' }}>
-                      <CalendarToday />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="caption" sx={{ color: '#999999', display: 'block' }}>
-                        Date de début
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: '#4A3728' }}>
-                        {formatDate(evenement.date_debut)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: '#F5E8E5', color: '#4A3728' }}>
-                      <AccessTime />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="caption" sx={{ color: '#999999', display: 'block' }}>
-                        Date de fin
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: '#4A3728' }}>
-                        {formatDate(evenement.date_fin)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: '#F5E8E5', color: '#4A3728' }}>
-                      <LocationOn />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="caption" sx={{ color: '#999999', display: 'block' }}>
-                        Lieu
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500, color: '#4A3728' }}>
-                        {evenement.lieu}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: '#F5E8E5', color: '#4A3728' }}>
-                      <AttachMoney />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="caption" sx={{ color: '#999999', display: 'block' }}>
-                        Prix
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#4A3728' }}>
-                        {evenement.est_gratuit ? 'Gratuit' : `${evenement.prix} CFA`}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-              </Grid>
-            </Paper>
-          </Grid>
-
-          {/* ===== DROITE ===== */}
-          <Grid item xs={12} md={4}>
-            <Paper
-              sx={{
-                p: 3,
-                borderRadius: '16px',
-                border: '1px solid #F5E8E5',
-                boxShadow: 'none',
-                position: 'sticky',
-                top: 100,
-                bgcolor: '#FFFFFF',
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  fontFamily: '"Playfair Display", serif',
-                  mb: 2,
-                  color: '#4A3728',
-                }}
-              >
-                Réservation
-              </Typography>
-
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2" sx={{ color: '#7A5A4A' }}>
-                    Places disponibles
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#4A3728' }}>
-                    {placesDisponibles} / {placesTotal}
-                  </Typography>
-                </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={pourcentage}
-                  sx={{
-                    height: 8,
-                    borderRadius: 4,
-                    bgcolor: '#F5E8E5',
-                    '& .MuiLinearProgress-bar': {
-                      bgcolor: pourcentage > 50 ? '#4CAF50' : pourcentage > 25 ? '#FFA726' : '#EF5350',
-                      borderRadius: 4,
-                    },
-                  }}
-                />
-                {estComplet && (
-                  <Alert severity="warning" sx={{ mt: 2, borderRadius: '8px' }}>
-                    ⚠️ Cet événement est complet !
-                  </Alert>
-                )}
-                {estTermine && (
-                  <Alert severity="info" sx={{ mt: 2, borderRadius: '8px' }}>
-                    Cet événement est terminé.
-                  </Alert>
-                )}
-              </Box>
-
-              <Divider sx={{ my: 2 }} />
-
-              <Stack spacing={2}>
-                <Button
-                  variant="contained"
-                  fullWidth
-                  onClick={handleOpenRegister}
-                  disabled={estComplet || estTermine}
-                  sx={{
-                    bgcolor: '#4A3728',
-                    color: '#FFF5F3',
-                    borderRadius: '50px',
-                    py: 1.5,
-                    '&:hover': { bgcolor: '#D4A5A0', color: '#4A3728' },
-                    '&:disabled': { bgcolor: '#E8E0DD', color: '#B0A8A5' },
-                  }}
-                  startIcon={<Person />}
-                >
-                  {estComplet ? 'Complet' : estTermine ? 'Terminé' : 'Participer'}
-                </Button>
-
-                <Stack direction="row" spacing={2}>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    onClick={handleShare}
-                    startIcon={<Share />}
-                    sx={{
-                      borderColor: '#D4A5A0',
-                      color: '#4A3728',
-                      borderRadius: '50px',
-                      '&:hover': { borderColor: '#C08A85', bgcolor: 'rgba(212,165,160,0.08)' },
-                    }}
-                  >
-                    Partager
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    fullWidth
-                    onClick={handleFavori}
-                    startIcon={favori ? <Favorite /> : <FavoriteBorder />}
-                    sx={{
-                      borderColor: '#D4A5A0',
-                      color: favori ? '#E57373' : '#4A3728',
-                      borderRadius: '50px',
-                      '&:hover': { borderColor: '#C08A85', bgcolor: 'rgba(212,165,160,0.08)' },
-                    }}
-                  >
-                    {favori ? 'Favori' : 'Ajouter'}
-                  </Button>
-                </Stack>
-              </Stack>
-
+        <Grid container spacing={{ xs: 4, md: 6 }}>
+          {/* ─── COLONNE IMAGE ─────────────────────────────────── */}
+          <Grid item xs={12} md={7}>
+            <Box sx={{ position: { md: "sticky" }, top: 100 }}>
               <Box
                 sx={{
-                  mt: 3,
-                  p: 2,
-                  bgcolor: '#FFF5F3',
-                  borderRadius: '12px',
+                  position: "relative",
+                  aspectRatio: "16/10",
+                  backgroundColor: "#F5F5F5",
+                  overflow: "hidden",
                 }}
               >
-                <Typography variant="caption" sx={{ color: '#999999', display: 'block' }}>
-                  📌 Points clés
+                <Box
+                  component="img"
+                  src={imageUrl}
+                  alt={evenement.titre}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = heroImage;
+                  }}
+                  sx={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+
+                {/* Badge statut */}
+                <Chip
+                  label={statutConfig.label}
+                  size="small"
+                  sx={{
+                    position: "absolute",
+                    top: 16,
+                    left: 16,
+                    backgroundColor: statutConfig.bg,
+                    color: statutConfig.color,
+                    fontWeight: 600,
+                    fontSize: "0.75rem",
+                    height: 28,
+                    borderRadius: 0,
+                    zIndex: 2,
+                  }}
+                />
+              </Box>
+            </Box>
+          </Grid>
+
+          {/* ─── COLONNE DÉTAILS ───────────────────────────────── */}
+          <Grid item xs={12} md={5}>
+            <Box>
+              {/* Thème */}
+              {evenement.theme && (
+                <Typography
+                  variant="overline"
+                  sx={{
+                    color: "#888",
+                    fontWeight: 500,
+                    letterSpacing: 1.5,
+                    fontSize: "0.7rem",
+                    display: "block",
+                    mb: 1,
+                  }}
+                >
+                  {evenement.theme}
                 </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CheckCircle sx={{ fontSize: 16, color: '#4CAF50' }} />
-                    <Typography variant="body2" sx={{ color: '#7A5A4A', fontSize: '0.85rem' }}>
-                      Confirmation immédiate
+              )}
+
+              {/* Titre */}
+              <Typography
+                sx={{
+                  fontFamily: '"Playfair Display", serif',
+                  fontWeight: 400,
+                  fontSize: { xs: "1.9rem", md: "2.3rem" },
+                  color: "#111",
+                  lineHeight: 1.2,
+                  mb: 2.5,
+                  letterSpacing: -0.3,
+                }}
+              >
+                {evenement.titre}
+              </Typography>
+
+              {/* Infos principales */}
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mb: 3 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <CalendarToday sx={{ fontSize: 18, color: "#999" }} />
+                  <Box>
+                    <Typography sx={{ color: "#111", fontWeight: 500, fontSize: "0.95rem" }}>
+                      {formatDate(evenement.date_debut)}
                     </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CheckCircle sx={{ fontSize: 16, color: '#4CAF50' }} />
-                    <Typography variant="body2" sx={{ color: '#7A5A4A', fontSize: '0.85rem' }}>
-                      Accès prioritaire
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CheckCircle sx={{ fontSize: 16, color: '#4CAF50' }} />
-                    <Typography variant="body2" sx={{ color: '#7A5A4A', fontSize: '0.85rem' }}>
-                      Email de confirmation
-                    </Typography>
+                    {formatTime(evenement.date_debut) && (
+                      <Typography sx={{ color: "#777", fontSize: "0.85rem" }}>
+                        {formatTime(evenement.date_debut)}
+                        {evenement.date_fin && ` – ${formatTime(evenement.date_fin)}`}
+                      </Typography>
+                    )}
                   </Box>
                 </Box>
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <LocationOn sx={{ fontSize: 18, color: "#999" }} />
+                  <Typography sx={{ color: "#111", fontSize: "0.95rem" }}>
+                    {evenement.lieu || "Lieu à confirmer"}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <People sx={{ fontSize: 18, color: "#999" }} />
+                  <Typography sx={{ color: "#111", fontSize: "0.95rem" }}>
+                    {evenement.places_restantes ?? 0} place
+                    {(evenement.places_restantes ?? 0) > 1 ? "s" : ""} restante
+                    {(evenement.places_restantes ?? 0) > 1 ? "s" : ""}
+                    {evenement.capacite_max && (
+                      <Typography component="span" sx={{ color: "#888", fontSize: "0.85rem" }}>
+                        {" "}
+                        / {evenement.capacite_max}
+                      </Typography>
+                    )}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <AttachMoney sx={{ fontSize: 18, color: "#999" }} />
+                  <Typography sx={{ color: "#111", fontWeight: 600, fontSize: "1.05rem" }}>
+                    {formatPrice(evenement.prix)}
+                  </Typography>
+                </Box>
               </Box>
-            </Paper>
+
+              <Divider sx={{ mb: 3, borderColor: "#E5E5E5" }} />
+
+              {/* Description */}
+              <Typography
+                sx={{
+                  color: "#555",
+                  lineHeight: 1.75,
+                  fontSize: "0.95rem",
+                  mb: 4,
+                  whiteSpace: "pre-line",
+                }}
+              >
+                {evenement.description || "Aucune description disponible pour cet événement."}
+              </Typography>
+
+              {/* Boutons d'action */}
+              <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 4 }}>
+                <Button
+                  variant="contained"
+                  disabled={!canRegister || isRegistering}
+                  onClick={() => {
+                    // Redirige vers la page d'inscription ou ouvre un modal
+                    navigate(`/evenements/${evenement.id}/inscription`);
+                  }}
+                  startIcon={isRegistering ? <CircularProgress size={18} color="inherit" /> : <Event />}
+                  sx={{
+                    backgroundColor: canRegister ? "#111" : "#E5E5E5",
+                    color: canRegister ? "#fff" : "#999",
+                    borderRadius: 0,
+                    px: 4,
+                    py: 1.6,
+                    fontWeight: 600,
+                    fontSize: "0.9rem",
+                    textTransform: "none",
+                    flex: 1,
+                    minWidth: 200,
+                    boxShadow: "none",
+                    "&:hover": {
+                      backgroundColor: canRegister ? "#333" : "#E5E5E5",
+                      boxShadow: "none",
+                    },
+                    "&.Mui-disabled": {
+                      backgroundColor: "#E5E5E5",
+                      color: "#999",
+                    },
+                  }}
+                >
+                  {isFull
+                    ? "Complet"
+                    : isCancelled
+                    ? "Événement annulé"
+                    : isPast
+                    ? "Événement terminé"
+                    : "S'inscrire à l'événement"}
+                </Button>
+
+                <IconButton
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                  }}
+                  sx={{
+                    border: "1px solid #DDD",
+                    borderRadius: 0,
+                    width: 52,
+                    height: 52,
+                    color: "#666",
+                    "&:hover": { backgroundColor: "#F5F5F5", borderColor: "#CCC" },
+                  }}
+                >
+                  <Share />
+                </IconButton>
+              </Box>
+
+              {/* Infos pratiques */}
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 2,
+                  pt: 3,
+                  borderTop: "1px solid #E5E5E5",
+                }}
+              >
+                {[
+                  {
+                    icon: <CheckCircle sx={{ fontSize: 20 }} />,
+                    title: "Confirmation",
+                    subtitle: "Immédiate",
+                  },
+                  {
+                    icon: <AccessTime sx={{ fontSize: 20 }} />,
+                    title: "Durée",
+                    subtitle: evenement.duree || "À définir",
+                  },
+                  {
+                    icon: <Verified sx={{ fontSize: 20 }} />,
+                    title: "Places limitées",
+                    subtitle: "Réservez vite",
+                  },
+                  {
+                    icon: <Payment sx={{ fontSize: 20 }} />,
+                    title: "Paiement",
+                    subtitle: "Sécurisé",
+                  },
+                ].map((item, index) => (
+                  <Box key={index} sx={{ display: "flex", alignItems: "flex-start", gap: 1.25 }}>
+                    <Box sx={{ color: "#111", mt: 0.2 }}>{item.icon}</Box>
+                    <Box>
+                      <Typography
+                        sx={{
+                          fontWeight: 600,
+                          color: "#333",
+                          fontSize: "0.8rem",
+                          mb: 0.2,
+                        }}
+                      >
+                        {item.title}
+                      </Typography>
+                      <Typography sx={{ color: "#888", fontSize: "0.75rem" }}>
+                        {item.subtitle}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
           </Grid>
         </Grid>
-      </Container>
 
-      {/* ===== MODAL D'INSCRIPTION AVEC ENVOI API ===== */}
-      <Dialog
-        open={registerOpen}
-        onClose={handleCloseRegister}
-        maxWidth="sm"
-        fullWidth
-        fullScreen={isMobile}
-        PaperProps={{
-          sx: { borderRadius: '16px', p: 1 },
-        }}
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* ─── SECTION DESCRIPTION LONGUE (si besoin) ─────────── */}
+        {evenement.description_longue && (
+          <Box sx={{ mt: 8 }}>
             <Typography
-              variant="h5"
               sx={{
-                fontWeight: 700,
                 fontFamily: '"Playfair Display", serif',
-                color: '#4A3728',
+                fontSize: "1.5rem",
+                color: "#111",
+                mb: 3,
               }}
             >
-              📝 Inscription
+              À propos de cet événement
             </Typography>
-            <IconButton onClick={handleCloseRegister}>
-              <Close />
-            </IconButton>
+            <Typography
+              sx={{
+                color: "#555",
+                lineHeight: 1.8,
+                fontSize: "1rem",
+                whiteSpace: "pre-line",
+              }}
+            >
+              {evenement.description_longue}
+            </Typography>
           </Box>
-        </DialogTitle>
-        <DialogContent dividers>
-          <Alert severity="info" sx={{ mb: 3, borderRadius: '8px' }}>
-            Vous vous inscrivez à : <strong>{evenement.titre}</strong>
-            <br />
-            <Typography variant="caption" sx={{ color: '#7A5A4A' }}>
-              {formatDate(evenement.date_debut)} - {evenement.lieu}
-            </Typography>
-            <Typography variant="caption" sx={{ display: 'block', mt: 1, color: '#7A5A4A' }}>
-              Places restantes : <strong>{placesDisponibles}</strong>
-            </Typography>
-          </Alert>
+        )}
+      </Container>
 
-          {formSubmitted ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <CheckCircle sx={{ fontSize: 80, color: '#4CAF50', mb: 2 }} />
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#4A3728' }}>
-                Inscription réussie !
-              </Typography>
-              <Typography variant="body2" sx={{ color: '#7A5A4A' }}>
-                Vous recevrez un email de confirmation avec tous les détails.
-              </Typography>
-              <Typography variant="caption" sx={{ color: '#7A5A4A', display: 'block', mt: 1 }}>
-                Votre place est réservée pour cet événement.
-              </Typography>
-            </Box>
-          ) : (
-            <form onSubmit={handleFormSubmit}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Nom *"
-                    name="nom"
-                    value={formData.nom}
-                    onChange={handleFormChange}
-                    error={!!formErrors.nom}
-                    helperText={formErrors.nom}
-                    required
-                    disabled={submitting}
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Person sx={{ color: '#D4A5A0', fontSize: 20 }} />
-                          </InputAdornment>
-                        ),
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Prénom *"
-                    name="prenom"
-                    value={formData.prenom}
-                    onChange={handleFormChange}
-                    error={!!formErrors.prenom}
-                    helperText={formErrors.prenom}
-                    required
-                    disabled={submitting}
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Person sx={{ color: '#D4A5A0', fontSize: 20 }} />
-                          </InputAdornment>
-                        ),
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Email *"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleFormChange}
-                    error={!!formErrors.email}
-                    helperText={formErrors.email}
-                    required
-                    disabled={submitting}
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Email sx={{ color: '#D4A5A0', fontSize: 20 }} />
-                          </InputAdornment>
-                        ),
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Téléphone *"
-                    name="telephone"
-                    value={formData.telephone}
-                    onChange={handleFormChange}
-                    error={!!formErrors.telephone}
-                    helperText={formErrors.telephone}
-                    required
-                    disabled={submitting}
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Phone sx={{ color: '#D4A5A0', fontSize: 20 }} />
-                          </InputAdornment>
-                        ),
-                      },
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Message / Questions"
-                    name="message"
-                    multiline
-                    rows={3}
-                    value={formData.message}
-                    onChange={handleFormChange}
-                    disabled={submitting}
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Send sx={{ color: '#D4A5A0', fontSize: 20 }} />
-                          </InputAdornment>
-                        ),
-                      },
-                    }}
-                  />
-                </Grid>
-              </Grid>
-
-              <DialogActions sx={{ px: 0, pt: 3 }}>
-                <Button onClick={handleCloseRegister} disabled={submitting} sx={{ color: '#7A5A4A' }}>
-                  Annuler
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={submitting}
-                  sx={{
-                    bgcolor: '#4A3728',
-                    color: '#FFF5F3',
-                    borderRadius: '50px',
-                    px: 4,
-                    '&:hover': { bgcolor: '#D4A5A0', color: '#4A3728' },
-                    '&:disabled': { bgcolor: '#E8E0DD', color: '#B0A8A5' },
-                  }}
-                  startIcon={submitting ? <CircularProgress size={20} sx={{ color: '#FFF5F3' }} /> : <Send />}
-                >
-                  {submitting ? 'Inscription...' : 'S\'inscrire'}
-                </Button>
-              </DialogActions>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* ===== SNACKBAR ===== */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={5000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      {/* ─── BARRE STICKY MOBILE ──────────────────────────────── */}
+      <Box
+        sx={{
+          display: { xs: "block", md: "none" },
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: "#fff",
+          borderTop: "1px solid #E5E5E5",
+          p: 2,
+          zIndex: 100,
+          boxShadow: "0 -4px 20px rgba(0,0,0,0.06)",
+        }}
       >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity={snackbarSeverity}
-          sx={{ width: '100%', borderRadius: '12px' }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Box sx={{ flex: 1 }}>
+            <Typography sx={{ fontWeight: 600, fontSize: "1rem", color: "#111" }}>
+              {formatPrice(evenement.prix)}
+            </Typography>
+            <Typography sx={{ color: "#777", fontSize: "0.8rem" }}>
+              {formatDate(evenement.date_debut)}
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            disabled={!canRegister}
+            onClick={() => navigate(`/evenements/${evenement.id}/inscription`)}
+            sx={{
+              backgroundColor: canRegister ? "#111" : "#E5E5E5",
+              color: canRegister ? "#fff" : "#999",
+              borderRadius: 0,
+              px: 3,
+              py: 1.4,
+              fontWeight: 600,
+              fontSize: "0.875rem",
+              textTransform: "none",
+              boxShadow: "none",
+              "&:hover": {
+                backgroundColor: canRegister ? "#333" : "#E5E5E5",
+                boxShadow: "none",
+              },
+            }}
+          >
+            {isFull ? "Complet" : isCancelled ? "Annulé" : "S'inscrire"}
+          </Button>
+        </Box>
+      </Box>
     </Box>
   );
 };

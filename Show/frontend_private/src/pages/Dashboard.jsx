@@ -4,248 +4,117 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { adminService } from "../services/adminService";
 import {
-  Grid,
-  Paper,
-  Typography,
-  Box,
-  Card,
-  CardContent,
-  Button,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
-  Chip,
-  CircularProgress,
-  Alert,
-  LinearProgress,
-  Avatar,
-  IconButton,
-  Badge,
-  Menu,
-  MenuItem,
-  alpha,
-  Tooltip,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Stack,
-  TablePagination,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Snackbar,
-  Fade,
-  Grow,
-  Zoom,
+  Grid, Paper, Typography, Box, Card, CardContent, Button, List, ListItem,
+  ListItemText, ListItemIcon, Divider, Chip, CircularProgress, Alert,
+  Avatar, IconButton, Badge, Menu, MenuItem, alpha, Tooltip, Skeleton,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Stack, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar,
+  FormControl, InputLabel, Select,
 } from "@mui/material";
 import {
-  People,
-  Event,
-  ShoppingBag,
-  School,
-  TrendingUp,
-  TrendingDown,
-  AttachMoney,
-  ArrowForward,
-  CheckCircle,
-  Pending,
-  Cancel,
-  Refresh,
-  PersonAdd,
-  Notifications,
-  Settings,
-  Assignment,
-  Receipt,
-  Dashboard as DashboardIcon,
-  Analytics,
-  Timeline,
-  ExitToApp,
-  Storefront,
-  VideoLibrary,
-  BarChart,
-  Lightbulb,
-  RocketLaunch,
-  Star,
-  Logout as LogoutIcon,
-  Person,
-  CalendarToday,
-  Visibility,
-  QrCode,
-  MoreVert,
-  Email,
-  Phone,
-  ShoppingCart,
+  People, Event, ShoppingBag, School, TrendingUp, TrendingDown,
+  AttachMoney, ArrowForward, CheckCircle, Pending, Cancel, Refresh,
+  PersonAdd, Notifications, Settings, Assignment, Receipt,
+  Dashboard as DashboardIcon, Analytics, ExitToApp,
+  Storefront, VideoLibrary, CalendarToday, Visibility, QrCode,
+  Email, Phone, ShoppingCart, Spa, Logout as LogoutIcon, Person,
 } from "@mui/icons-material";
 
 // ═══════════════════════════════════════════════════════════════
-// PALETTE PREMIUM
+// DESIGN SYSTEM – Épuré & Professionnel
 // ═══════════════════════════════════════════════════════════════
 const T = {
   bg: "#F8FAFC",
   surface: "#FFFFFF",
   primary: "#0F172A",
-  secondary: "#334155",
-  accent: "#6366F1",
-  accentSoft: "#818CF8",
-  success: "#10B981",
-  warning: "#F59E0B",
-  danger: "#EF4444",
-  border: "#E2E8F0",
+  secondary: "#475569",
   muted: "#94A3B8",
-  gradient: "linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #A855F7 100%)",
-  gradient2: "linear-gradient(135deg, #10B981 0%, #34D399 100%)",
-  gradient3: "linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)",
-  gradient4: "linear-gradient(135deg, #EC4899 0%, #F472B6 100%)",
-  gradient5: "linear-gradient(135deg, #06B6D4 0%, #22D3EE 100%)",
-  gradient6: "linear-gradient(135deg, #F43F5E 0%, #FB7185 100%)",
-  shadow: "0 4px 24px -4px rgba(15, 23, 42, 0.06)",
-  shadowHover: "0 20px 40px -12px rgba(99, 102, 241, 0.15)",
+  border: "#E2E8F0",
+  accent: "#4F46E5",          // Indigo discret
+  success: "#059669",
+  warning: "#D97706",
+  danger: "#DC2626",
+  shadow: "0 1px 3px 0 rgba(0,0,0,0.04), 0 1px 2px -1px rgba(0,0,0,0.04)",
+  shadowHover: "0 4px 12px -2px rgba(0,0,0,0.06)",
 };
 
-// ═══════════════════════════════════════════════════════════════
-// COMPOSANTS RÉUTILISABLES
-// ═══════════════════════════════════════════════════════════════
-
-// ─── Widget de statistique GRAND ────────────────────────────
-const StatWidget = ({
-  title,
-  value,
-  icon,
-  gradient,
-  trend,
-  trendValue,
-  color,
-  delay,
-}) => (
-  <Grow in timeout={300 + (delay || 0)}>
-    <Card
-      elevation={0}
-      sx={{
-        height: "100%",
-        borderRadius: "20px",
-        overflow: "hidden",
-        border: `1px solid ${T.border}`,
-        background: T.surface,
-        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-        "&:hover": {
-          transform: "translateY(-6px)",
-          boxShadow: T.shadowHover,
-          borderColor: alpha(T.accent, 0.25),
-          "& .stat-icon": {
-            transform: "scale(1.15) rotate(-5deg)",
-          },
-        },
-      }}
-    >
-      <Box sx={{ height: 4, background: gradient || T.gradient }} />
-      <CardContent sx={{ p: 3 }}>
+// ─── Carte de statistique ────────────────────────────────────
+const StatCard = ({ title, value, icon, trend, trendValue, color = T.accent }) => (
+  <Card
+    elevation={0}
+    sx={{
+      height: "100%",
+      borderRadius: 2,
+      border: `1px solid ${T.border}`,
+      background: T.surface,
+      transition: "box-shadow 0.2s ease",
+      "&:hover": { boxShadow: T.shadowHover },
+    }}
+  >
+    <CardContent sx={{ p: 2.5, "&:last-child": { pb: 2.5 } }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5 }}>
+        <Typography
+          variant="body2"
+          sx={{ color: T.muted, fontWeight: 500, fontSize: "0.8125rem" }}
+        >
+          {title}
+        </Typography>
         <Box
           sx={{
+            width: 36,
+            height: 36,
+            borderRadius: 1.5,
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: alpha(color, 0.08),
+            color: color,
           }}
         >
-          <Box sx={{ flex: 1 }}>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: T.muted,
-                fontWeight: 600,
-                letterSpacing: 0.5,
-                textTransform: "uppercase",
-                fontSize: "0.75rem",
-                display: "block",
-                mb: 0.5,
-              }}
-            >
-              {title}
-            </Typography>
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 800,
-                color: T.primary,
-                letterSpacing: -0.8,
-                lineHeight: 1.1,
-                fontSize: "2rem",
-              }}
-            >
-              {value}
-            </Typography>
-
-            {trend !== undefined && (
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1 }}
-              >
-                {trend > 0 ? (
-                  <TrendingUp sx={{ fontSize: 16, color: T.success }} />
-                ) : (
-                  <TrendingDown sx={{ fontSize: 16, color: T.danger }} />
-                )}
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: trend > 0 ? T.success : T.danger,
-                    fontWeight: 700,
-                  }}
-                >
-                  {trend > 0 ? "+" : ""}
-                  {trendValue}%
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{ color: T.muted, fontSize: "0.7rem" }}
-                >
-                  vs mois dernier
-                </Typography>
-              </Box>
-            )}
-          </Box>
-
-          <Box
-            className="stat-icon"
+          {icon}
+        </Box>
+      </Box>
+      <Typography
+        variant="h5"
+        sx={{ fontWeight: 700, color: T.primary, letterSpacing: -0.5, mb: 0.75 }}
+      >
+        {value}
+      </Typography>
+      {trend !== undefined && (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          {trend > 0 ? (
+            <TrendingUp sx={{ fontSize: 14, color: T.success }} />
+          ) : (
+            <TrendingDown sx={{ fontSize: 14, color: T.danger }} />
+          )}
+          <Typography
+            variant="caption"
             sx={{
-              width: 56,
-              height: 56,
-              borderRadius: "16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: alpha(color || T.accent, 0.12),
-              transition: "all 0.3s ease",
+              color: trend > 0 ? T.success : T.danger,
+              fontWeight: 600,
+              fontSize: "0.75rem",
             }}
           >
-            <Box sx={{ color: color || T.accent, fontSize: 28 }}>{icon}</Box>
-          </Box>
+            {trend > 0 ? "+" : ""}{trendValue}%
+          </Typography>
+          <Typography variant="caption" sx={{ color: T.muted, fontSize: "0.75rem" }}>
+            vs mois dernier
+          </Typography>
         </Box>
-      </CardContent>
-    </Card>
-  </Grow>
+      )}
+    </CardContent>
+  </Card>
 );
 
-// ─── Widget d'activité ──────────────────────────────────
-const ActivityItem = ({ activity, index }) => {
+// ─── Item d'activité ─────────────────────────────────────────
+const ActivityItem = ({ activity }) => {
   const getIcon = (action) => {
     switch (action) {
-      case "CREATE":
-        return <CheckCircle sx={{ color: T.success, fontSize: 20 }} />;
-      case "UPDATE":
-        return <Pending sx={{ color: T.warning, fontSize: 20 }} />;
-      case "DELETE":
-        return <Cancel sx={{ color: T.danger, fontSize: 20 }} />;
-      case "LOGIN":
-        return <CheckCircle sx={{ color: T.accent, fontSize: 20 }} />;
-      default:
-        return <CheckCircle sx={{ color: T.success, fontSize: 20 }} />;
+      case "CREATE": return <CheckCircle sx={{ color: T.success, fontSize: 18 }} />;
+      case "UPDATE": return <Pending sx={{ color: T.warning, fontSize: 18 }} />;
+      case "DELETE": return <Cancel sx={{ color: T.danger, fontSize: 18 }} />;
+      case "LOGIN": return <CheckCircle sx={{ color: T.accent, fontSize: 18 }} />;
+      default: return <CheckCircle sx={{ color: T.muted, fontSize: 18 }} />;
     }
   };
 
@@ -259,46 +128,26 @@ const ActivityItem = ({ activity, index }) => {
     return labels[action] || action;
   };
 
-  const getBadgeColor = (action) => {
-    switch (action) {
-      case "CREATE":
-        return T.success;
-      case "UPDATE":
-        return T.warning;
-      case "DELETE":
-        return T.danger;
-      case "LOGIN":
-        return T.accent;
-      default:
-        return T.muted;
-    }
-  };
-
   return (
     <ListItem
       sx={{
-        px: 1.5,
-        py: 1.5,
-        borderRadius: "12px",
-        transition: "all 0.2s",
-        "&:hover": { bgcolor: alpha(T.accent, 0.04) },
+        px: 0,
+        py: 1.25,
+        borderBottom: `1px solid ${T.border}`,
+        "&:last-child": { borderBottom: "none" },
       }}
     >
-      <ListItemIcon sx={{ minWidth: 40 }}>
-        {getIcon(activity.action)}
-      </ListItemIcon>
+      <ListItemIcon sx={{ minWidth: 36 }}>{getIcon(activity.action)}</ListItemIcon>
       <ListItemText
         primary={
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: 600, color: T.primary }}
-          >
-            <strong>{activity.admin_username || "Admin"}</strong>{" "}
-            {getActionLabel(activity.action)}
-            <span style={{ color: T.muted, fontWeight: 400 }}>
-              {" "}
+          <Typography variant="body2" sx={{ color: T.primary, fontSize: "0.875rem" }}>
+            <Box component="span" sx={{ fontWeight: 600 }}>
+              {activity.admin_username || "Admin"}
+            </Box>{" "}
+            {getActionLabel(activity.action)}{" "}
+            <Box component="span" sx={{ color: T.muted }}>
               {activity.model_name}
-            </span>
+            </Box>
           </Typography>
         }
         secondary={
@@ -312,74 +161,34 @@ const ActivityItem = ({ activity, index }) => {
           </Typography>
         }
       />
-      <Chip
-        label={activity.action}
-        size="small"
-        sx={{
-          fontSize: "0.6rem",
-          height: 24,
-          fontWeight: 700,
-          borderRadius: "8px",
-          backgroundColor: alpha(getBadgeColor(activity.action), 0.12),
-          color: getBadgeColor(activity.action),
-        }}
-      />
     </ListItem>
   );
 };
 
-// ─── Skeleton ───────────────────────────────────────────────
+// ─── Skeleton ────────────────────────────────────────────────
 const DashboardSkeleton = () => (
   <Box>
-    <Skeleton
-      variant="rounded"
-      height={100}
-      sx={{ borderRadius: "20px", mb: 3 }}
-    />
+    <Skeleton variant="rounded" height={72} sx={{ borderRadius: 2, mb: 3 }} />
     <Grid container spacing={2} sx={{ mb: 3 }}>
       {[...Array(5)].map((_, i) => (
         <Grid item xs={12} sm={6} md={2.4} key={i}>
-          <Skeleton
-            variant="rounded"
-            height={140}
-            sx={{ borderRadius: "16px" }}
-          />
+          <Skeleton variant="rounded" height={110} sx={{ borderRadius: 2 }} />
         </Grid>
       ))}
     </Grid>
     <Grid container spacing={2} sx={{ mb: 3 }}>
       {[...Array(3)].map((_, i) => (
         <Grid item xs={12} sm={6} md={4} key={i}>
-          <Skeleton
-            variant="rounded"
-            height={140}
-            sx={{ borderRadius: "16px" }}
-          />
+          <Skeleton variant="rounded" height={110} sx={{ borderRadius: 2 }} />
         </Grid>
       ))}
     </Grid>
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={4}>
-        <Skeleton
-          variant="rounded"
-          height={350}
-          sx={{ borderRadius: "14px" }}
-        />
-      </Grid>
-      <Grid item xs={12} md={4}>
-        <Skeleton
-          variant="rounded"
-          height={350}
-          sx={{ borderRadius: "14px" }}
-        />
-      </Grid>
-      <Grid item xs={12} md={4}>
-        <Skeleton
-          variant="rounded"
-          height={350}
-          sx={{ borderRadius: "14px" }}
-        />
-      </Grid>
+    <Grid container spacing={2.5}>
+      {[...Array(3)].map((_, i) => (
+        <Grid item xs={12} md={4} key={i}>
+          <Skeleton variant="rounded" height={320} sx={{ borderRadius: 2 }} />
+        </Grid>
+      ))}
     </Grid>
   </Box>
 );
@@ -391,17 +200,11 @@ const Dashboard = () => {
   const { user, isAdmin, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // ─── États ──────────────────────────────────────────────────
   const [stats, setStats] = useState(null);
   const [recentActivities, setRecentActivities] = useState([]);
   const [evenementStats, setEvenementStats] = useState({
     total_participations: 0,
-    evenement_recent: {
-      id: null,
-      titre: "Aucun événement",
-      clients: [],
-      total_inscrits: 0,
-    },
+    evenement_recent: { id: null, titre: "Aucun événement", clients: [], total_inscrits: 0 },
   });
   const [formationStats, setFormationStats] = useState({
     total_inscriptions: 0,
@@ -416,83 +219,71 @@ const Dashboard = () => {
     livrees: 0,
     recents: [],
   });
+  const [inscriptionsRelooking, setInscriptionsRelooking] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // ─── Pagination ─────────────────────────────────────────────
-  const [pageParticipants, setPageParticipants] = useState(0);
-  const [rowsPerPageParticipants, setRowsPerPageParticipants] = useState(3);
-  const [pageInscriptions, setPageInscriptions] = useState(0);
-  const [rowsPerPageInscriptions, setRowsPerPageInscriptions] = useState(3);
-  const [pageCommandes, setPageCommandes] = useState(0);
-  const [rowsPerPageCommandes, setRowsPerPageCommandes] = useState(3);
+  // Modals
+  const [selectedCommande, setSelectedCommande] = useState(null);
+  const [commandeDetailOpen, setCommandeDetailOpen] = useState(false);
+  const [commandeDetails, setCommandeDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
-  // ─── Dialog ────────────────────────────────────────────────
   const [selectedInscription, setSelectedInscription] = useState(null);
+  const [inscriptionDetailOpen, setInscriptionDetailOpen] = useState(false);
+  const [loadingInscriptionDetails, setLoadingInscriptionDetails] = useState(false);
+
+  const [selectedInscriptionAction, setSelectedInscriptionAction] = useState(null);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [actionType, setActionType] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  // ─── Horloge ──────────────────────────────────────────────
+  // Pagination
+  const [pageParticipants, setPageParticipants] = useState(0);
+  const [rowsPerPageParticipants] = useState(4);
+  const [pageInscriptions, setPageInscriptions] = useState(0);
+  const [rowsPerPageInscriptions] = useState(4);
+  const [pageCommandes, setPageCommandes] = useState(0);
+  const [rowsPerPageCommandes] = useState(5);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
 
-  // ─── Protection admin ──────────────────────────────────────
   useEffect(() => {
     if (!authLoading && !isAdmin) navigate("/", { replace: true });
   }, [authLoading, isAdmin, navigate]);
 
-  // ─── Chargement des données ───────────────────────────────
   useEffect(() => {
     fetchDashboardData();
     fetchCommandes();
+    fetchInscriptionsRelooking();
   }, []);
-
-  // src/pages/Dashboard.jsx
-  // Dans la fonction fetchDashboardData, vérifiez que les données sont bien récupérées
 
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await adminService.getDashboardStats();
-      console.log("📊 Données dashboard reçues:", data);
-
       setStats(data.stats);
       setRecentActivities(data.recent_activities || []);
       setEvenementStats(
         data.evenement_stats || {
           total_participations: 0,
-          evenement_recent: {
-            id: null,
-            titre: "Aucun événement",
-            clients: [],
-            total_inscrits: 0,
-          },
-        },
+          evenement_recent: { id: null, titre: "Aucun événement", clients: [], total_inscrits: 0 },
+        }
       );
-
-      // ✅ Vérifier que les données formations sont bien reçues
-      console.log("📋 Formation stats reçues:", data.formation_stats);
       setFormationStats(
         data.formation_stats || {
           total_inscriptions: 0,
           en_attente: 0,
           payees: 0,
           inscriptions_recents: [],
-        },
+        }
       );
-
-      // ✅ Vérifier que les données commandes sont bien reçues
-      console.log("📋 Commandes stats reçues:", data.commandes_stats);
       setCommandesStats(
         data.commandes_stats || {
           total: 0,
@@ -500,10 +291,9 @@ const Dashboard = () => {
           en_preparation: 0,
           livrees: 0,
           recents: [],
-        },
+        }
       );
     } catch (err) {
-      console.error("Erreur dashboard:", err);
       if (err.response?.status === 403 || err.response?.status === 401) {
         logout();
         navigate("/login");
@@ -514,39 +304,44 @@ const Dashboard = () => {
       setLoading(false);
     }
   }, [logout, navigate]);
+
   const fetchCommandes = async () => {
-  try {
-    const data = await adminService.getCommandes({ page: 1, page_size: 10 });
-    console.log("📋 Commandes reçues:", data);
-    
-    // ✅ Transformer les données pour correspondre au format du Dashboard
-    const recents = (data.results || []).map((cmd) => ({
-      id: cmd.id,
-      client: {
-        id: cmd.client,
-        nom: cmd.client_name?.split(' ')[0] || 'Client',
-        prenom: cmd.client_name?.split(' ')[1] || '',
-      },
-      total: cmd.total,
-      statut: cmd.statut,
-      date_commande: cmd.date_commande,
-    }));
+    try {
+      const data = await adminService.getCommandes({ page: 1, page_size: 10 });
+      const recents = (data.results || []).map((cmd) => ({
+        id: cmd.id,
+        client: {
+          id: cmd.client,
+          prenom: cmd.client_name?.split(" ")[0] || "Client",
+          nom: cmd.client_name?.split(" ")[1] || "",
+        },
+        total: cmd.total,
+        statut: cmd.statut,
+        date_commande: cmd.date_commande,
+      }));
+      setCommandesStats({
+        total: data.count || 0,
+        en_attente: recents.filter((c) => c.statut === "EN_ATTENTE").length,
+        en_preparation: recents.filter((c) => c.statut === "EN_PREPARATION").length,
+        livrees: recents.filter((c) => c.statut === "LIVREE").length,
+        recents,
+      });
+    } catch (error) {
+      console.error("Erreur récupération commandes:", error);
+    }
+  };
 
-    setCommandesStats({
-      total: data.count || 0,
-      en_attente: recents.filter(c => c.statut === 'EN_ATTENTE').length,
-      en_preparation: recents.filter(c => c.statut === 'EN_PREPARATION').length,
-      livrees: recents.filter(c => c.statut === 'LIVREE').length,
-      recents: recents,
-    });
-  } catch (error) {
-    console.error("❌ Erreur récupération commandes:", error);
-  }
-};
+  const fetchInscriptionsRelooking = async () => {
+    try {
+      const data = await adminService.getInscriptionsRelooking({});
+      setInscriptionsRelooking(data.results || data || []);
+    } catch (error) {
+      console.error("Erreur récupération inscriptions relooking:", error);
+    }
+  };
 
-  // ─── Gestion des actions ──────────────────────────────────
   const handleAction = (inscription, type) => {
-    setSelectedInscription(inscription);
+    setSelectedInscriptionAction(inscription);
     setActionType(type);
     setActionDialogOpen(true);
   };
@@ -554,161 +349,163 @@ const Dashboard = () => {
   const handleActionConfirm = async () => {
     setProcessing(true);
     try {
-      const inscription = selectedInscription;
+      const inscription = selectedInscriptionAction;
       if (actionType === "valider") {
-        await adminService.updateInscription(inscription.id, {
-          statut: "PAYEE",
-        });
+        await adminService.updateInscription(inscription.id, { statut: "PAYEE" });
         setSnackbar({
           open: true,
-          message: `✅ Participation validée pour ${inscription.client.prenom} ${inscription.client.nom}`,
+          message: `Participation validée pour ${inscription.client.prenom} ${inscription.client.nom}`,
           severity: "success",
         });
       } else if (actionType === "generer_code") {
-        const code =
-          "ACCES-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+        const code = "ACCES-" + Math.random().toString(36).substring(2, 10).toUpperCase();
         await adminService.genererCodeAcces(inscription.id, { code });
-        setSnackbar({
-          open: true,
-          message: `✅ Code d'accès généré : ${code}`,
-          severity: "success",
-        });
+        setSnackbar({ open: true, message: `Code d'accès généré : ${code}`, severity: "success" });
       } else if (actionType === "refuser") {
-        await adminService.updateInscription(inscription.id, {
-          statut: "ANNULEE",
-        });
+        await adminService.updateInscription(inscription.id, { statut: "ANNULEE" });
         setSnackbar({
           open: true,
-          message: `❌ Participation refusée pour ${inscription.client.prenom} ${inscription.client.nom}`,
+          message: `Participation refusée pour ${inscription.client.prenom} ${inscription.client.nom}`,
           severity: "warning",
         });
       }
       setActionDialogOpen(false);
       fetchDashboardData();
     } catch (err) {
-      console.error("Erreur:", err);
-      setSnackbar({
-        open: true,
-        message: "❌ Erreur lors de l'action",
-        severity: "error",
-      });
+      setSnackbar({ open: true, message: "Erreur lors de l'action", severity: "error" });
     } finally {
       setProcessing(false);
     }
   };
 
-  // ─── Données mémoïsées ─────────────────────────────────────
-  // ✅ 5 STATISTIQUES PRINCIPALES (avec IDs uniques)
+  const handleVoirCommande = async (commande) => {
+    setSelectedCommande(commande);
+    setCommandeDetailOpen(true);
+    setLoadingDetails(true);
+    try {
+      const details = await adminService.getCommandeDetails(commande.id);
+      setCommandeDetails(details);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: "Erreur lors du chargement des détails de la commande",
+        severity: "error",
+      });
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const handleCloseCommandeDetail = () => {
+    setCommandeDetailOpen(false);
+    setSelectedCommande(null);
+    setCommandeDetails(null);
+  };
+
+  const handleVoirInscriptionRelooking = async (inscription) => {
+    setSelectedInscription(inscription);
+    setInscriptionDetailOpen(true);
+    setLoadingInscriptionDetails(true);
+    try {
+      const details = await adminService.getInscriptionRelookingById(inscription.id);
+      setSelectedInscription(details);
+    } catch (error) {
+      setSnackbar({ open: true, message: "Erreur lors du chargement des détails", severity: "error" });
+    } finally {
+      setLoadingInscriptionDetails(false);
+    }
+  };
+
+  const handleCloseInscriptionDetail = () => {
+    setInscriptionDetailOpen(false);
+    setSelectedInscription(null);
+  };
+
+  // Stats
   const mainStats = useMemo(
     () => [
       {
-        id: "stat-users",
         title: "Utilisateurs",
         value: stats?.users || 0,
-        icon: <People sx={{ fontSize: 26 }} />,
-        gradient: T.gradient,
+        icon: <People sx={{ fontSize: 18 }} />,
         color: T.accent,
         trend: 12,
         trendValue: 12,
-        delay: 0,
       },
       {
-        id: "stat-clients",
         title: "Clients",
         value: stats?.clients || 0,
-        icon: <PersonAdd sx={{ fontSize: 26 }} />,
-        gradient: T.gradient,
-        color: "#8B5CF6",
+        icon: <PersonAdd sx={{ fontSize: 18 }} />,
+        color: "#7C3AED",
         trend: 8,
         trendValue: 8,
-        delay: 50,
       },
       {
-        id: "stat-products",
         title: "Produits",
         value: stats?.products || 0,
-        icon: <ShoppingBag sx={{ fontSize: 26 }} />,
-        gradient: T.gradient3,
-        color: "#F59E0B",
+        icon: <ShoppingBag sx={{ fontSize: 18 }} />,
+        color: T.warning,
         trend: -3,
         trendValue: 3,
-        delay: 100,
       },
       {
-        id: "stat-formations",
         title: "Formations",
         value: stats?.formations || 0,
-        icon: <School sx={{ fontSize: 26 }} />,
-        gradient: T.gradient2,
+        icon: <School sx={{ fontSize: 18 }} />,
         color: T.success,
         trend: 15,
         trendValue: 15,
-        delay: 150,
       },
       {
-        id: "stat-events",
         title: "Événements",
         value: stats?.events || 0,
-        icon: <Event sx={{ fontSize: 26 }} />,
-        gradient: T.gradient4,
-        color: "#EC4899",
+        icon: <Event sx={{ fontSize: 18 }} />,
+        color: "#DB2777",
         trend: 5,
         trendValue: 5,
-        delay: 200,
       },
     ],
-    [stats],
+    [stats]
   );
 
-  // ✅ 3 STATISTIQUES SECONDAIRES
   const secondaryStats = useMemo(
     () => [
       {
-        id: "stat-inscriptions",
         title: "Inscriptions",
         value: stats?.inscriptions || 0,
-        icon: <Assignment sx={{ fontSize: 26 }} />,
-        gradient: T.gradient5,
-        color: "#06B6D4",
+        icon: <Assignment sx={{ fontSize: 18 }} />,
+        color: "#0891B2",
         trend: 22,
         trendValue: 22,
-        delay: 0,
       },
       {
-        id: "stat-pending",
         title: "En attente",
         value: stats?.pending_payments || 0,
-        icon: <Pending sx={{ fontSize: 26 }} />,
-        gradient: T.gradient3,
+        icon: <Pending sx={{ fontSize: 18 }} />,
         color: T.warning,
         trend: -8,
         trendValue: 8,
-        delay: 50,
       },
       {
-        id: "stat-revenue",
         title: "Revenus",
         value: `${(stats?.revenue || 0).toLocaleString("fr-FR")} CFA`,
-        icon: <AttachMoney sx={{ fontSize: 26 }} />,
-        gradient: T.gradient2,
+        icon: <AttachMoney sx={{ fontSize: 18 }} />,
         color: T.success,
         trend: 18,
         trendValue: 18,
-        delay: 100,
       },
     ],
-    [stats],
+    [stats]
   );
 
   const clients = evenementStats.evenement_recent.clients || [];
-  const evenementId = evenementStats.evenement_recent.id;
   const paginatedClients = useMemo(
     () =>
       clients.slice(
         pageParticipants * rowsPerPageParticipants,
-        pageParticipants * rowsPerPageParticipants + rowsPerPageParticipants,
+        pageParticipants * rowsPerPageParticipants + rowsPerPageParticipants
       ),
-    [clients, pageParticipants, rowsPerPageParticipants],
+    [clients, pageParticipants, rowsPerPageParticipants]
   );
 
   const inscriptions = formationStats.inscriptions_recents || [];
@@ -716,9 +513,9 @@ const Dashboard = () => {
     () =>
       inscriptions.slice(
         pageInscriptions * rowsPerPageInscriptions,
-        pageInscriptions * rowsPerPageInscriptions + rowsPerPageInscriptions,
+        pageInscriptions * rowsPerPageInscriptions + rowsPerPageInscriptions
       ),
-    [inscriptions, pageInscriptions, rowsPerPageInscriptions],
+    [inscriptions, pageInscriptions, rowsPerPageInscriptions]
   );
 
   const commandes = commandesStats.recents || [];
@@ -726,12 +523,23 @@ const Dashboard = () => {
     () =>
       commandes.slice(
         pageCommandes * rowsPerPageCommandes,
-        pageCommandes * rowsPerPageCommandes + rowsPerPageCommandes,
+        pageCommandes * rowsPerPageCommandes + rowsPerPageCommandes
       ),
-    [commandes, pageCommandes, rowsPerPageCommandes],
+    [commandes, pageCommandes, rowsPerPageCommandes]
   );
 
-  // ─── États de chargement ───────────────────────────────────
+  const typeColors = {
+    FEMME: { color: "#DB2777", label: "Relooking Femme" },
+    HOMME: { color: "#2563EB", label: "Relooking Homme" },
+    ATELIER: { color: T.success, label: "Atelier Relooking" },
+  };
+
+  const statutColors = {
+    EN_ATTENTE: { color: T.warning, label: "En attente" },
+    CONFIRME: { color: T.success, label: "Confirmé" },
+    ANNULE: { color: T.danger, label: "Annulé" },
+  };
+
   if (authLoading || loading) {
     return (
       <Box sx={{ width: "100%", py: 2 }}>
@@ -747,12 +555,7 @@ const Dashboard = () => {
       <Box sx={{ py: 10, textAlign: "center" }}>
         <Alert
           severity="error"
-          sx={{
-            borderRadius: "16px",
-            mb: 3,
-            display: "inline-flex",
-            maxWidth: 480,
-          }}
+          sx={{ borderRadius: 2, mb: 3, display: "inline-flex", maxWidth: 480 }}
         >
           {error}
         </Alert>
@@ -763,12 +566,13 @@ const Dashboard = () => {
           onClick={fetchDashboardData}
           sx={{
             mt: 1,
-            background: T.gradient,
-            borderRadius: "14px",
+            bgcolor: T.accent,
+            borderRadius: 1.5,
             textTransform: "none",
             fontWeight: 600,
-            px: 4,
-            boxShadow: `0 4px 16px ${alpha(T.accent, 0.3)}`,
+            px: 3,
+            boxShadow: "none",
+            "&:hover": { bgcolor: "#4338CA", boxShadow: "none" },
           }}
         >
           Réessayer
@@ -777,172 +581,195 @@ const Dashboard = () => {
     );
   }
 
-  // ─── Rendu ──────────────────────────────────────────────────
   return (
-    <Box sx={{ width: "100%" }}>
-      {/* ===== HEADER ===== */}
-      <DashboardHeader
-        user={user}
-        currentTime={currentTime}
-        onRefresh={fetchDashboardData}
-        loading={loading}
-      />
-
-      {/* ===== SECTION 1 : 5 STATISTIQUES PRINCIPALES ===== */}
-      <Grid container spacing={2.5} sx={{ mb: 3 }}>
-        {mainStats.map((stat) => (
-          <Grid item xs={12} sm={6} md={4} lg={2.4} key={stat.id}>
-            <StatWidget {...stat} />
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* ===== SECTION 2 : 3 STATISTIQUES SECONDAIRES ===== */}
-      <Grid container spacing={2.5} sx={{ mb: 3 }}>
-        {secondaryStats.map((stat) => (
-          <Grid item xs={12} sm={6} md={4} key={stat.id}>
-            <StatWidget {...stat} />
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* ===== SECTION 3 : ACTIONS RAPIDES ===== */}
-      <Box sx={{ mb: 3 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            p: 3,
-            borderRadius: "16px",
-            border: `1px solid ${T.border}`,
-            boxShadow: T.shadow,
-          }}
-        >
+    <Box sx={{ width: "100%", maxWidth: 1400, mx: "auto" }}>
+      {/* ─── HEADER ─────────────────────────────────────────── */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 3.5,
+        }}
+      >
+        <Box>
           <Typography
-            variant="h6"
+            variant="h5"
+            sx={{ fontWeight: 700, color: T.primary, letterSpacing: -0.5, mb: 0.25 }}
+          >
+            Bonjour, {user?.first_name || user?.username || "Administrateur"}
+          </Typography>
+          <Typography variant="body2" sx={{ color: T.muted }}>
+            {currentTime.toLocaleDateString("fr-FR", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}{" "}
+            · {currentTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+          <IconButton
+            size="small"
             sx={{
-              fontWeight: 700,
-              color: T.primary,
-              mb: 2.5,
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
+              color: T.muted,
+              border: `1px solid ${T.border}`,
+              borderRadius: 1.5,
+              width: 38,
+              height: 38,
             }}
           >
-            <DashboardIcon sx={{ fontSize: 24, color: T.accent }} />
-            Actions rapides
-          </Typography>
-          <Grid container spacing={2}>
-            {[
-              {
-                id: "action-product",
-                title: "Ajouter un produit",
-                icon: <Storefront sx={{ fontSize: 24 }} />,
-                path: "/admin/produits/nouveau",
-                color: "#F59E0B",
-              },
-              {
-                id: "action-event",
-                title: "Créer un événement",
-                icon: <Event sx={{ fontSize: 24 }} />,
-                path: "/admin/evenements/nouveau",
-                color: "#EC4899",
-              },
-              {
-                id: "action-formation",
-                title: "Ajouter une formation",
-                icon: <VideoLibrary sx={{ fontSize: 24 }} />,
-                path: "/admin/formations/nouveau",
-                color: "#10B981",
-              },
-              {
-                id: "action-events",
-                title: "Voir les événements",
-                icon: <CalendarToday sx={{ fontSize: 24 }} />,
-                path: "/admin/evenements",
-                color: "#3B82F6",
-              },
-              {
-                id: "action-payments",
-                title: "Voir les paiements",
-                icon: <Receipt sx={{ fontSize: 24 }} />,
-                path: "/admin/paiements",
-                color: "#EF4444",
-              },
-            ].map((action) => (
-              <Grid item xs={12} sm={6} md={2.4} key={action.id}>
-                <Zoom in timeout={300}>
-                  <Button
-                    fullWidth
-                    onClick={() => navigate(action.path)}
-                    sx={{
-                      background: action.color,
-                      color: "#fff",
-                      borderRadius: "14px",
-                      py: 2,
-                      textTransform: "none",
-                      fontWeight: 600,
-                      fontSize: "0.9rem",
-                      flexDirection: "column",
-                      gap: 0.8,
-                      boxShadow: `0 4px 16px ${alpha(action.color, 0.25)}`,
-                      "&:hover": {
-                        transform: "translateY(-3px)",
-                        boxShadow: `0 10px 28px ${alpha(action.color, 0.35)}`,
-                      },
-                      transition: "all 0.25s ease",
-                    }}
-                  >
-                    {action.icon}
-                    {action.title}
-                  </Button>
-                </Zoom>
-              </Grid>
-            ))}
-          </Grid>
-        </Paper>
+            <Badge badgeContent={3} color="error" sx={{ "& .MuiBadge-badge": { fontSize: 10 } }}>
+              <Notifications sx={{ fontSize: 20 }} />
+            </Badge>
+          </IconButton>
+
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <Refresh sx={{ fontSize: 18 }} />}
+            onClick={fetchDashboardData}
+            disabled={loading}
+            sx={{
+              borderColor: T.border,
+              color: T.primary,
+              borderRadius: 1.5,
+              textTransform: "none",
+              fontWeight: 500,
+              px: 2,
+              height: 38,
+              "&:hover": { borderColor: T.accent, bgcolor: alpha(T.accent, 0.04) },
+            }}
+          >
+            Actualiser
+          </Button>
+
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<ExitToApp sx={{ fontSize: 18 }} />}
+            onClick={() => {
+              logout();
+              navigate("/login");
+            }}
+            sx={{
+              bgcolor: T.danger,
+              color: "#fff",
+              borderRadius: 1.5,
+              textTransform: "none",
+              fontWeight: 500,
+              px: 2,
+              height: 38,
+              boxShadow: "none",
+              "&:hover": { bgcolor: "#B91C1C", boxShadow: "none" },
+            }}
+          >
+            Déconnexion
+          </Button>
+        </Box>
       </Box>
 
-      {/* ===== SECTION 4 : 3 CARTES SUR 1 LIGNE ===== */}
-      <Grid container spacing={3}>
-        {/* ---- CARTE 1 : ACTIVITÉS RÉCENTES ---- */}
+      {/* ─── STATS PRINCIPALES ──────────────────────────────── */}
+      <Grid container spacing={2} sx={{ mb: 2.5 }}>
+        {mainStats.map((stat) => (
+          <Grid item xs={12} sm={6} md={2.4} key={stat.title}>
+            <StatCard {...stat} />
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* ─── STATS SECONDAIRES ──────────────────────────────── */}
+      <Grid container spacing={2} sx={{ mb: 3.5 }}>
+        {secondaryStats.map((stat) => (
+          <Grid item xs={12} sm={6} md={4} key={stat.title}>
+            <StatCard {...stat} />
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* ─── ACTIONS RAPIDES ────────────────────────────────── */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2.5,
+          mb: 3.5,
+          borderRadius: 2,
+          border: `1px solid ${T.border}`,
+          boxShadow: T.shadow,
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          sx={{ fontWeight: 600, color: T.primary, mb: 2, display: "flex", alignItems: "center", gap: 1 }}
+        >
+          <DashboardIcon sx={{ fontSize: 18, color: T.accent }} />
+          Actions rapides
+        </Typography>
+        <Grid container spacing={1.5}>
+          {[
+            { title: "Ajouter un produit", icon: <Storefront sx={{ fontSize: 18 }} />, path: "/admin/produits/nouveau" },
+            { title: "Créer un événement", icon: <Event sx={{ fontSize: 18 }} />, path: "/admin/evenements/nouveau" },
+            { title: "Ajouter une formation", icon: <VideoLibrary sx={{ fontSize: 18 }} />, path: "/admin/formations/nouveau" },
+            { title: "Voir les événements", icon: <CalendarToday sx={{ fontSize: 18 }} />, path: "/admin/evenements" },
+            { title: "Voir les paiements", icon: <Receipt sx={{ fontSize: 18 }} />, path: "/admin/paiements" },
+          ].map((action) => (
+            <Grid item xs={12} sm={6} md={2.4} key={action.title}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={action.icon}
+                onClick={() => navigate(action.path)}
+                sx={{
+                  borderColor: T.border,
+                  color: T.primary,
+                  borderRadius: 1.5,
+                  py: 1.25,
+                  textTransform: "none",
+                  fontWeight: 500,
+                  fontSize: "0.8125rem",
+                  justifyContent: "flex-start",
+                  "&:hover": {
+                    borderColor: T.accent,
+                    bgcolor: alpha(T.accent, 0.04),
+                    color: T.accent,
+                  },
+                }}
+              >
+                {action.title}
+              </Button>
+            </Grid>
+          ))}
+        </Grid>
+      </Paper>
+
+      {/* ─── 3 COLONNES PRINCIPALES ─────────────────────────── */}
+      <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
+        {/* Activités récentes */}
         <Grid item xs={12} md={4}>
           <Paper
             elevation={0}
             sx={{
               p: 2.5,
               height: "100%",
-              borderRadius: "16px",
+              borderRadius: 2,
               border: `1px solid ${T.border}`,
               boxShadow: T.shadow,
-              transition: "box-shadow 0.3s",
-              "&:hover": { boxShadow: T.shadowHover },
             }}
           >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2,
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  color: T.primary,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1.5,
-                }}
-              >
-                <Analytics sx={{ fontSize: 22, color: T.accent }} />
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: T.primary, display: "flex", alignItems: "center", gap: 1 }}>
+                <Analytics sx={{ fontSize: 18, color: T.accent }} />
                 Activités récentes
               </Typography>
               <Button
-                endIcon={<ArrowForward />}
+                size="small"
+                endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
                 onClick={() => navigate("/admin/logs")}
-                sx={{ color: T.muted, textTransform: "none", fontWeight: 500 }}
+                sx={{ color: T.muted, textTransform: "none", fontWeight: 500, fontSize: "0.75rem" }}
               >
                 Voir tout
               </Button>
@@ -956,113 +783,36 @@ const Dashboard = () => {
               </Box>
             ) : (
               <List sx={{ py: 0 }}>
-                {recentActivities.slice(0, 4).map((activity, index) => (
-                  <React.Fragment key={activity.id || index}>
-                    <ActivityItem activity={activity} index={index} />
-                    {index < Math.min(recentActivities.length, 4) - 1 && (
-                      <Divider sx={{ borderColor: T.border, mx: 0.5 }} />
-                    )}
-                  </React.Fragment>
+                {recentActivities.slice(0, 5).map((activity, index) => (
+                  <ActivityItem key={activity.id || index} activity={activity} />
                 ))}
               </List>
-            )}
-
-            {recentActivities.length > 0 && (
-              <Box
-                sx={{
-                  mt: 2,
-                  pt: 2,
-                  borderTop: `1px solid ${T.border}`,
-                  display: "flex",
-                  justifyContent: "space-around",
-                  flexWrap: "wrap",
-                  gap: 1,
-                }}
-              >
-                {[
-                  {
-                    label: "Aujourd'hui",
-                    value: recentActivities.filter(
-                      (a) =>
-                        new Date(a.created_at).toDateString() ===
-                        new Date().toDateString(),
-                    ).length,
-                    icon: <Lightbulb sx={{ fontSize: 18 }} />,
-                  },
-                  {
-                    label: "Cette semaine",
-                    value: recentActivities.length,
-                    icon: <BarChart sx={{ fontSize: 18 }} />,
-                  },
-                  {
-                    label: "Moyenne / jour",
-                    value: Math.round(recentActivities.length / 7) || 0,
-                    icon: <RocketLaunch sx={{ fontSize: 18 }} />,
-                  },
-                ].map((item) => (
-                  <Box
-                    key={item.label}
-                    sx={{ textAlign: "center", minWidth: 80 }}
-                  >
-                    <Box sx={{ color: T.muted }}>{item.icon}</Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: T.muted, display: "block" }}
-                    >
-                      {item.label}
-                    </Typography>
-                    <Typography
-                      variant="h5"
-                      sx={{ fontWeight: 700, color: T.primary }}
-                    >
-                      {item.value}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
             )}
           </Paper>
         </Grid>
 
-        {/* ---- CARTE 2 : INSCRIPTIONS ÉVÉNEMENTS ---- */}
+        {/* Inscriptions événements */}
         <Grid item xs={12} md={4}>
           <Paper
             elevation={0}
             sx={{
               p: 2.5,
               height: "100%",
-              borderRadius: "16px",
+              borderRadius: 2,
               border: `1px solid ${T.border}`,
               boxShadow: T.shadow,
-              transition: "box-shadow 0.3s",
-              "&:hover": { boxShadow: T.shadowHover },
             }}
           >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2,
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  color: T.primary,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1.5,
-                }}
-              >
-                <Event sx={{ fontSize: 22, color: T.accent }} />
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: T.primary, display: "flex", alignItems: "center", gap: 1 }}>
+                <Event sx={{ fontSize: 18, color: T.accent }} />
                 Inscriptions événements
               </Typography>
               <Button
-                endIcon={<ArrowForward />}
-                onClick={() => navigate("/admin/participants-evenements")} // ✅ Nouvelle page
-                sx={{ color: T.muted, textTransform: "none", fontWeight: 500 }}
+                size="small"
+                endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+                onClick={() => navigate("/admin/participants-evenements")}
+                sx={{ color: T.muted, textTransform: "none", fontWeight: 500, fontSize: "0.75rem" }}
               >
                 Voir tout
               </Button>
@@ -1072,42 +822,38 @@ const Dashboard = () => {
               sx={{
                 mb: 2,
                 p: 1.5,
-                borderRadius: "12px",
-                bgcolor: alpha(T.accent, 0.05),
+                borderRadius: 1.5,
+                bgcolor: alpha(T.accent, 0.04),
                 border: `1px solid ${alpha(T.accent, 0.08)}`,
               }}
             >
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, color: T.primary }}
-                >
-                  📌{" "}
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: T.primary, fontSize: "0.8125rem" }}>
                   {evenementStats.evenement_recent.titre || "Aucun événement"}
                 </Typography>
                 <Chip
                   label={`${evenementStats.evenement_recent.total_inscrits || 0} inscrits`}
-                  size="medium"
-                  sx={{ bgcolor: T.success, color: "#fff", fontWeight: 700 }}
+                  size="small"
+                  sx={{
+                    height: 22,
+                    fontSize: "0.7rem",
+                    fontWeight: 600,
+                    bgcolor: alpha(T.success, 0.1),
+                    color: T.success,
+                  }}
                 />
               </Box>
             </Box>
 
             {paginatedClients.length === 0 ? (
               <Box sx={{ textAlign: "center", py: 3 }}>
-                <Person sx={{ fontSize: 36, color: "#CBD5E1" }} />
+                <Person sx={{ fontSize: 32, color: "#CBD5E1", mb: 0.5 }} />
                 <Typography variant="body2" sx={{ color: T.muted }}>
                   Aucune inscription
                 </Typography>
               </Box>
             ) : (
-              <Stack spacing={1.5}>
+              <Stack spacing={1.25}>
                 {paginatedClients.map((client) => (
                   <Box
                     key={client.id}
@@ -1115,22 +861,19 @@ const Dashboard = () => {
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
-                      p: 1.5,
-                      borderRadius: "10px",
+                      p: 1.25,
+                      borderRadius: 1.5,
                       border: `1px solid ${T.border}`,
-                      transition: "all 0.2s",
-                      "&:hover": { borderColor: alpha(T.accent, 0.25) },
                     }}
                   >
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", gap: 1.5 }}
-                    >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
                       <Avatar
                         sx={{
-                          width: 36,
-                          height: 36,
-                          bgcolor: alpha(T.accent, 0.12),
+                          width: 32,
+                          height: 32,
+                          bgcolor: alpha(T.accent, 0.1),
                           color: T.accent,
+                          fontSize: "0.75rem",
                           fontWeight: 600,
                         }}
                       >
@@ -1138,92 +881,43 @@ const Dashboard = () => {
                         {client.nom?.[0]}
                       </Avatar>
                       <Box>
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 600, color: T.primary }}
-                        >
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: T.primary, fontSize: "0.8125rem" }}>
                           {client.prenom} {client.nom}
                         </Typography>
                         <Typography variant="caption" sx={{ color: T.muted }}>
-                          Inscrit le{" "}
-                          {new Date(client.date_inscription).toLocaleDateString(
-                            "fr-FR",
-                          )}
+                          {new Date(client.date_inscription).toLocaleDateString("fr-FR")}
                         </Typography>
                       </Box>
                     </Box>
-                    <Tooltip title="Voir le client">
-                      <IconButton
-                        size="small"
-                        onClick={() => navigate(`/admin/clients/${client.id}`)}
-                        sx={{ color: T.muted }}
-                      >
-                        <Visibility fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                    <IconButton
+                      size="small"
+                      onClick={() => navigate(`/admin/clients/${client.id}`)}
+                      sx={{ color: T.muted }}
+                    >
+                      <Visibility sx={{ fontSize: 16 }} />
+                    </IconButton>
                   </Box>
                 ))}
               </Stack>
             )}
-
-            {clients.length > rowsPerPageParticipants && (
-              <TablePagination
-                rowsPerPageOptions={[3, 5, 10]}
-                component="div"
-                count={clients.length}
-                rowsPerPage={rowsPerPageParticipants}
-                page={pageParticipants}
-                onPageChange={(e, p) => setPageParticipants(p)}
-                onRowsPerPageChange={(e) => {
-                  setRowsPerPageParticipants(parseInt(e.target.value, 10));
-                  setPageParticipants(0);
-                }}
-                labelRowsPerPage="Lignes"
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from}-${to} sur ${count}`
-                }
-                sx={{
-                  "& .MuiTablePagination-select, & .MuiTablePagination-displayedRows":
-                    { fontSize: "0.7rem" },
-                }}
-              />
-            )}
           </Paper>
         </Grid>
 
-        {/* ---- CARTE 3 : INSCRIPTIONS FORMATIONS ---- */}
+        {/* Inscriptions formations */}
         <Grid item xs={12} md={4}>
           <Paper
             elevation={0}
             sx={{
               p: 2.5,
               height: "100%",
-              borderRadius: "16px",
+              borderRadius: 2,
               border: `1px solid ${T.border}`,
               boxShadow: T.shadow,
-              transition: "box-shadow 0.3s",
-              "&:hover": { boxShadow: T.shadowHover },
             }}
           >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2,
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  color: T.primary,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1.5,
-                }}
-              >
-                <School sx={{ fontSize: 22, color: T.accent }} />
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: T.primary, display: "flex", alignItems: "center", gap: 1 }}>
+                <School sx={{ fontSize: 18, color: T.accent }} />
                 Inscriptions formations
               </Typography>
               <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
@@ -1231,19 +925,18 @@ const Dashboard = () => {
                   label={`${formationStats.en_attente || 0} en attente`}
                   size="small"
                   sx={{
-                    bgcolor: alpha(T.warning, 0.12),
+                    height: 22,
+                    fontSize: "0.7rem",
+                    fontWeight: 600,
+                    bgcolor: alpha(T.warning, 0.1),
                     color: T.warning,
-                    fontWeight: 700,
                   }}
                 />
                 <Button
-                  endIcon={<ArrowForward />}
-                  onClick={() => navigate("/admin/inscriptions-formations")} // ✅ Nouvelle page
-                  sx={{
-                    color: T.muted,
-                    textTransform: "none",
-                    fontWeight: 500,
-                  }}
+                  size="small"
+                  endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+                  onClick={() => navigate("/admin/inscriptions-formations")}
+                  sx={{ color: T.muted, textTransform: "none", fontWeight: 500, fontSize: "0.75rem" }}
                 >
                   Voir tout
                 </Button>
@@ -1252,44 +945,33 @@ const Dashboard = () => {
 
             {paginatedInscriptions.length === 0 ? (
               <Box sx={{ textAlign: "center", py: 3 }}>
-                <School sx={{ fontSize: 36, color: "#CBD5E1" }} />
+                <School sx={{ fontSize: 32, color: "#CBD5E1", mb: 0.5 }} />
                 <Typography variant="body2" sx={{ color: T.muted }}>
                   Aucune inscription
                 </Typography>
               </Box>
             ) : (
-              <Stack spacing={1.5}>
+              <Stack spacing={1.25}>
                 {paginatedInscriptions.map((inscription) => (
                   <Box
                     key={inscription.id}
                     sx={{
                       p: 1.5,
-                      borderRadius: "10px",
+                      borderRadius: 1.5,
                       border: `1px solid ${T.border}`,
-                      bgcolor: T.surface,
-                      transition: "all 0.2s",
-                      "&:hover": {
-                        borderColor: alpha(T.accent, 0.25),
-                        boxShadow: T.shadowHover,
-                      },
+                      transition: "border-color 0.15s",
+                      "&:hover": { borderColor: alpha(T.accent, 0.3) },
                     }}
                   >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                      }}
-                    >
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1.5 }}
-                      >
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
                         <Avatar
                           sx={{
-                            width: 36,
-                            height: 36,
-                            bgcolor: alpha(T.accent, 0.12),
+                            width: 32,
+                            height: 32,
+                            bgcolor: alpha(T.accent, 0.1),
                             color: T.accent,
+                            fontSize: "0.75rem",
                             fontWeight: 600,
                           }}
                         >
@@ -1297,375 +979,189 @@ const Dashboard = () => {
                           {inscription.client.nom?.[0]}
                         </Avatar>
                         <Box>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 600, color: T.primary }}
-                          >
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: T.primary, fontSize: "0.8125rem" }}>
                             {inscription.client.prenom} {inscription.client.nom}
                           </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: T.muted, display: "block" }}
-                          >
-                            📚 {inscription.formation.titre}
+                          <Typography variant="caption" sx={{ color: T.muted, display: "block" }}>
+                            {inscription.formation.titre}
                           </Typography>
                         </Box>
                       </Box>
-                      <Stack direction="row" spacing={0.5}>
+                      <Stack direction="row" spacing={0.25}>
                         {inscription.statut === "EN_ATTENTE" && (
                           <>
                             <Tooltip title="Valider">
                               <IconButton
                                 size="small"
-                                onClick={() =>
-                                  handleAction(inscription, "valider")
-                                }
+                                onClick={() => handleAction(inscription, "valider")}
                                 sx={{ color: T.success }}
                               >
-                                <CheckCircle fontSize="small" />
+                                <CheckCircle sx={{ fontSize: 16 }} />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Refuser">
                               <IconButton
                                 size="small"
-                                onClick={() =>
-                                  handleAction(inscription, "refuser")
-                                }
+                                onClick={() => handleAction(inscription, "refuser")}
                                 sx={{ color: T.danger }}
                               >
-                                <Cancel fontSize="small" />
+                                <Cancel sx={{ fontSize: 16 }} />
                               </IconButton>
                             </Tooltip>
                           </>
                         )}
-                        {inscription.statut === "PAYEE" &&
-                          !inscription.code_acces && (
-                            <Tooltip title="Générer le code">
-                              <IconButton
-                                size="small"
-                                onClick={() =>
-                                  handleAction(inscription, "generer_code")
-                                }
-                                sx={{ color: T.accent }}
-                              >
-                                <QrCode fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
+                        {inscription.statut === "PAYEE" && !inscription.code_acces && (
+                          <Tooltip title="Générer le code">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleAction(inscription, "generer_code")}
+                              sx={{ color: T.accent }}
+                            >
+                              <QrCode sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         {inscription.code_acces && (
                           <Chip
-                            label="🔑 OK"
+                            label="Code OK"
                             size="small"
                             sx={{
-                              bgcolor: alpha(T.success, 0.12),
+                              height: 20,
+                              fontSize: "0.65rem",
+                              fontWeight: 600,
+                              bgcolor: alpha(T.success, 0.1),
                               color: T.success,
-                              fontWeight: 700,
                             }}
                           />
                         )}
-                        <Tooltip title="Voir le client">
-                          <IconButton
-                            size="small"
-                            onClick={() =>
-                              navigate(
-                                `/admin/clients/${inscription.client.id}`,
-                              )
-                            }
-                            sx={{ color: T.muted }}
-                          >
-                            <Visibility fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
                       </Stack>
                     </Box>
-                    <Box
-                      sx={{
-                        mt: 1,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                      }}
-                    >
+                    <Box sx={{ mt: 1, display: "flex", alignItems: "center", gap: 1 }}>
                       <Chip
-                        label={
-                          inscription.statut === "EN_ATTENTE"
-                            ? "⏳ En attente"
-                            : inscription.statut
-                        }
+                        label={inscription.statut === "EN_ATTENTE" ? "En attente" : inscription.statut}
                         size="small"
                         sx={{
+                          height: 20,
+                          fontSize: "0.65rem",
+                          fontWeight: 600,
                           bgcolor:
                             inscription.statut === "EN_ATTENTE"
-                              ? alpha(T.warning, 0.12)
-                              : alpha(T.success, 0.12),
-                          color:
-                            inscription.statut === "EN_ATTENTE"
-                              ? T.warning
-                              : T.success,
-                          fontWeight: 700,
+                              ? alpha(T.warning, 0.1)
+                              : alpha(T.success, 0.1),
+                          color: inscription.statut === "EN_ATTENTE" ? T.warning : T.success,
                         }}
                       />
                       <Typography variant="caption" sx={{ color: T.muted }}>
-                        💰 {inscription.montant} CFA
+                        {inscription.montant} CFA
                       </Typography>
                     </Box>
                   </Box>
                 ))}
               </Stack>
             )}
-
-            {inscriptions.length > rowsPerPageInscriptions && (
-              <TablePagination
-                rowsPerPageOptions={[3, 5, 10]}
-                component="div"
-                count={inscriptions.length}
-                rowsPerPage={rowsPerPageInscriptions}
-                page={pageInscriptions}
-                onPageChange={(e, p) => setPageInscriptions(p)}
-                onRowsPerPageChange={(e) => {
-                  setRowsPerPageInscriptions(parseInt(e.target.value, 10));
-                  setPageInscriptions(0);
-                }}
-                labelRowsPerPage="Lignes"
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from}-${to} sur ${count}`
-                }
-                sx={{
-                  "& .MuiTablePagination-select, & .MuiTablePagination-displayedRows":
-                    { fontSize: "0.7rem" },
-                }}
-              />
-            )}
           </Paper>
         </Grid>
       </Grid>
 
-      {/* ===== SECTION 5 : COMMANDES CLIENTS ===== */}
-      <Grid container spacing={3} sx={{ mt: 1 }}>
-        <Grid item xs={12}>
+      {/* ─── TABLEAUX ───────────────────────────────────────── */}
+      <Grid container spacing={2.5}>
+        {/* Commandes */}
+        <Grid item xs={12} md={6}>
           <Paper
             elevation={0}
             sx={{
-              p: 3,
-              borderRadius: "16px",
+              p: 2.5,
+              borderRadius: 2,
               border: `1px solid ${T.border}`,
               boxShadow: T.shadow,
-              transition: "box-shadow 0.3s",
-              "&:hover": { boxShadow: T.shadowHover },
             }}
           >
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2.5,
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  color: T.primary,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1.5,
-                }}
-              >
-                <ShoppingCart sx={{ fontSize: 24, color: T.accent }} />
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: T.primary, display: "flex", alignItems: "center", gap: 1 }}>
+                <ShoppingCart sx={{ fontSize: 18, color: T.accent }} />
                 Commandes clients
               </Typography>
-              <Box
-                sx={{
-                  display: "flex",
-                  gap: 1.5,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
+              <Button
+                size="small"
+                endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+                onClick={() => navigate("/admin/commandes")}
+                sx={{ color: T.muted, textTransform: "none", fontWeight: 500, fontSize: "0.75rem" }}
               >
-                <Chip
-                  label={`${commandesStats.total || 0} total`}
-                  size="small"
-                  sx={{
-                    bgcolor: alpha(T.accent, 0.12),
-                    color: T.accent,
-                    fontWeight: 700,
-                  }}
-                />
-                <Chip
-                  label={`${commandesStats.en_attente || 0} en attente`}
-                  size="small"
-                  sx={{
-                    bgcolor: alpha(T.warning, 0.12),
-                    color: T.warning,
-                    fontWeight: 700,
-                  }}
-                />
-                <Chip
-                  label={`${commandesStats.en_preparation || 0} en préparation`}
-                  size="small"
-                  sx={{
-                    bgcolor: alpha(T.accent, 0.12),
-                    color: T.accent,
-                    fontWeight: 700,
-                  }}
-                />
-                <Chip
-                  label={`${commandesStats.livrees || 0} livrées`}
-                  size="small"
-                  sx={{
-                    bgcolor: alpha(T.success, 0.12),
-                    color: T.success,
-                    fontWeight: 700,
-                  }}
-                />
-                <Button
-                  endIcon={<ArrowForward />}
-                  onClick={() => navigate("/admin/commandes")}
-                  sx={{
-                    color: T.muted,
-                    textTransform: "none",
-                    fontWeight: 500,
-                  }}
-                >
-                  Voir tout
-                </Button>
-              </Box>
+                Voir tout
+              </Button>
             </Box>
 
             {paginatedCommandes.length === 0 ? (
               <Box sx={{ textAlign: "center", py: 4 }}>
-                <ShoppingCart sx={{ fontSize: 48, color: "#CBD5E1" }} />
-                <Typography variant="body2" sx={{ color: T.muted, mt: 1 }}>
+                <ShoppingCart sx={{ fontSize: 36, color: "#CBD5E1", mb: 0.5 }} />
+                <Typography variant="body2" sx={{ color: T.muted }}>
                   Aucune commande récente
                 </Typography>
               </Box>
             ) : (
               <TableContainer>
-                <Table>
+                <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ bgcolor: "#F8FAFC" }}>
-                      <TableCell sx={{ fontWeight: 700, color: T.primary }}>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.75rem", borderBottom: `1px solid ${T.border}` }}>
                         Commande
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 700, color: T.primary }}>
+                      <TableCell sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.75rem", borderBottom: `1px solid ${T.border}` }}>
                         Client
                       </TableCell>
-                      <TableCell
-                        sx={{ fontWeight: 700, color: T.primary }}
-                        align="center"
-                      >
+                      <TableCell align="right" sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.75rem", borderBottom: `1px solid ${T.border}` }}>
                         Total
                       </TableCell>
-                      <TableCell
-                        sx={{ fontWeight: 700, color: T.primary }}
-                        align="center"
-                      >
+                      <TableCell align="center" sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.75rem", borderBottom: `1px solid ${T.border}` }}>
                         Statut
                       </TableCell>
-                      <TableCell
-                        sx={{ fontWeight: 700, color: T.primary }}
-                        align="center"
-                      >
-                        Date
-                      </TableCell>
-                      <TableCell
-                        sx={{ fontWeight: 700, color: T.primary }}
-                        align="center"
-                      >
-                        Action
+                      <TableCell align="center" sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.75rem", borderBottom: `1px solid ${T.border}` }}>
+                        
                       </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {paginatedCommandes.map((commande) => (
-                      <TableRow
-                        key={commande.id}
-                        hover
-                        sx={{ "&:hover": { bgcolor: alpha(T.accent, 0.03) } }}
-                      >
-                        <TableCell>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 700, color: T.primary }}
-                          >
+                      <TableRow key={commande.id} hover sx={{ "&:last-child td": { borderBottom: 0 } }}>
+                        <TableCell sx={{ borderBottom: `1px solid ${T.border}` }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8125rem" }}>
                             #{commande.id}
                           </Typography>
                         </TableCell>
-                        <TableCell>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1.5,
-                            }}
-                          >
-                            <Avatar
-                              sx={{
-                                width: 32,
-                                height: 32,
-                                bgcolor: alpha(T.accent, 0.12),
-                                color: T.accent,
-                                fontWeight: 600,
-                              }}
-                            >
-                              {commande.client?.prenom?.[0]}
-                              {commande.client?.nom?.[0]}
-                            </Avatar>
-                            <Typography
-                              variant="body2"
-                              sx={{ fontWeight: 500, color: T.primary }}
-                            >
-                              {commande.client?.prenom} {commande.client?.nom}
-                            </Typography>
-                          </Box>
+                        <TableCell sx={{ borderBottom: `1px solid ${T.border}` }}>
+                          <Typography variant="body2" sx={{ fontSize: "0.8125rem" }}>
+                            {commande.client?.prenom} {commande.client?.nom}
+                          </Typography>
                         </TableCell>
-                        <TableCell align="center">
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 700, color: T.primary }}
-                          >
+                        <TableCell align="right" sx={{ borderBottom: `1px solid ${T.border}` }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8125rem" }}>
                             {commande.total} CFA
                           </Typography>
                         </TableCell>
-                        <TableCell align="center">
+                        <TableCell align="center" sx={{ borderBottom: `1px solid ${T.border}` }}>
                           <Chip
-                            label={commande.statut || "En attente"}
+                            label={commande.statut}
                             size="small"
                             sx={{
+                              height: 22,
+                              fontSize: "0.7rem",
+                              fontWeight: 600,
                               bgcolor:
                                 commande.statut === "LIVREE"
-                                  ? alpha(T.success, 0.12)
-                                  : commande.statut === "EN_PREPARATION"
-                                    ? alpha(T.accent, 0.12)
-                                    : alpha(T.warning, 0.12),
-                              color:
-                                commande.statut === "LIVREE"
-                                  ? T.success
-                                  : commande.statut === "EN_PREPARATION"
-                                    ? T.accent
-                                    : T.warning,
-                              fontWeight: 700,
+                                  ? alpha(T.success, 0.1)
+                                  : alpha(T.warning, 0.1),
+                              color: commande.statut === "LIVREE" ? T.success : T.warning,
                             }}
                           />
                         </TableCell>
-                        <TableCell align="center">
-                          <Typography variant="body2" sx={{ color: T.muted }}>
-                            {new Date(
-                              commande.date_commande,
-                            ).toLocaleDateString("fr-FR")}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Tooltip title="Voir la commande">
+                        <TableCell align="center" sx={{ borderBottom: `1px solid ${T.border}` }}>
+                          <Tooltip title="Voir détails">
                             <IconButton
                               size="small"
-                              onClick={() =>
-                                navigate(`/admin/commandes/${commande.id}`)
-                              }
+                              onClick={() => handleVoirCommande(commande)}
                               sx={{ color: T.muted }}
                             >
-                              <Visibility fontSize="small" />
+                              <Visibility sx={{ fontSize: 16 }} />
                             </IconButton>
                           </Tooltip>
                         </TableCell>
@@ -1675,368 +1171,476 @@ const Dashboard = () => {
                 </Table>
               </TableContainer>
             )}
+          </Paper>
+        </Grid>
 
-            {commandes.length > rowsPerPageCommandes && (
-              <TablePagination
-                rowsPerPageOptions={[3, 5, 10]}
-                component="div"
-                count={commandes.length}
-                rowsPerPage={rowsPerPageCommandes}
-                page={pageCommandes}
-                onPageChange={(e, p) => setPageCommandes(p)}
-                onRowsPerPageChange={(e) => {
-                  setRowsPerPageCommandes(parseInt(e.target.value, 10));
-                  setPageCommandes(0);
-                }}
-                labelRowsPerPage="Lignes"
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from}-${to} sur ${count}`
-                }
-                sx={{
-                  "& .MuiTablePagination-select, & .MuiTablePagination-displayedRows":
-                    { fontSize: "0.7rem" },
-                }}
-              />
+        {/* Inscriptions Relooking */}
+        <Grid item xs={12} md={6}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2.5,
+              borderRadius: 2,
+              border: `1px solid ${T.border}`,
+              boxShadow: T.shadow,
+            }}
+          >
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: T.primary, display: "flex", alignItems: "center", gap: 1 }}>
+                <Spa sx={{ fontSize: 18, color: T.accent }} />
+                Inscriptions Relooking
+              </Typography>
+              <Button
+                size="small"
+                endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+                onClick={() => navigate("/admin/inscriptions-relooking")}
+                sx={{ color: T.muted, textTransform: "none", fontWeight: 500, fontSize: "0.75rem" }}
+              >
+                Voir tout
+              </Button>
+            </Box>
+
+            {inscriptionsRelooking.length === 0 ? (
+              <Box sx={{ textAlign: "center", py: 4 }}>
+                <Spa sx={{ fontSize: 36, color: "#CBD5E1", mb: 0.5 }} />
+                <Typography variant="body2" sx={{ color: T.muted }}>
+                  Aucune inscription relooking
+                </Typography>
+              </Box>
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.75rem", borderBottom: `1px solid ${T.border}` }}>
+                        Client
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.75rem", borderBottom: `1px solid ${T.border}` }}>
+                        Type
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.75rem", borderBottom: `1px solid ${T.border}` }}>
+                        Statut
+                      </TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.75rem", borderBottom: `1px solid ${T.border}` }}>
+                        
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {inscriptionsRelooking.slice(0, 5).map((inscription) => (
+                      <TableRow key={inscription.id} hover sx={{ "&:last-child td": { borderBottom: 0 } }}>
+                        <TableCell sx={{ borderBottom: `1px solid ${T.border}` }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
+                            <Avatar
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                bgcolor: alpha(T.accent, 0.1),
+                                color: T.accent,
+                                fontSize: "0.7rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {inscription.prenom?.[0]}
+                              {inscription.nom?.[0]}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8125rem" }}>
+                                {inscription.prenom} {inscription.nom}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: T.muted }}>
+                                {inscription.rubrique_nom || inscription.atelier_nom}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell sx={{ borderBottom: `1px solid ${T.border}` }}>
+                          <Chip
+                            label={typeColors[inscription.type]?.label || inscription.type}
+                            size="small"
+                            sx={{
+                              height: 22,
+                              fontSize: "0.7rem",
+                              fontWeight: 500,
+                              bgcolor: alpha(T.accent, 0.08),
+                              color: T.accent,
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ borderBottom: `1px solid ${T.border}` }}>
+                          <Chip
+                            label={statutColors[inscription.statut]?.label || inscription.statut}
+                            size="small"
+                            sx={{
+                              height: 22,
+                              fontSize: "0.7rem",
+                              fontWeight: 600,
+                              bgcolor: statutColors[inscription.statut]?.color
+                                ? alpha(statutColors[inscription.statut].color, 0.1)
+                                : alpha(T.muted, 0.1),
+                              color: statutColors[inscription.statut]?.color || T.muted,
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell align="center" sx={{ borderBottom: `1px solid ${T.border}` }}>
+                          <Tooltip title="Voir détails">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleVoirInscriptionRelooking(inscription)}
+                              sx={{ color: T.muted }}
+                            >
+                              <Visibility sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             )}
           </Paper>
         </Grid>
       </Grid>
 
-      {/* ===== DIALOG DE CONFIRMATION ===== */}
+      {/* ─── MODAL COMMANDE ─────────────────────────────────── */}
       <Dialog
-        open={actionDialogOpen}
-        onClose={() => setActionDialogOpen(false)}
-        PaperProps={{ sx: { borderRadius: "16px", p: 1 } }}
+        open={commandeDetailOpen}
+        onClose={handleCloseCommandeDetail}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2 } }}
       >
-        <DialogTitle sx={{ fontWeight: 700, color: T.primary }}>
-          {actionType === "valider" && "✅ Valider la participation"}
-          {actionType === "refuser" && "❌ Refuser la participation"}
-          {actionType === "generer_code" && "🔑 Générer le code d'accès"}
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: `1px solid ${T.border}`,
+            py: 2,
+            px: 3,
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 600, color: T.primary }}>
+            Commande #{selectedCommande?.id}
+          </Typography>
+          <IconButton onClick={handleCloseCommandeDetail} size="small">
+            <Cancel sx={{ color: T.muted, fontSize: 20 }} />
+          </IconButton>
         </DialogTitle>
-        <DialogContent>
-          {selectedInscription && (
-            <DialogContentText sx={{ color: T.muted }}>
-              {actionType === "valider" && (
-                <>
-                  Êtes-vous sûr de vouloir valider la participation de{" "}
-                  <strong>
-                    {selectedInscription.client.prenom}{" "}
-                    {selectedInscription.client.nom}
-                  </strong>{" "}
-                  à la formation{" "}
-                  <strong>"{selectedInscription.formation.titre}"</strong> ?
-                </>
-              )}
-              {actionType === "refuser" && (
-                <>
-                  Êtes-vous sûr de vouloir refuser la participation de{" "}
-                  <strong>
-                    {selectedInscription.client.prenom}{" "}
-                    {selectedInscription.client.nom}
-                  </strong>{" "}
-                  à la formation{" "}
-                  <strong>"{selectedInscription.formation.titre}"</strong> ?
-                </>
-              )}
-              {actionType === "generer_code" && (
-                <>
-                  Un code d'accès va être généré pour{" "}
-                  <strong>
-                    {selectedInscription.client.prenom}{" "}
-                    {selectedInscription.client.nom}
-                  </strong>{" "}
-                  pour la formation{" "}
-                  <strong>"{selectedInscription.formation.titre}"</strong>.
-                </>
-              )}
-            </DialogContentText>
+        <DialogContent sx={{ p: 0 }}>
+          {loadingDetails ? (
+            <Box sx={{ p: 5, textAlign: "center" }}>
+              <CircularProgress size={28} sx={{ color: T.accent }} />
+              <Typography variant="body2" sx={{ color: T.muted, mt: 2 }}>
+                Chargement des détails...
+              </Typography>
+            </Box>
+          ) : commandeDetails ? (
+            <Box>
+              <Box sx={{ p: 3, bgcolor: alpha(T.accent, 0.03), borderBottom: `1px solid ${T.border}` }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <Avatar
+                        sx={{
+                          width: 44,
+                          height: 44,
+                          bgcolor: alpha(T.accent, 0.1),
+                          color: T.accent,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {commandeDetails.client?.prenom?.[0]}
+                        {commandeDetails.client?.nom?.[0]}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: T.muted }}>
+                          Client
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {commandeDetails.client?.prenom} {commandeDetails.client?.nom}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Stack spacing={0.75}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                        <Typography variant="body2" sx={{ color: T.muted }}>
+                          Total
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: T.success }}>
+                          {commandeDetails.total} CFA
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                        <Typography variant="body2" sx={{ color: T.muted }}>
+                          Statut
+                        </Typography>
+                        <Chip label={commandeDetails.statut} size="small" sx={{ height: 22, fontWeight: 600 }} />
+                      </Box>
+                      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                        <Typography variant="body2" sx={{ color: T.muted }}>
+                          Date
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {new Date(commandeDetails.date_commande).toLocaleDateString("fr-FR")}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Grid>
+                </Grid>
+              </Box>
+              <Box sx={{ p: 3 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: T.primary, mb: 1.5 }}>
+                  Articles commandés
+                </Typography>
+                <TableContainer
+                  component={Paper}
+                  elevation={0}
+                  sx={{ border: `1px solid ${T.border}`, borderRadius: 1.5 }}
+                >
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: "#F8FAFC" }}>
+                        <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem" }}>Produit</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 600, fontSize: "0.75rem" }}>
+                          Qté
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.75rem" }}>
+                          Prix unitaire
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.75rem" }}>
+                          Total
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {(commandeDetails.lignes || commandeDetails.items || []).map((ligne, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontSize: "0.8125rem" }}>
+                              {ligne.produit_nom || ligne.produit}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2" sx={{ fontSize: "0.8125rem" }}>
+                              {ligne.quantite || 1}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" sx={{ fontSize: "0.8125rem" }}>
+                              {ligne.prix_unitaire || ligne.prix || 0} CFA
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8125rem" }}>
+                              {ligne.total_ligne || (ligne.quantite || 1) * (ligne.prix || 0)} CFA
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ p: 4, textAlign: "center" }}>
+              <Typography variant="body2" sx={{ color: T.muted }}>
+                Impossible de charger les détails
+              </Typography>
+            </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2.5, pt: 0 }}>
-          <Button
-            onClick={() => setActionDialogOpen(false)}
-            variant="outlined"
-            sx={{ borderRadius: "12px", textTransform: "none" }}
-          >
+      </Dialog>
+
+      {/* ─── MODAL INSCRIPTION RELOOKING ────────────────────── */}
+      <Dialog
+        open={inscriptionDetailOpen}
+        onClose={handleCloseInscriptionDetail}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: `1px solid ${T.border}`,
+            py: 2,
+            px: 3,
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Détails de l'inscription
+          </Typography>
+          <IconButton onClick={handleCloseInscriptionDetail} size="small">
+            <Cancel sx={{ color: T.muted, fontSize: 20 }} />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {loadingInscriptionDetails ? (
+            <Box sx={{ textAlign: "center", py: 5 }}>
+              <CircularProgress size={28} sx={{ color: T.accent }} />
+            </Box>
+          ) : selectedInscription ? (
+            <Stack spacing={2.5} sx={{ mt: 1 }}>
+              <Box sx={{ textAlign: "center" }}>
+                <Avatar
+                  sx={{
+                    width: 72,
+                    height: 72,
+                    mx: "auto",
+                    bgcolor: alpha(T.accent, 0.1),
+                    color: T.accent,
+                    fontSize: 28,
+                    fontWeight: 600,
+                  }}
+                >
+                  {selectedInscription.prenom?.[0]}
+                  {selectedInscription.nom?.[0]}
+                </Avatar>
+                <Typography variant="h6" sx={{ mt: 1.5, fontWeight: 700 }}>
+                  {selectedInscription.prenom} {selectedInscription.nom}
+                </Typography>
+                <Chip
+                  label={typeColors[selectedInscription.type]?.label}
+                  size="small"
+                  sx={{ mt: 1, fontWeight: 500 }}
+                />
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: T.primary }}>
+                  Contact
+                </Typography>
+                <Typography variant="body2" sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                  <Email sx={{ fontSize: 16, color: T.muted }} /> {selectedInscription.email}
+                </Typography>
+                <Typography variant="body2" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Phone sx={{ fontSize: 16, color: T.muted }} /> {selectedInscription.telephone}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: T.primary }}>
+                  Prestation
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Prestation :</strong> {selectedInscription.rubrique_nom || selectedInscription.atelier_nom}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Prix :</strong> {selectedInscription.prix} CFA
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Durée :</strong> {selectedInscription.duree}
+                </Typography>
+                {selectedInscription.message && (
+                  <Typography
+                    variant="body2"
+                    sx={{ mt: 1.5, p: 1.5, bgcolor: "#F8FAFC", borderRadius: 1.5, border: `1px solid ${T.border}` }}
+                  >
+                    <strong>Message :</strong> {selectedInscription.message}
+                  </Typography>
+                )}
+              </Box>
+
+              <Stack direction="row" spacing={1.5}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={async () => {
+                    await adminService.updateInscriptionRelooking(selectedInscription.id, {
+                      statut: "CONFIRME",
+                    });
+                    setSnackbar({ open: true, message: "Inscription confirmée", severity: "success" });
+                    handleCloseInscriptionDetail();
+                    fetchInscriptionsRelooking();
+                  }}
+                  sx={{
+                    bgcolor: T.success,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    boxShadow: "none",
+                    "&:hover": { bgcolor: "#047857", boxShadow: "none" },
+                  }}
+                >
+                  Confirmer
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={async () => {
+                    await adminService.updateInscriptionRelooking(selectedInscription.id, {
+                      statut: "ANNULE",
+                    });
+                    setSnackbar({ open: true, message: "Inscription annulée", severity: "warning" });
+                    handleCloseInscriptionDetail();
+                    fetchInscriptionsRelooking();
+                  }}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                >
+                  Annuler
+                </Button>
+              </Stack>
+            </Stack>
+          ) : (
+            <Typography>Chargement...</Typography>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── DIALOG CONFIRMATION ACTION ─────────────────────── */}
+      <Dialog open={actionDialogOpen} onClose={() => setActionDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600 }}>Confirmer l'action</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: T.secondary }}>
+            {actionType === "valider" && "Voulez-vous valider cette inscription ?"}
+            {actionType === "refuser" && "Voulez-vous refuser cette inscription ?"}
+            {actionType === "generer_code" && "Générer un code d'accès pour cette inscription ?"}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setActionDialogOpen(false)} sx={{ textTransform: "none" }}>
             Annuler
           </Button>
           <Button
-            onClick={handleActionConfirm}
             variant="contained"
+            onClick={handleActionConfirm}
             disabled={processing}
             sx={{
-              bgcolor: actionType === "refuser" ? T.danger : T.success,
-              borderRadius: "12px",
               textTransform: "none",
-              fontWeight: 600,
-              "&:hover": {
-                bgcolor: actionType === "refuser" ? "#DC2626" : "#059669",
-              },
+              bgcolor: T.accent,
+              boxShadow: "none",
+              "&:hover": { bgcolor: "#4338CA", boxShadow: "none" },
             }}
           >
-            {processing ? (
-              <CircularProgress size={20} sx={{ color: "#fff" }} />
-            ) : (
-              "Confirmer"
-            )}
+            {processing ? <CircularProgress size={18} color="inherit" /> : "Confirmer"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* ===== SNACKBAR ===== */}
+      {/* ─── SNACKBAR ───────────────────────────────────────── */}
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={5000}
+        autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
-          sx={{ borderRadius: "14px", width: "100%" }}
+          sx={{ borderRadius: 1.5, width: "100%" }}
         >
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
-  );
-};
-
-// ─── Header ──────────────────────────────────────────────────
-const DashboardHeader = ({ user, currentTime, onRefresh, loading }) => {
-  const [anchorEl, setAnchorEl] = useState(null);
-  const navigate = useNavigate();
-  const { logout } = useAuth();
-
-  const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
-  const handleMenuClose = () => setAnchorEl(null);
-
-  const handleLogout = () => {
-    handleMenuClose();
-    logout();
-    navigate("/login");
-  };
-
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: 2,
-        mb: 3,
-        p: 2.5,
-        borderRadius: "20px",
-        background: `linear-gradient(135deg, ${alpha(T.accent, 0.05)} 0%, ${alpha("#A855F7", 0.03)} 100%)`,
-        border: `1px solid ${alpha(T.accent, 0.08)}`,
-        boxShadow: T.shadow,
-      }}
-    >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2.5 }}>
-        <Avatar
-          sx={{
-            width: 56,
-            height: 56,
-            background: T.gradient,
-            boxShadow: `0 4px 16px ${alpha(T.accent, 0.3)}`,
-            fontWeight: 700,
-            fontSize: "1.3rem",
-          }}
-        >
-          {user?.first_name?.[0] || user?.username?.[0] || "A"}
-        </Avatar>
-
-        <Box>
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 700,
-              color: T.primary,
-              letterSpacing: -0.5,
-              lineHeight: 1.2,
-              fontSize: "1.4rem",
-            }}
-          >
-            Bonjour, {user?.first_name || user?.username || "Administrateur"} 👋
-          </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-              mt: 0.5,
-              flexWrap: "wrap",
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{ color: T.muted, fontWeight: 500 }}
-            >
-              {currentTime.toLocaleDateString("fr-FR", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-            </Typography>
-            <Box
-              sx={{
-                width: 4,
-                height: 4,
-                borderRadius: "50%",
-                bgcolor: T.muted,
-                opacity: 0.5,
-              }}
-            />
-            <Typography
-              variant="body2"
-              sx={{ color: T.muted, fontWeight: 500 }}
-            >
-              {currentTime.toLocaleTimeString("fr-FR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </Typography>
-            <Chip
-              label="Admin"
-              size="small"
-              sx={{
-                height: 24,
-                fontSize: "0.7rem",
-                fontWeight: 700,
-                background: T.gradient,
-                color: "#fff",
-                borderRadius: "8px",
-              }}
-            />
-          </Box>
-        </Box>
-      </Box>
-
-      <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
-        <IconButton
-          sx={{
-            color: T.muted,
-            bgcolor: alpha(T.accent, 0.05),
-            "&:hover": { color: T.accent, bgcolor: alpha(T.accent, 0.1) },
-            width: 40,
-            height: 40,
-          }}
-        >
-          <Badge badgeContent={3} color="error">
-            <Notifications sx={{ fontSize: 22 }} />
-          </Badge>
-        </IconButton>
-
-        <Button
-          variant="outlined"
-          startIcon={
-            loading ? (
-              <CircularProgress size={16} color="inherit" />
-            ) : (
-              <Refresh sx={{ fontSize: 20 }} />
-            )
-          }
-          onClick={onRefresh}
-          disabled={loading}
-          sx={{
-            borderColor: T.border,
-            color: T.primary,
-            borderRadius: "12px",
-            textTransform: "none",
-            fontWeight: 600,
-            px: 2.5,
-            "&:hover": {
-              borderColor: T.accent,
-              bgcolor: alpha(T.accent, 0.04),
-            },
-          }}
-        >
-          Actualiser
-        </Button>
-
-        <Button
-          variant="contained"
-          startIcon={<ExitToApp sx={{ fontSize: 20 }} />}
-          onClick={handleLogout}
-          sx={{
-            background: `linear-gradient(135deg, ${T.danger} 0%, #F87171 100%)`,
-            color: "#fff",
-            borderRadius: "12px",
-            textTransform: "none",
-            fontWeight: 600,
-            px: 2.5,
-            boxShadow: `0 4px 16px ${alpha(T.danger, 0.25)}`,
-            "&:hover": { boxShadow: `0 8px 24px ${alpha(T.danger, 0.35)}` },
-            transition: "all 0.25s ease",
-          }}
-        >
-          Déconnexion
-        </Button>
-
-        <IconButton onClick={handleMenuOpen}>
-          <Avatar
-            sx={{
-              width: 40,
-              height: 40,
-              background: T.gradient,
-              fontWeight: 700,
-              fontSize: "1rem",
-              border: `2px solid ${alpha(T.accent, 0.2)}`,
-            }}
-          >
-            {user?.first_name?.[0] || user?.username?.[0] || "A"}
-          </Avatar>
-        </IconButton>
-
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-          PaperProps={{
-            sx: {
-              borderRadius: "14px",
-              mt: 1,
-              minWidth: 200,
-              border: `1px solid ${T.border}`,
-              boxShadow: "0 12px 32px rgba(15,23,42,0.08)",
-            },
-          }}
-        >
-          <MenuItem
-            onClick={() => {
-              handleMenuClose();
-              navigate("/profile");
-            }}
-            sx={{ py: 1 }}
-          >
-            <ListItemIcon>
-              <PersonAdd fontSize="small" sx={{ color: T.accent }} />
-            </ListItemIcon>
-            Mon profil
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              handleMenuClose();
-              navigate("/admin/parametres");
-            }}
-            sx={{ py: 1 }}
-          >
-            <ListItemIcon>
-              <Settings fontSize="small" sx={{ color: T.accent }} />
-            </ListItemIcon>
-            Paramètres
-          </MenuItem>
-          <Divider />
-          <MenuItem onClick={handleLogout} sx={{ color: T.danger, py: 1 }}>
-            <ListItemIcon>
-              <LogoutIcon fontSize="small" sx={{ color: T.danger }} />
-            </ListItemIcon>
-            Déconnexion
-          </MenuItem>
-        </Menu>
-      </Box>
     </Box>
   );
 };

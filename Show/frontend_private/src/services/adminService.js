@@ -114,15 +114,12 @@ export const adminService = {
   // =============================================
   // PARTICIPATIONS ÉVÉNEMENTS (ADMIN)
   // =============================================
-  getParticipantsEvenements: async (params = {}) => {
-    try {
-      const response = await api.get("/admin/participations/", { params });
-      return response.data;
-    } catch (error) {
-      console.error("❌ Erreur getParticipantsEvenements:", error);
-      throw error;
-    }
-  },
+
+
+getParticipantsEvenements: async (params = {}) => {
+  const response = await api.get("/admin/participations/", { params });
+  return response.data;
+},
 
   getParticipantsByEvenement: async (evenementId) => {
     try {
@@ -338,6 +335,31 @@ export const adminService = {
     }
   },
 
+
+  getInscriptionsRelooking: async (params = {}) => {
+    const response = await api.get('/admin/inscriptions-relooking/', { params });
+    return response.data;
+  },
+
+  getInscriptionRelookingById: async (id) => {
+    const response = await api.get(`/admin/inscriptions-relooking/${id}/`);
+    return response.data;
+  },
+
+  updateInscriptionRelooking: async (id, data) => {
+    const response = await api.patch(`/admin/inscriptions-relooking/${id}/`, data);
+    return response.data;
+  },
+
+getCommandeDetails: async (commandeId) => {
+  try {
+    const response = await api.get(`/commandes/${commandeId}/`);
+    return response.data;
+  } catch (error) {
+    console.error("Erreur récupération détails commande:", error);
+    throw error;
+  }
+},
   updateCommande: async (id, data) => {
     try {
       const response = await api.patch(`/admin/commandes/${id}/`, data);

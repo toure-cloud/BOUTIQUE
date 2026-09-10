@@ -20,11 +20,14 @@ import RelookingHommeDetail from './pages/RelookingHommeDetail';
 import Panier from './pages/Panier'; // ✅ UN SEUL IMPORT
 import EleganceTimesOnline from './components/EleganceTimesOnline';
 import DetailsProduits from './pages/ProduitDetail';
+import Register from "./pages/Register";
 import EvenementDetail from './pages/EvenementDetail';
 import VerifierCode from './pages/VerifierCode';
 import FormationLive from './pages/FormationLive';
 import CommandeSuccess from './pages/CommandeSuccess';
 import Commande from './pages/Commande';
+import Login from './pages/Login';
+import EvenementInscription from "./pages/EvenementInscription";
 
 const theme = createTheme({
   // ... votre thème ...
@@ -62,6 +65,9 @@ function App() {
                 <Route path="/formation/:id/live" element={<FormationLive />} />
                 <Route path="/commande/success" element={<CommandeSuccess />} />
                 <Route path="/commande" element={<Commande />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/evenements/:id/inscription" element={<EvenementInscription />} />
               </Routes>
             </Box>
             <Footer />

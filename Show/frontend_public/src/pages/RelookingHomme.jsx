@@ -144,31 +144,36 @@ const RelookingHomme = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-    setLoading(true);
 
-    setTimeout(() => {
-      setFormSubmitted(true);
-      setLoading(false);
-      setSnackbarMessage('✅ Inscription réussie !');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-
-      setTimeout(() => {
-        setDialogOpen(false);
-        setFormSubmitted(false);
-        setFormData({
-          nom: '',
-          prenom: '',
-          email: '',
-          telephone: '',
-          date: '',
-          message: '',
-        });
-      }, 2000);
-    }, 1500);
-  };
+const handleFormSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  try {
+    await relookingService.inscrire({
+      type: 'HOMME',
+      rubrique_id: selected.id,
+      rubrique_nom: selected.nom,
+      nom: formData.nom,
+      prenom: formData.prenom,
+      email: formData.email,
+      telephone: formData.telephone,
+      date_souhaitee: formData.date,
+      message: formData.message,
+      prix: selected.prix,
+      duree: selected.duree,
+    });
+    setFormSubmitted(true);
+    setSnackbarMessage('Inscription réussie !');
+    setSnackbarSeverity('success');
+    setSnackbarOpen(true);
+  } catch (error) {
+    setSnackbarMessage('Erreur lors de l\'inscription');
+    setSnackbarSeverity('error');
+    setSnackbarOpen(true);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleViewDetails = (rubriqueId) => {
     navigate(`/relooking/homme/${rubriqueId}`);

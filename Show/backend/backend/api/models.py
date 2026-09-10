@@ -956,3 +956,46 @@ class OTPCode(models.Model):
         verbose_name = "Code OTP"
         verbose_name_plural = "Codes OTP"
         ordering = ['-created_at']
+        
+
+class InscriptionRelooking(models.Model):
+    """Modèle pour les inscriptions aux rubriques de relooking"""
+    TYPE_CHOICES = [
+        ('FEMME', 'Relooking Femme'),
+        ('HOMME', 'Relooking Homme'),
+        ('ATELIER', 'Atelier Relooking'),
+    ]
+    
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    
+    # Pour Femme & Homme
+    rubrique_id = models.IntegerField(null=True, blank=True)  # ID de la rubrique
+    rubrique_nom = models.CharField(max_length=200, blank=True)
+    
+    # Pour Atelier
+    atelier_id = models.IntegerField(null=True, blank=True)
+    atelier_nom = models.CharField(max_length=200, blank=True)
+    
+    # Informations client
+    nom = models.CharField(max_length=100)
+    prenom = models.CharField(max_length=100)
+    email = models.EmailField()
+    telephone = models.CharField(max_length=20)
+    date_souhaitee = models.DateField(null=True, blank=True)
+    nb_personnes = models.IntegerField(default=1)
+    message = models.TextField(blank=True)
+    
+    # Prix et durée (copie de la rubrique)
+    prix = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    duree = models.CharField(max_length=50, blank=True)
+    
+    statut = models.CharField(max_length=20, default='EN_ATTENTE')  # EN_ATTENTE, CONFIRME, ANNULE
+    date_inscription = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.prenom} {self.nom} - {self.type}"
+
+    class Meta:
+        verbose_name = "Inscription Relooking"
+        verbose_name_plural = "Inscriptions Relooking"
+        ordering = ['-date_inscription']

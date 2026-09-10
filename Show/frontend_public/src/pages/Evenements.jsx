@@ -1,34 +1,55 @@
 // src/pages/Evenements.jsx
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
-  Container, Typography, Box, Grid, Card, CardContent, CardMedia,
-  Button, Chip, CircularProgress, Alert, TextField, InputAdornment,
-  MenuItem, FormControl, InputLabel, Select, Pagination, Paper,
+  Container,
+  Typography,
+  Box,
+  Grid,
+  Card,
+  CardContent,
+  Button,
+  Chip,
+  Alert,
+  TextField,
+  InputAdornment,
+  FormControl,
+  Select,
+  MenuItem,
+  Pagination,
   Skeleton,
-} from '@mui/material';
+} from "@mui/material";
 import {
-  Search, Event, CalendarToday, LocationOn, People, AttachMoney,
-  ArrowForward, Clear, FilterList, CheckCircle, Pending, Cancel,
-} from '@mui/icons-material';
-import { evenementService } from '../services/evenementService';
-import heroImage from '../assets/images/tibetia.jpeg';
+  Search,
+  Event,
+  CalendarToday,
+  LocationOn,
+  People,
+  AttachMoney,
+  ArrowForward,
+  Clear,
+  CheckCircle,
+  Pending,
+  Cancel,
+} from "@mui/icons-material";
+import { evenementService } from "../services/evenementService";
+import heroImage from "../assets/images/tibetia.jpeg";
 
 const Evenements = () => {
   const [evenements, setEvenements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatut, setFilterStatut] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatut, setFilterStatut] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
   const statuts = [
-    { value: 'A_VENIR', label: 'À venir', color: '#3B82F6' },
-    { value: 'EN_COURS', label: 'En cours', color: '#EF4444' },
-    { value: 'TERMINE', label: 'Terminé', color: '#10B981' },
-    { value: 'ANNULE', label: 'Annulé', color: '#6B7280' },
+    { value: "A_VENIR", label: "À venir", color: "#2563EB" },
+    { value: "EN_COURS", label: "En cours", color: "#DC2626" },
+    { value: "TERMINE", label: "Terminé", color: "#059669" },
+    { value: "ANNULE", label: "Annulé", color: "#6B7280" },
   ];
 
   useEffect(() => {
@@ -39,16 +60,16 @@ const Evenements = () => {
     setLoading(true);
     setError(null);
     try {
-      const params = { page: page, page_size: 9 };
+      const params = { page, page_size: 10 }; // 10 pour bien remplir 2 lignes de 5
       if (filterStatut) params.statut = filterStatut;
-      
+
       const data = await evenementService.getEvenements(params);
-      const evenementsList = data.results || data || [];
-      setEvenements(evenementsList);
-      setTotalCount(data.count || evenementsList.length || 0);
-      setTotalPages(Math.ceil((data.count || evenementsList.length || 0) / 9));
+      const list = data.results || data || [];
+      setEvenements(list);
+      setTotalCount(data.count || list.length || 0);
+      setTotalPages(Math.ceil((data.count || list.length || 0) / 10));
     } catch (err) {
-      setError('Impossible de charger les événements. Veuillez réessayer.');
+      setError("Impossible de charger les événements. Veuillez réessayer.");
     } finally {
       setLoading(false);
     }
@@ -56,10 +77,11 @@ const Evenements = () => {
 
   const handleSearch = () => {
     if (searchTerm.trim()) {
-      const filtered = evenements.filter(e => 
-        e.titre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        e.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        e.theme?.toLowerCase().includes(searchTerm.toLowerCase())
+      const filtered = evenements.filter(
+        (e) =>
+          e.titre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          e.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          e.theme?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setEvenements(filtered);
     } else {
@@ -68,69 +90,70 @@ const Evenements = () => {
   };
 
   const handleClearSearch = () => {
-    setSearchTerm('');
+    setSearchTerm("");
     fetchEvenements();
   };
 
   const getStatutChip = (statut) => {
-    const config = statuts.find(s => s.value === statut);
-    if (!config) return <Chip label={statut} size="small" />;
-    
+    const config = statuts.find((s) => s.value === statut);
+    if (!config) return null;
+
     let icon = null;
-    if (statut === 'A_VENIR') icon = <Pending sx={{ fontSize: 14 }} />;
-    else if (statut === 'EN_COURS') icon = <CheckCircle sx={{ fontSize: 14 }} />;
-    else if (statut === 'TERMINE') icon = <CheckCircle sx={{ fontSize: 14 }} />;
-    else if (statut === 'ANNULE') icon = <Cancel sx={{ fontSize: 14 }} />;
-    
+    if (statut === "A_VENIR") icon = <Pending sx={{ fontSize: 12 }} />;
+    else if (statut === "EN_COURS" || statut === "TERMINE")
+      icon = <CheckCircle sx={{ fontSize: 12 }} />;
+    else if (statut === "ANNULE") icon = <Cancel sx={{ fontSize: 12 }} />;
+
     return (
       <Chip
         icon={icon}
         label={config.label}
         size="small"
         sx={{
-          backgroundColor: `${config.color}15`,
-          color: config.color,
+          height: 20,
+          fontSize: "0.65rem",
           fontWeight: 600,
-          '& .MuiChip-icon': { color: config.color },
+          borderRadius: 0.5,
+          backgroundColor: `${config.color}14`,
+          color: config.color,
+          "& .MuiChip-icon": { color: config.color },
         }}
       />
     );
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Date inconnue';
+    if (!dateString) return "Date à confirmer";
     const date = new Date(dateString);
-    return isNaN(date) ? 'Date inconnue' : date.toLocaleDateString('fr-FR', {
-      day: 'numeric', month: 'long', year: 'numeric',
-    });
+    return isNaN(date)
+      ? "Date à confirmer"
+      : date.toLocaleDateString("fr-FR", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
   };
 
   const formatPrice = (price) => {
-    if (!price || price === 0) return 'Gratuit';
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 }).format(price);
+    if (!price || price === 0) return "Gratuit";
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "XOF",
+      minimumFractionDigits: 0,
+    }).format(price);
   };
 
   if (loading) {
     return (
-      <Box sx={{ bgcolor: '#FFF5F3', minHeight: '100vh', py: 6 }}>
-        <Container maxWidth="lg">
-          <Box sx={{ mb: 5, textAlign: 'center' }}>
-            <Skeleton variant="text" width={200} height={30} sx={{ mx: 'auto' }} />
-            <Skeleton variant="text" width={300} height={50} sx={{ mx: 'auto' }} />
-            <Skeleton variant="text" width={400} height={25} sx={{ mx: 'auto' }} />
-          </Box>
-          <Grid container spacing={3}>
-            {[1, 2, 3, 4, 5, 6].map((item) => (
-              <Grid item xs={12} sm={6} md={4} key={item}>
-                <Card sx={{ borderRadius: '16px' }}>
-                  <Skeleton variant="rectangular" height={200} />
-                  <CardContent>
-                    <Skeleton variant="text" width="60%" />
-                    <Skeleton variant="text" width="80%" />
-                    <Skeleton variant="text" width="40%" />
-                    <Skeleton variant="rectangular" height={36} sx={{ mt: 2, borderRadius: '50px' }} />
-                  </CardContent>
-                </Card>
+      <Box sx={{ backgroundColor: "#FAFAFA", minHeight: "100vh" }}>
+        <Box sx={{ height: { xs: 200, md: 260 }, backgroundColor: "#111" }} />
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Grid container spacing={2}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((item) => (
+              <Grid item xs={12} sm={6} md={4} lg={2.4} key={item}>
+                <Skeleton variant="rectangular" height={140} sx={{ borderRadius: 1, mb: 1 }} />
+                <Skeleton width="70%" height={16} sx={{ mb: 0.5 }} />
+                <Skeleton width="50%" height={14} />
               </Grid>
             ))}
           </Grid>
@@ -141,9 +164,16 @@ const Evenements = () => {
 
   if (error) {
     return (
-      <Box sx={{ bgcolor: '#FFF5F3', minHeight: '100vh', py: 6 }}>
-        <Container maxWidth="lg">
-          <Alert severity="error" sx={{ borderRadius: '12px' }} action={<Button color="inherit" size="small" onClick={fetchEvenements}>Réessayer</Button>}>
+      <Box sx={{ backgroundColor: "#FAFAFA", minHeight: "100vh", py: 8 }}>
+        <Container maxWidth="sm">
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={fetchEvenements}>
+                Réessayer
+              </Button>
+            }
+          >
             {error}
           </Alert>
         </Container>
@@ -152,157 +182,409 @@ const Evenements = () => {
   }
 
   return (
-    <Box sx={{ bgcolor: '#FFF5F3', minHeight: '100vh', py: 4 }}>
-      <Container maxWidth="lg">
-        {/* ===== EN-TÊTE ===== */}
-        <Box sx={{ mb: 5, textAlign: 'center' }}>
-          <Typography variant="overline" sx={{ color: '#D4A5A0', letterSpacing: 4, fontWeight: 600, fontSize: '0.75rem', display: 'block', mb: 1 }}>
+    <Box sx={{ backgroundColor: "#FAFAFA", minHeight: "100vh" }}>
+      {/* HERO */}
+      <Box
+        sx={{
+          position: "relative",
+          height: { xs: 180, md: 240 },
+          display: "flex",
+          alignItems: "flex-end",
+          overflow: "hidden",
+          backgroundColor: "#111",
+        }}
+      >
+        <Box
+          component="img"
+          src={heroImage}
+          alt="Événements"
+          sx={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            opacity: 0.6,
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 100%)",
+          }}
+        />
+        <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1, pb: 3.5 }}>
+          <Typography
+            variant="overline"
+            sx={{
+              color: "rgba(255,255,255,0.65)",
+              letterSpacing: 3,
+              fontSize: "0.68rem",
+              display: "block",
+              mb: 0.5,
+            }}
+          >
             MADAME TIBETIA
           </Typography>
-          <Typography variant="h2" sx={{ fontWeight: 700, fontFamily: '"Playfair Display", serif', color: '#4A3728', mb: 1, fontSize: { xs: '2rem', md: '3rem' } }}>
+          <Typography
+            sx={{
+              fontFamily: '"Playfair Display", serif',
+              color: "#FFF",
+              fontSize: { xs: "1.8rem", md: "2.3rem" },
+              fontWeight: 400,
+              letterSpacing: -0.3,
+            }}
+          >
             Événements
           </Typography>
-          <Typography variant="body1" sx={{ color: '#7A5A4A', maxWidth: '600px', mx: 'auto', fontSize: { xs: '0.95rem', md: '1.1rem' } }}>
-            Découvrez nos événements exclusifs et réservez votre place
-          </Typography>
-          <Box sx={{ width: '60px', height: '3px', bgcolor: '#D4A5A0', mx: 'auto', mt: 2, borderRadius: '2px' }} />
-        </Box>
+        </Container>
+      </Box>
 
-        {/* ===== BARRE DE RECHERCHE ===== */}
-        <Paper sx={{ p: 2, mb: 4, borderRadius: '12px', border: '1px solid #F5E8E5', display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-          <Box sx={{ flex: 1, minWidth: 200 }}>
+      {/* TOOLBAR */}
+      <Box
+        sx={{
+          backgroundColor: "#fff",
+          borderBottom: "1px solid #EAEAEA",
+          position: "sticky",
+          top: 0,
+          zIndex: 40,
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              py: 1.5,
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
             <TextField
-              fullWidth
               placeholder="Rechercher un événement..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyPress={(e) => e.key === "Enter" && handleSearch()}
               size="small"
-              // ✅ CORRECTION MUI v5 : Utiliser slotProps au lieu de InputProps
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search sx={{ color: '#94A3B8' }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchTerm && (
-                    <InputAdornment position="end">
-                      <Button size="small" onClick={handleClearSearch}>
-                        <Clear sx={{ fontSize: 16 }} />
-                      </Button>
-                    </InputAdornment>
-                  ),
-                }
+              sx={{
+                flex: 1,
+                maxWidth: { xs: "100%", md: 300 },
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 1,
+                  backgroundColor: "#F7F7F7",
+                  fontSize: "0.85rem",
+                  "& fieldset": { borderColor: "transparent" },
+                  "&:hover fieldset": { borderColor: "#DDD" },
+                  "&.Mui-focused fieldset": { borderColor: "#111" },
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: "#999", fontSize: 18 }} />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm ? (
+                  <InputAdornment position="end">
+                    <Clear
+                      sx={{ fontSize: 16, color: "#999", cursor: "pointer" }}
+                      onClick={handleClearSearch}
+                    />
+                  </InputAdornment>
+                ) : null,
               }}
             />
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Typography sx={{ color: "#777", fontSize: "0.82rem", display: { xs: "none", sm: "block" } }}>
+                {totalCount} événement{totalCount > 1 ? "s" : ""}
+              </Typography>
+
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <Select
+                  value={filterStatut}
+                  onChange={(e) => {
+                    setFilterStatut(e.target.value);
+                    setPage(1);
+                  }}
+                  displayEmpty
+                  sx={{
+                    borderRadius: 1,
+                    fontSize: "0.82rem",
+                    backgroundColor: "#F7F7F7",
+                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "transparent" },
+                  }}
+                >
+                  <MenuItem value="">Tous</MenuItem>
+                  {statuts.map((s) => (
+                    <MenuItem key={s.value} value={s.value}>
+                      {s.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
           </Box>
+        </Container>
+      </Box>
 
-          <Box sx={{ minWidth: 150 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Statut</InputLabel>
-              <Select value={filterStatut} onChange={(e) => setFilterStatut(e.target.value)} label="Statut">
-                <MenuItem value="">Tous</MenuItem>
-                {statuts.map((s) => (
-                  <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-
-          <Button variant="outlined" onClick={fetchEvenements} startIcon={<FilterList />} size="small" sx={{ borderRadius: '8px', textTransform: 'none' }}>
-            Actualiser
-          </Button>
-        </Paper>
-
-        {/* ===== GRILLE ===== */}
+      {/* GRILLE - MAXIMUM 5 PAR LIGNE */}
+      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 } }}>
         {evenements.length === 0 ? (
-          <Paper sx={{ p: 6, textAlign: 'center', borderRadius: '16px', bgcolor: '#FFFFFF', border: '1px solid #F5E8E5' }}>
-            <Event sx={{ fontSize: 60, color: '#D4A5A0', mb: 2 }} />
-            <Typography variant="h6" sx={{ color: '#4A3728', mb: 1 }}>Aucun événement trouvé</Typography>
-            <Typography variant="body2" sx={{ color: '#7A5A4A' }}>
-              {searchTerm || filterStatut ? 'Essayez de modifier vos filtres' : 'Revenez plus tard pour découvrir nos événements'}
+          <Box sx={{ py: 8, textAlign: "center" }}>
+            <Event sx={{ fontSize: 40, color: "#DDD", mb: 1.5 }} />
+            <Typography sx={{ fontFamily: '"Playfair Display", serif', fontSize: "1.3rem", color: "#111", mb: 1 }}>
+              Aucun événement trouvé
             </Typography>
-          </Paper>
-        ) : (
-          <Grid container spacing={3}>
-            {evenements.map((evenement) => (
-              <Grid item xs={12} sm={6} md={4} key={evenement.id}>
-                <Card sx={{ borderRadius: '16px', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', transition: 'transform 0.3s ease, box-shadow 0.3s ease', '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 20px 60px rgba(212, 165, 160, 0.25)' }, border: '1px solid #F5E8E5', bgcolor: '#FFFFFF', position: 'relative' }}>
-                  
-                  <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}>
-                    {getStatutChip(evenement.statut)}
-                  </Box>
-
-                  {/* ✅ CORRECTION ICI : Utilisation de image_url généré par le backend */}
-                  <CardMedia
-                    component="img"
-                    height={200}
-                    image={evenement.image_url || heroImage}
-                    alt={evenement.titre}
-                    sx={{ objectFit: 'cover' }}
-                  />
-
-                  <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
-                    <Typography variant="caption" sx={{ color: '#D4A5A0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
-                      {evenement.theme}
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#4A3728', fontFamily: '"Playfair Display", serif', fontSize: '1.05rem', lineHeight: 1.3, minHeight: '48px', mb: 1.5 }}>
-                      {evenement.titre}
-                    </Typography>
-
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8, mb: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CalendarToday sx={{ fontSize: 16, color: '#D4A5A0' }} />
-                        <Typography variant="body2" sx={{ color: '#7A5A4A', fontSize: '0.85rem' }}>{formatDate(evenement.date_debut)}</Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <LocationOn sx={{ fontSize: 16, color: '#D4A5A0' }} />
-                        <Typography variant="body2" sx={{ color: '#7A5A4A', fontSize: '0.85rem' }}>{evenement.lieu}</Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <People sx={{ fontSize: 16, color: '#D4A5A0' }} />
-                        <Typography variant="body2" sx={{ color: '#7A5A4A', fontSize: '0.85rem' }}>{evenement.places_restantes || 0} places restantes</Typography>
-                      </Box>
-                      {!evenement.est_gratuit && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <AttachMoney sx={{ fontSize: 16, color: '#D4A5A0' }} />
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#4A3728' }}>{formatPrice(evenement.prix)}</Typography>
-                        </Box>
-                      )}
-                    </Box>
-
-                    <Button component={Link} to={`/evenements/${evenement.id}`} variant="contained" fullWidth disabled={evenement.places_restantes === 0 || evenement.statut === 'ANNULE'} sx={{ backgroundColor: evenement.places_restantes === 0 ? '#E8E0DD' : '#4A3728', color: evenement.places_restantes === 0 ? '#B0A8A5' : '#FFF5F3', borderRadius: '50px', py: 1, textTransform: 'none', fontSize: '0.85rem', fontWeight: 600, transition: 'all 0.3s ease', '&:hover': { backgroundColor: '#D4A5A0', color: '#4A3728', transform: 'scale(1.02)' } }} endIcon={<ArrowForward sx={{ fontSize: 16 }} />}>
-                      {evenement.places_restantes === 0 ? 'Complet' : 'Voir les détails'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
-
-        {/* ===== PAGINATION ===== */}
-        {evenements.length > 0 && totalPages > 1 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-            <Pagination count={totalPages} page={page} onChange={(e, value) => setPage(value)} color="primary" sx={{ '& .MuiPaginationItem-root': { borderRadius: '8px', '&.Mui-selected': { backgroundColor: '#D4A5A0', color: '#FFFFFF', '&:hover': { backgroundColor: '#C08A85' } } } }} />
+            <Typography sx={{ color: "#888", fontSize: "0.9rem" }}>
+              {searchTerm || filterStatut ? "Modifiez vos filtres" : "Revenez plus tard"}
+            </Typography>
           </Box>
-        )}
+        ) : (
+          <>
+            <Grid container spacing={2}>
+              {evenements.map((evenement) => {
+                const isFull = (evenement.places_restantes ?? 0) === 0;
+                const isCancelled = evenement.statut === "ANNULE";
+                const isDisabled = isFull || isCancelled;
 
-        {/* ===== BANDEAU CTA ===== */}
-        <Box sx={{ mt: 6, p: { xs: 4, md: 6 }, borderRadius: '16px', backgroundColor: '#4A3728', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-          <Box sx={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', backgroundColor: 'rgba(212, 165, 160, 0.1)' }} />
-          <Typography sx={{ fontFamily: '"Playfair Display", serif', color: '#FFFFFF', fontSize: { xs: '1.5rem', md: '2.2rem' }, fontWeight: 300, mb: 1.5, position: 'relative', zIndex: 1 }}>
-            Envie de plus d'élégance ?
+                return (
+                  <Grid
+                    item
+                    xs={12}      // 1 par ligne sur mobile
+                    sm={6}       // 2 par ligne sur tablette
+                    md={4}       // 3 par ligne
+                    lg={2.4}     // ← 5 par ligne sur grand écran
+                    key={evenement.id}
+                  >
+                    <Card
+                      elevation={0}
+                      sx={{
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        borderRadius: 1.5,
+                        border: "1px solid #EAEAEA",
+                        backgroundColor: "#fff",
+                        overflow: "hidden",
+                        transition: "all 0.2s ease",
+                        "&:hover": {
+                          borderColor: "#DDD",
+                          boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
+                          "& .event-img": {
+                            transform: "scale(1.04)",
+                          },
+                        },
+                      }}
+                    >
+                      {/* Image plus petite */}
+                      <Box
+                        sx={{
+                          position: "relative",
+                          height: 130,
+                          overflow: "hidden",
+                          backgroundColor: "#F4F4F4",
+                        }}
+                      >
+                        <Box
+                          component="img"
+                          className="event-img"
+                          src={evenement.image_url || heroImage}
+                          alt={evenement.titre}
+                          sx={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            transition: "transform 0.35s ease",
+                          }}
+                        />
+                        <Box sx={{ position: "absolute", top: 8, right: 8 }}>
+                          {getStatutChip(evenement.statut)}
+                        </Box>
+                      </Box>
+
+                      <CardContent
+                        sx={{
+                          flexGrow: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                          p: 1.8,
+                          "&:last-child": { pb: 1.8 },
+                        }}
+                      >
+                        {evenement.theme && (
+                          <Typography
+                            sx={{
+                              color: "#999",
+                              fontSize: "0.65rem",
+                              fontWeight: 500,
+                              letterSpacing: 0.5,
+                              textTransform: "uppercase",
+                              mb: 0.5,
+                            }}
+                          >
+                            {evenement.theme}
+                          </Typography>
+                        )}
+
+                        <Typography
+                          sx={{
+                            fontFamily: '"Playfair Display", serif',
+                            fontWeight: 500,
+                            color: "#111",
+                            fontSize: "0.95rem",
+                            lineHeight: 1.3,
+                            mb: 1.2,
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            minHeight: 40,
+                          }}
+                        >
+                          {evenement.titre}
+                        </Typography>
+
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mb: 1.5 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
+                            <CalendarToday sx={{ fontSize: 13, color: "#AAA" }} />
+                            <Typography sx={{ color: "#555", fontSize: "0.75rem" }}>
+                              {formatDate(evenement.date_debut)}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
+                            <LocationOn sx={{ fontSize: 13, color: "#AAA" }} />
+                            <Typography
+                              sx={{
+                                color: "#555",
+                                fontSize: "0.75rem",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {evenement.lieu || "Lieu à confirmer"}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
+                            <People sx={{ fontSize: 13, color: "#AAA" }} />
+                            <Typography sx={{ color: "#555", fontSize: "0.75rem" }}>
+                              {evenement.places_restantes ?? 0} place
+                              {(evenement.places_restantes ?? 0) > 1 ? "s" : ""}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            mt: "auto",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 1,
+                          }}
+                        >
+                          <Typography sx={{ fontWeight: 600, color: "#111", fontSize: "0.85rem" }}>
+                            {formatPrice(evenement.prix)}
+                          </Typography>
+
+                          <Button
+                            component={Link}
+                            to={`/evenements/${evenement.id}`}
+                            size="small"
+                            variant="contained"
+                            disabled={isDisabled}
+                            sx={{
+                              backgroundColor: isDisabled ? "#E8E8E8" : "#111",
+                              color: isDisabled ? "#999" : "#fff",
+                              borderRadius: 1,
+                              px: 1.5,
+                              py: 0.5,
+                              minWidth: 0,
+                              textTransform: "none",
+                              fontWeight: 600,
+                              fontSize: "0.72rem",
+                              boxShadow: "none",
+                              "&:hover": {
+                                backgroundColor: isDisabled ? "#E8E8E8" : "#333",
+                                boxShadow: "none",
+                              },
+                            }}
+                          >
+                            {isFull ? "Complet" : isCancelled ? "Annulé" : "Voir"}
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
+
+            {totalPages > 1 && (
+              <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={(e, value) => setPage(value)}
+                  size="small"
+                  sx={{
+                    "& .MuiPaginationItem-root": {
+                      borderRadius: 1,
+                      fontWeight: 500,
+                      "&.Mui-selected": {
+                        backgroundColor: "#111",
+                        color: "#fff",
+                      },
+                    },
+                  }}
+                />
+              </Box>
+            )}
+          </>
+        )}
+      </Container>
+
+      {/* CTA */}
+      <Box sx={{ py: 6, backgroundColor: "#111", textAlign: "center" }}>
+        <Container maxWidth="sm">
+          <Typography
+            sx={{
+              fontFamily: '"Playfair Display", serif',
+              color: "#FFF",
+              fontSize: { xs: "1.4rem", md: "1.7rem" },
+              mb: 1,
+            }}
+          >
+            Envie de plus d’élégance ?
           </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.7)', mb: 3, fontSize: '1rem', position: 'relative', zIndex: 1 }}>
-            Découvrez nos formations en ligne pour développer votre style
+          <Typography sx={{ color: "rgba(255,255,255,0.6)", mb: 2.5, fontSize: "0.9rem" }}>
+            Découvrez aussi nos formations
           </Typography>
-          <Button component={Link} to="/formations" variant="contained" endIcon={<ArrowForward />} sx={{ backgroundColor: '#FFFFFF', color: '#4A3728', borderRadius: 50, px: 4, py: 1.4, textTransform: 'none', fontWeight: 600, fontSize: '0.95rem', position: 'relative', zIndex: 1, '&:hover': { backgroundColor: '#F5F0ED' } }}>
+          <Button
+            component={Link}
+            to="/formations"
+            variant="contained"
+            endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
+            sx={{
+              backgroundColor: "#fff",
+              color: "#111",
+              borderRadius: 1,
+              px: 3,
+              py: 1,
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              boxShadow: "none",
+              "&:hover": { backgroundColor: "#f0f0f0", boxShadow: "none" },
+            }}
+          >
             Voir les formations
           </Button>
-        </Box>
-      </Container>
+        </Container>
+      </Box>
     </Box>
   );
 };

@@ -43,4 +43,10 @@ export const relookingService = {
     const response = await api.get('/ateliers/par_categorie/', { params: { categorie } });
     return response.data;
   },
+ // ===== INSCRIPTION RELOOKING =====
+
+  inscrire: async (data) => {
+    const response = await api.post('/inscriptions-relooking/', data);
+    return response.data;
+  },
 };
