@@ -8,22 +8,17 @@ import {
   Grid,
   Button,
   Chip,
-  Divider,
   Paper,
   TextField,
   Alert,
   Snackbar,
   CircularProgress,
-  Stepper,
-  Step,
-  StepLabel,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   InputAdornment,
   Avatar,
-  Stack,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -46,7 +41,6 @@ import {
   School,
   Timer,
   MenuBook,
-  VideoLibrary,
   Lock,
 } from "@mui/icons-material";
 import { formationService } from "../services/formationService";
@@ -59,11 +53,11 @@ const COACH_IMAGE =
   "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=600&h=400&fit=crop&q=80";
 
 const PAIEMENT_ICONS = {
-  WAVE: <QrCode sx={{ fontSize: 28 }} />,
-  ORANGE_MONEY: <PhoneAndroid sx={{ fontSize: 28 }} />,
-  MOOV_MONEY: <PhoneAndroid sx={{ fontSize: 28 }} />,
-  MTN_MONEY: <PhoneAndroid sx={{ fontSize: 28 }} />,
-  CARTE_BANCAIRE: <CreditCard sx={{ fontSize: 28 }} />,
+  WAVE: <QrCode sx={{ fontSize: 26 }} />,
+  ORANGE_MONEY: <PhoneAndroid sx={{ fontSize: 26 }} />,
+  MOOV_MONEY: <PhoneAndroid sx={{ fontSize: 26 }} />,
+  MTN_MONEY: <PhoneAndroid sx={{ fontSize: 26 }} />,
+  CARTE_BANCAIRE: <CreditCard sx={{ fontSize: 26 }} />,
 };
 
 const FormationDetail = () => {
@@ -102,26 +96,17 @@ const FormationDetail = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        console.log("🔍 Chargement de la formation ID:", id);
-
         const [formationData, moyensData] = await Promise.all([
           formationService.getFormationById(parseInt(id)),
           paiementService.getMoyensPaiement(),
         ]);
 
-        console.log("📋 Formation reçue:", formationData);
-        console.log("📋 Moyens de paiement reçus:", moyensData);
-
         setFormation(formationData);
-
-        const moyensList = Array.isArray(moyensData)
-          ? moyensData
-          : moyensData.results || [];
+        const moyensList = Array.isArray(moyensData) ? moyensData : moyensData.results || [];
         setMoyensPaiement(moyensList);
-
         setError(null);
       } catch (err) {
-        console.error("❌ Erreur:", err);
+        console.error("Erreur:", err);
         setError("Impossible de charger les données");
       } finally {
         setLoading(false);
@@ -146,16 +131,13 @@ const FormationDetail = () => {
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       errors.email = "Email invalide";
     }
-    if (!formData.telephone.trim())
-      errors.telephone = "Le téléphone est requis";
+    if (!formData.telephone.trim()) errors.telephone = "Le téléphone est requis";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // ✅ Inscription avec les données du formulaire
   const handleInscription = async () => {
     if (!validateForm()) return;
-
     setLoadingInscription(true);
 
     try {
@@ -166,28 +148,19 @@ const FormationDetail = () => {
         telephone: formData.telephone,
       };
 
-      console.log("📦 Données client pour inscription:", clientData);
-
       const response = await formationService.inscrire(
         parseInt(id),
         clientData,
-        formData.notes || "",
+        formData.notes || ""
       );
-
-      console.log("✅ Inscription réussie:", response);
 
       setInscriptionId(response.id);
       setActiveStep(1);
-      setSnackbarMessage(
-        "✅ Inscription enregistrée ! Choisissez votre moyen de paiement.",
-      );
+      setSnackbarMessage("Inscription enregistrée ! Choisissez votre moyen de paiement.");
       setSnackbarSeverity("success");
       setSnackbarOpen(true);
     } catch (err) {
-      console.error("❌ Erreur d'inscription:", err);
-
-      let errorMessage = "❌ Erreur lors de l'inscription";
-
+      let errorMessage = "Erreur lors de l'inscription";
       if (err.response?.data?.error) {
         errorMessage = err.response.data.error;
       } else if (err.response?.data) {
@@ -195,14 +168,10 @@ const FormationDetail = () => {
         const firstKey = Object.keys(errors)[0];
         if (firstKey) {
           const firstError = errors[firstKey];
-          if (Array.isArray(firstError)) {
-            errorMessage = firstError[0];
-          } else if (typeof firstError === "string") {
-            errorMessage = firstError;
-          }
+          if (Array.isArray(firstError)) errorMessage = firstError[0];
+          else if (typeof firstError === "string") errorMessage = firstError;
         }
       }
-
       setSnackbarMessage(errorMessage);
       setSnackbarSeverity("error");
       setSnackbarOpen(true);
@@ -236,51 +205,43 @@ const FormationDetail = () => {
         notes: formData.notes || "",
       };
 
-      const response = await formationService.creerTransaction(transactionData);
-      console.log("✅ Transaction créée:", response);
+      await formationService.creerTransaction(transactionData);
 
       setTimeout(() => {
         setCodeAcces({
-          code_acces:
-            "ACCES-" +
-            Math.random().toString(36).substring(2, 10).toUpperCase(),
+          code_acces: "ACCES-" + Math.random().toString(36).substring(2, 10).toUpperCase(),
           date_expiration: new Date(Date.now() + 86400000).toISOString(),
         });
         setPaiementEffectue(true);
         setActiveStep(2);
         setProcessingPaiement(false);
-        setSnackbarMessage("🎉 Paiement effectué ! Code d'accès généré.");
+        setSnackbarMessage("Paiement effectué ! Code d'accès généré.");
         setSnackbarSeverity("success");
         setSnackbarOpen(true);
       }, 2000);
     } catch (err) {
-      console.error("❌ Erreur de paiement:", err);
       setProcessingPaiement(false);
-      setSnackbarMessage("❌ Erreur lors du paiement");
+      setSnackbarMessage("Erreur lors du paiement");
       setSnackbarSeverity("error");
       setSnackbarOpen(true);
     }
   };
 
-  // ✅ Gérer la confirmation de paiement depuis les composants enfants
   const handlePaiementConfirme = (data) => {
-    console.log("✅ Paiement confirmé depuis le composant enfant:", data);
     setPaiementEffectue(true);
     setActiveStep(2);
     setCodeAcces({
-      code_acces:
-        "ACCES-" + Math.random().toString(36).substring(2, 10).toUpperCase(),
+      code_acces: "ACCES-" + Math.random().toString(36).substring(2, 10).toUpperCase(),
       date_expiration: new Date(Date.now() + 86400000).toISOString(),
     });
-    setSnackbarMessage("🎉 Paiement effectué ! Code d'accès généré.");
+    setSnackbarMessage("Paiement effectué ! Code d'accès généré.");
     setSnackbarSeverity("success");
     setSnackbarOpen(true);
   };
 
-  // ✅ Rediriger vers la page de lecture
   const handleGoToLive = () => {
     if (!formation || !codeAcces) {
-      setSnackbarMessage("❌ Code d'accès non disponible");
+      setSnackbarMessage("Code d'accès non disponible");
       setSnackbarSeverity("error");
       setSnackbarOpen(true);
       return;
@@ -303,7 +264,7 @@ const FormationDetail = () => {
           prenom: formData.prenom,
         },
         timestamp: Date.now(),
-      }),
+      })
     );
 
     navigate(`/formation/${formation.id}/live`);
@@ -314,12 +275,13 @@ const FormationDetail = () => {
       return (
         <Chip
           icon={<LiveTv sx={{ fontSize: 16, color: "#fff" }} />}
-          label="🔴 EN DIRECT"
+          label="EN DIRECT"
           sx={{
-            backgroundColor: "#E53935",
-            color: "#FFFFFF",
-            fontWeight: 700,
-            height: 32,
+            bgcolor: "#EF4444",
+            color: "#fff",
+            fontWeight: 600,
+            height: 30,
+            borderRadius: 1.5,
           }}
         />
       );
@@ -328,12 +290,13 @@ const FormationDetail = () => {
       return (
         <Chip
           icon={<Replay sx={{ fontSize: 16 }} />}
-          label="📹 REPLAY"
+          label="REPLAY"
           sx={{
-            backgroundColor: "#1A1A1A",
-            color: "#FFFFFF",
+            bgcolor: "#0F172A",
+            color: "#fff",
             fontWeight: 600,
-            height: 32,
+            height: 30,
+            borderRadius: 1.5,
           }}
         />
       );
@@ -341,72 +304,57 @@ const FormationDetail = () => {
     return (
       <Chip
         icon={<EventNote sx={{ fontSize: 16 }} />}
-        label="📅 PROGRAMMÉ"
+        label="PROGRAMMÉ"
         sx={{
-          backgroundColor: "rgba(255,255,255,0.15)",
-          color: "#FFFFFF",
+          bgcolor: "rgba(255,255,255,0.15)",
+          color: "#fff",
           fontWeight: 600,
-          height: 32,
+          height: 30,
+          borderRadius: 1.5,
           backdropFilter: "blur(8px)",
         }}
       />
     );
   };
 
+  const isCarteBancaire = () => {
+    const moyen = moyensPaiement.find((m) => m.id === parseInt(moyenPaiementSelected));
+    return moyen?.type === "CARTE_BANCAIRE";
+  };
+
   if (loading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "70vh",
-        }}
-      >
-        <CircularProgress sx={{ color: "#2E7D32" }} thickness={4} size={60} />
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "70vh", bgcolor: "#F8FAFC" }}>
+        <CircularProgress sx={{ color: "#0F172A" }} thickness={4} size={48} />
       </Box>
     );
   }
 
   if (error || !formation) {
     return (
-      <Container maxWidth={false} sx={{ py: 10, px: { xs: 2, md: 4 } }}>
-        <Alert severity="error" sx={{ borderRadius: 3 }}>
-          {error || "Formation non trouvée"}
-        </Alert>
-        <Button
-          component={Link}
-          to="/"
-          startIcon={<ArrowBack />}
-          variant="outlined"
-          sx={{ mt: 3 }}
-        >
-          Retour à l'accueil
-        </Button>
-      </Container>
+      <Box sx={{ bgcolor: "#F8FAFC", minHeight: "100vh", py: 10 }}>
+        <Container maxWidth="sm">
+          <Alert severity="error" sx={{ borderRadius: 2, mb: 3 }}>
+            {error || "Formation non trouvée"}
+          </Alert>
+          <Button component={Link} to="/" startIcon={<ArrowBack />} sx={{ color: "#0F172A" }}>
+            Retour à l'accueil
+          </Button>
+        </Container>
+      </Box>
     );
   }
 
-  // Vérifier si le moyen de paiement sélectionné est une carte bancaire
-  const isCarteBancaire = () => {
-    const moyen = moyensPaiement.find(
-      (m) => m.id === parseInt(moyenPaiementSelected),
-    );
-    return moyen?.type === "CARTE_BANCAIRE";
-  };
-
   return (
-    <Box sx={{ backgroundColor: "#F5F7F5", minHeight: "100vh", width: "100%" }}>
-      {/* ===== HEADER ===== */}
+    <Box sx={{ bgcolor: "#F8FAFC", minHeight: "100vh" }}>
+      {/* ─── HEADER ───────────────────────────────────────────── */}
       <Box
         sx={{
           position: "relative",
-          height: { xs: 250, md: 320 },
-          width: "100%",
+          height: { xs: 260, md: 340 },
           display: "flex",
           alignItems: "flex-end",
           overflow: "hidden",
-          backgroundColor: "#1A1A1A",
         }}
       >
         <Box
@@ -423,202 +371,190 @@ const FormationDetail = () => {
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            opacity: 0.3,
           }}
         />
-
-        <Box
-          sx={{
-            position: "absolute",
-            top: { xs: 15, md: 25 },
-            right: { xs: 15, md: 50 },
-            zIndex: 2,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 0.5,
-          }}
-        >
-          <Avatar
-            src={COACH_IMAGE}
-            sx={{
-              width: { xs: 70, md: 100 },
-              height: { xs: 70, md: 100 },
-              border: `3px solid #66BB6A`,
-              boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-            }}
-          />
-          <Chip
-            icon={<Star sx={{ fontSize: { xs: 12, md: 16 } }} />}
-            label="Expert"
-            size="small"
-            sx={{
-              backgroundColor: "#E8F5E9",
-              color: "#2E7D32",
-              fontWeight: 700,
-              fontSize: { xs: "0.6rem", md: "0.7rem" },
-              border: "1px solid #66BB6A",
-            }}
-          />
-        </Box>
-
         <Box
           sx={{
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(to top, rgba(20,20,20,0.95) 0%, rgba(20,20,20,0.5) 50%, rgba(20,20,20,0.2) 100%)",
+              "linear-gradient(to top, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.4) 50%, rgba(15,23,42,0.2) 100%)",
           }}
         />
 
-        <Container
-          maxWidth={false}
+        {/* Coach */}
+        <Box
           sx={{
-            position: "relative",
-            zIndex: 1,
-            pb: { xs: 3, md: 4 },
-            px: { xs: 3, md: 6 },
+            position: "absolute",
+            top: { xs: 16, md: 28 },
+            right: { xs: 16, md: 40 },
+            zIndex: 2,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 0.8,
           }}
         >
-          <Typography
-            variant="overline"
+          <Avatar
+            src={COACH_IMAGE}
             sx={{
-              color: "rgba(255,255,255,0.6)",
-              letterSpacing: 3,
+              width: { xs: 64, md: 88 },
+              height: { xs: 64, md: 88 },
+              border: "3px solid rgba(255,255,255,0.9)",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
+            }}
+          />
+          <Chip
+            icon={<Star sx={{ fontSize: 14 }} />}
+            label="Expert"
+            size="small"
+            sx={{
+              bgcolor: "rgba(255,255,255,0.95)",
+              color: "#0F172A",
               fontWeight: 600,
               fontSize: "0.7rem",
+              height: 24,
+            }}
+          />
+        </Box>
+
+        <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1, pb: { xs: 3.5, md: 4.5 } }}>
+          <Typography
+            sx={{
+              color: "rgba(255,255,255,0.7)",
+              letterSpacing: 2.5,
+              fontWeight: 500,
+              fontSize: "0.75rem",
+              mb: 1.5,
+              textTransform: "uppercase",
             }}
           >
-            🎓 FORMATION
+            Formation
           </Typography>
           <Typography
-            variant="h2"
             sx={{
-              fontWeight: 700,
-              color: "#FFFFFF",
+              fontWeight: 500,
+              color: "#fff",
               fontFamily: '"Playfair Display", serif',
-              fontSize: { xs: "1.5rem", sm: "2rem", md: "2.8rem" },
-              lineHeight: 1.15,
+              fontSize: { xs: "1.7rem", sm: "2.2rem", md: "2.7rem" },
+              lineHeight: 1.2,
               mb: 2,
-              maxWidth: 700,
+              maxWidth: 680,
             }}
           >
             {formation.titre}
           </Typography>
-          <Box>{getStatutChip(formation)}</Box>
+          {getStatutChip(formation)}
         </Container>
       </Box>
 
-      {/* ===== CONTENU ===== */}
-      <Container
-        maxWidth={false}
-        sx={{ py: { xs: 3, md: 5 }, px: { xs: 2, md: 4 } }}
-      >
+      {/* ─── CONTENU ──────────────────────────────────────────── */}
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
         <Button
           component={Link}
           to="/"
-          startIcon={<ArrowBack />}
+          startIcon={<ArrowBack sx={{ fontSize: 18 }} />}
           sx={{
-            mb: 3,
-            color: "#666",
+            mb: 4,
+            color: "#64748B",
+            textTransform: "none",
             fontWeight: 500,
-            "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
+            px: 0,
+            "&:hover": { color: "#0F172A", bgcolor: "transparent" },
           }}
         >
           Retour
         </Button>
 
-        <Grid container spacing={3}>
-          {/* ===== GAUCHE ===== */}
-          <Grid item xs={12} md={6}>
+        <Grid container spacing={4}>
+          {/* ─── COLONNE GAUCHE ──────────────────────────────── */}
+          <Grid item xs={12} md={7}>
             {/* Description */}
-            <Box
+            <Paper
+              elevation={0}
               sx={{
-                p: { xs: 2.5, md: 3.5 },
+                p: { xs: 3, md: 4 },
                 borderRadius: 3,
-                border: "2px solid #66BB6A",
-                backgroundColor: "#FFFFFF",
+                border: "1px solid #E2E8F0",
+                bgcolor: "#fff",
                 mb: 3,
-                boxShadow: "0 2px 12px rgba(46,125,50,0.06)",
               }}
             >
               <Typography
-                variant="h6"
                 sx={{
-                  fontWeight: 700,
-                  color: "#1A1A1A",
-                  mb: 1.5,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                }}
-              >
-                <MenuBook sx={{ color: "#2E7D32" }} /> Description
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{ color: "#555", lineHeight: 1.8 }}
-              >
-                {formation.description_detail ||
-                  formation.description ||
-                  "Description de test"}
-              </Typography>
-            </Box>
-
-            {/* Infos pratiques */}
-            <Box
-              sx={{
-                p: { xs: 2.5, md: 3.5 },
-                borderRadius: 3,
-                border: "2px solid #66BB6A",
-                backgroundColor: "#FFFFFF",
-                boxShadow: "0 2px 12px rgba(46,125,50,0.06)",
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 700,
-                  color: "#1A1A1A",
+                  fontWeight: 600,
+                  color: "#0F172A",
                   mb: 2,
                   display: "flex",
                   alignItems: "center",
-                  gap: 1,
+                  gap: 1.2,
+                  fontSize: "1.15rem",
                 }}
               >
-                <Timer sx={{ color: "#2E7D32" }} /> Informations pratiques
+                <MenuBook sx={{ color: "#0F172A", fontSize: 22 }} />
+                Description
+              </Typography>
+              <Typography sx={{ color: "#475569", lineHeight: 1.8, fontSize: "1rem" }}>
+                {formation.description_detail || formation.description || "Aucune description disponible."}
+              </Typography>
+            </Paper>
+
+            {/* Infos pratiques */}
+            <Paper
+              elevation={0}
+              sx={{
+                p: { xs: 3, md: 4 },
+                borderRadius: 3,
+                border: "1px solid #E2E8F0",
+                bgcolor: "#fff",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontWeight: 600,
+                  color: "#0F172A",
+                  mb: 3,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.2,
+                  fontSize: "1.15rem",
+                }}
+              >
+                <Timer sx={{ color: "#0F172A", fontSize: 22 }} />
+                Informations pratiques
               </Typography>
 
-              <Grid container spacing={1.5}>
+              <Grid container spacing={2}>
                 {[
                   {
-                    icon: <AttachMoney />,
+                    icon: <AttachMoney sx={{ fontSize: 22 }} />,
                     label: "Prix",
                     value: formation.prix_formate || `${formation.prix} CFA`,
                   },
                   {
-                    icon: <AccessTime />,
+                    icon: <AccessTime sx={{ fontSize: 22 }} />,
                     label: "Durée",
                     value: formation.duree || "3h",
                   },
                   {
-                    icon: <CalendarToday />,
+                    icon: <CalendarToday sx={{ fontSize: 22 }} />,
                     label: "Date",
                     value: formation.date_live
-                      ? new Date(formation.date_live).toLocaleDateString(
-                          "fr-FR",
-                          { day: "numeric", month: "long", year: "numeric" },
-                        )
+                      ? new Date(formation.date_live).toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })
                       : "Date non définie",
                   },
                   {
-                    icon: <AccessTime />,
+                    icon: <AccessTime sx={{ fontSize: 22 }} />,
                     label: "Horaire",
                     value: formation.date_live
-                      ? new Date(formation.date_live).toLocaleTimeString(
-                          "fr-FR",
-                          { hour: "2-digit", minute: "2-digit" },
-                        )
+                      ? new Date(formation.date_live).toLocaleTimeString("fr-FR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
                       : "Horaire non défini",
                   },
                 ].map((item, idx) => (
@@ -626,32 +562,23 @@ const FormationDetail = () => {
                     <Box
                       sx={{
                         textAlign: "center",
-                        p: 1.5,
+                        p: 2,
                         borderRadius: 2.5,
-                        backgroundColor: "#E8F5E9",
-                        border: "1px solid #66BB6A",
+                        bgcolor: "#F8FAFC",
+                        border: "1px solid #E2E8F0",
+                        height: "100%",
                       }}
                     >
-                      <Box sx={{ color: "#2E7D32", fontSize: 24 }}>
-                        {item.icon}
-                      </Box>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          display: "block",
-                          color: "#888",
-                          fontSize: "0.6rem",
-                          fontWeight: 500,
-                        }}
-                      >
+                      <Box sx={{ color: "#0F172A", mb: 1 }}>{item.icon}</Box>
+                      <Typography sx={{ color: "#94A3B8", fontSize: "0.72rem", fontWeight: 500, mb: 0.4 }}>
                         {item.label}
                       </Typography>
                       <Typography
-                        variant="subtitle2"
                         sx={{
-                          fontWeight: 700,
-                          color: "#1A1A1A",
-                          fontSize: { xs: "0.65rem", md: "0.8rem" },
+                          fontWeight: 600,
+                          color: "#0F172A",
+                          fontSize: { xs: "0.8rem", md: "0.9rem" },
+                          lineHeight: 1.3,
                         }}
                       >
                         {item.value}
@@ -660,49 +587,48 @@ const FormationDetail = () => {
                   </Grid>
                 ))}
               </Grid>
-            </Box>
+            </Paper>
           </Grid>
 
-          {/* ===== DROITE ===== */}
-          <Grid item xs={12} md={6}>
-            <Box
+          {/* ─── COLONNE DROITE (sticky) ─────────────────────── */}
+          <Grid item xs={12} md={5}>
+            <Paper
+              elevation={0}
               sx={{
-                p: { xs: 2.5, md: 3.5 },
+                p: { xs: 3, md: 3.5 },
                 borderRadius: 3,
-                border: "2px solid #66BB6A",
-                backgroundColor: "#FFFFFF",
-                position: "sticky",
-                top: 20,
-                boxShadow: "0 2px 12px rgba(46,125,50,0.06)",
+                border: "1px solid #E2E8F0",
+                bgcolor: "#fff",
+                position: { md: "sticky" },
+                top: 24,
+                boxShadow: "0 8px 30px rgba(15,23,42,0.04)",
               }}
             >
               <Typography
-                variant="h6"
                 sx={{
-                  fontWeight: 700,
-                  color: "#1A1A1A",
-                  mb: 2,
+                  fontWeight: 600,
+                  color: "#0F172A",
+                  mb: 2.5,
                   display: "flex",
                   alignItems: "center",
-                  gap: 1,
+                  gap: 1.2,
+                  fontSize: "1.15rem",
                 }}
               >
                 {paiementEffectue ? (
-                  <CheckCircle sx={{ color: "#2E7D32" }} />
+                  <CheckCircle sx={{ color: "#059669" }} />
                 ) : (
-                  <School sx={{ color: "#2E7D32" }} />
+                  <School sx={{ color: "#0F172A" }} />
                 )}
                 {paiementEffectue ? "Accès autorisé" : "Inscription"}
               </Typography>
 
               {!paiementEffectue ? (
                 <>
+                  {/* Étape 0 : Formulaire */}
                   {activeStep === 0 && (
                     <Box>
-                      <Typography
-                        variant="body2"
-                        sx={{ color: "#666", mb: 2, fontSize: "0.9rem" }}
-                      >
+                      <Typography sx={{ color: "#64748B", mb: 2.5, fontSize: "0.9rem" }}>
                         Remplissez le formulaire pour vous inscrire.
                       </Typography>
 
@@ -715,18 +641,19 @@ const FormationDetail = () => {
                         onChange={handleChange}
                         error={!!formErrors.nom}
                         helperText={formErrors.nom}
-                        required
-                        sx={{ mb: 1.5 }}
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Person
-                                  sx={{ color: "#2E7D32", fontSize: 18 }}
-                                />
-                              </InputAdornment>
-                            ),
+                        sx={{
+                          mb: 2,
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 2,
+                            bgcolor: "#F8FAFC",
                           },
+                        }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Person sx={{ color: "#94A3B8", fontSize: 18 }} />
+                            </InputAdornment>
+                          ),
                         }}
                       />
                       <TextField
@@ -738,18 +665,19 @@ const FormationDetail = () => {
                         onChange={handleChange}
                         error={!!formErrors.prenom}
                         helperText={formErrors.prenom}
-                        required
-                        sx={{ mb: 1.5 }}
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Person
-                                  sx={{ color: "#2E7D32", fontSize: 18 }}
-                                />
-                              </InputAdornment>
-                            ),
+                        sx={{
+                          mb: 2,
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 2,
+                            bgcolor: "#F8FAFC",
                           },
+                        }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Person sx={{ color: "#94A3B8", fontSize: 18 }} />
+                            </InputAdornment>
+                          ),
                         }}
                       />
                       <TextField
@@ -762,18 +690,19 @@ const FormationDetail = () => {
                         onChange={handleChange}
                         error={!!formErrors.email}
                         helperText={formErrors.email}
-                        required
-                        sx={{ mb: 1.5 }}
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Email
-                                  sx={{ color: "#2E7D32", fontSize: 18 }}
-                                />
-                              </InputAdornment>
-                            ),
+                        sx={{
+                          mb: 2,
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 2,
+                            bgcolor: "#F8FAFC",
                           },
+                        }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Email sx={{ color: "#94A3B8", fontSize: 18 }} />
+                            </InputAdornment>
+                          ),
                         }}
                       />
                       <TextField
@@ -785,18 +714,19 @@ const FormationDetail = () => {
                         onChange={handleChange}
                         error={!!formErrors.telephone}
                         helperText={formErrors.telephone}
-                        required
-                        sx={{ mb: 1.5 }}
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Phone
-                                  sx={{ color: "#2E7D32", fontSize: 18 }}
-                                />
-                              </InputAdornment>
-                            ),
+                        sx={{
+                          mb: 2,
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 2,
+                            bgcolor: "#F8FAFC",
                           },
+                        }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Phone sx={{ color: "#94A3B8", fontSize: 18 }} />
+                            </InputAdornment>
+                          ),
                         }}
                       />
                       <TextField
@@ -808,7 +738,13 @@ const FormationDetail = () => {
                         rows={2}
                         value={formData.notes}
                         onChange={handleChange}
-                        sx={{ mb: 2 }}
+                        sx={{
+                          mb: 3,
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 2,
+                            bgcolor: "#F8FAFC",
+                          },
+                        }}
                       />
 
                       <Button
@@ -817,20 +753,18 @@ const FormationDetail = () => {
                         onClick={handleInscription}
                         disabled={loadingInscription}
                         sx={{
-                          backgroundColor: "#2E7D32",
-                          borderRadius: 50,
+                          bgcolor: "#0F172A",
+                          borderRadius: 2,
                           py: 1.5,
-                          fontWeight: 700,
+                          fontWeight: 600,
                           textTransform: "none",
-                          "&:hover": { backgroundColor: "#1B5E20" },
-                          "&:disabled": { backgroundColor: "#A5D6A7" },
+                          fontSize: "0.95rem",
+                          "&:hover": { bgcolor: "#1E293B" },
+                          "&.Mui-disabled": { bgcolor: "#E2E8F0", color: "#94A3B8" },
                         }}
                         startIcon={
                           loadingInscription ? (
-                            <CircularProgress
-                              size={20}
-                              sx={{ color: "#FFFFFF" }}
-                            />
+                            <CircularProgress size={18} sx={{ color: "#fff" }} />
                           ) : (
                             <Person />
                           )
@@ -841,104 +775,69 @@ const FormationDetail = () => {
                     </Box>
                   )}
 
+                  {/* Étape 1 : Paiement */}
                   {activeStep === 1 && (
                     <Box>
-                      <Alert
-                        severity="info"
-                        sx={{
-                          mb: 2,
-                          borderRadius: 2,
-                          border: "1px solid #66BB6A",
-                        }}
-                      >
+                      <Alert severity="info" sx={{ mb: 2.5, borderRadius: 2 }}>
                         Choisissez votre moyen de paiement.
                       </Alert>
 
-                      {/* ✅ Liste des moyens de paiement */}
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 1,
-                          mb: 3,
-                        }}
-                      >
-                        {Array.isArray(moyensPaiement) &&
-                        moyensPaiement.length > 0 ? (
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.2, mb: 3 }}>
+                        {Array.isArray(moyensPaiement) && moyensPaiement.length > 0 ? (
                           moyensPaiement.map((m) => {
-                            const isSelected =
-                              moyenPaiementSelected === m.id.toString();
+                            const isSelected = moyenPaiementSelected === m.id.toString();
                             return (
                               <Box
                                 key={m.id}
-                                onClick={() =>
-                                  setMoyenPaiementSelected(m.id.toString())
-                                }
+                                onClick={() => setMoyenPaiementSelected(m.id.toString())}
                                 sx={{
                                   display: "flex",
                                   alignItems: "center",
                                   gap: 1.5,
-                                  p: 1.5,
-                                  borderRadius: 2.5,
-                                  border: isSelected
-                                    ? "3px solid #2E7D32"
-                                    : "2px solid #E8F5E9",
-                                  backgroundColor: isSelected
-                                    ? "#E8F5E9"
-                                    : "#FAFAFA",
+                                  p: 1.6,
+                                  borderRadius: 2,
+                                  border: isSelected ? "2px solid #0F172A" : "1px solid #E2E8F0",
+                                  bgcolor: isSelected ? "#F1F5F9" : "#F8FAFC",
                                   cursor: "pointer",
                                   transition: "all 0.2s",
-                                  "&:hover": { borderColor: "#66BB6A" },
+                                  "&:hover": { borderColor: "#94A3B8" },
                                 }}
                               >
                                 <Box
                                   sx={{
-                                    width: 38,
-                                    height: 38,
+                                    width: 40,
+                                    height: 40,
                                     borderRadius: 2,
-                                    backgroundColor: isSelected
-                                      ? "#2E7D32"
-                                      : "#EEEEEE",
+                                    bgcolor: isSelected ? "#0F172A" : "#E2E8F0",
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
-                                    color: isSelected ? "#FFF" : "#888",
+                                    color: isSelected ? "#fff" : "#64748B",
                                   }}
                                 >
                                   {PAIEMENT_ICONS[m.type] || <Payment />}
                                 </Box>
                                 <Box sx={{ flex: 1 }}>
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ fontWeight: 700 }}
-                                  >
+                                  <Typography sx={{ fontWeight: 600, fontSize: "0.9rem", color: "#0F172A" }}>
                                     {m.nom}
                                   </Typography>
-                                  <Typography
-                                    variant="caption"
-                                    sx={{ color: "#888" }}
-                                  >
+                                  <Typography sx={{ color: "#94A3B8", fontSize: "0.75rem" }}>
                                     {m.type}
                                   </Typography>
                                 </Box>
-                                {isSelected && (
-                                  <CheckCircle
-                                    sx={{ color: "#2E7D32", fontSize: 20 }}
-                                  />
-                                )}
+                                {isSelected && <CheckCircle sx={{ color: "#0F172A", fontSize: 20 }} />}
                               </Box>
                             );
                           })
                         ) : (
                           <Alert severity="info" sx={{ borderRadius: 2 }}>
-                            Aucun moyen de paiement disponible pour le moment.
+                            Aucun moyen de paiement disponible.
                           </Alert>
                         )}
                       </Box>
 
-                      {/* ✅ AFFICHER LE COMPOSANT DE PAIEMENT SELON LE CHOIX */}
                       {moyenPaiementSelected && (
-                        <Box sx={{ mt: 2 }}>
+                        <Box sx={{ mt: 1, mb: 2 }}>
                           {isCarteBancaire() ? (
                             <PaiementCarte
                               montant={formation.prix}
@@ -957,33 +856,18 @@ const FormationDetail = () => {
                       )}
 
                       <Paper
+                        elevation={0}
                         sx={{
-                          p: 1.5,
-                          backgroundColor: "#E8F5E9",
-                          borderRadius: 2.5,
-                          mb: 2,
-                          border: "1px solid #66BB6A",
+                          p: 2,
+                          bgcolor: "#F1F5F9",
+                          borderRadius: 2,
+                          border: "1px solid #E2E8F0",
                           mt: 2,
                         }}
                       >
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            💰 Montant
-                          </Typography>
-                          <Typography
-                            variant="h6"
-                            sx={{
-                              fontWeight: 800,
-                              color: "#2E7D32",
-                              fontSize: "1.1rem",
-                            }}
-                          >
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <Typography sx={{ color: "#64748B", fontSize: "0.9rem" }}>Montant</Typography>
+                          <Typography sx={{ fontWeight: 700, color: "#0F172A", fontSize: "1.15rem" }}>
                             {formation.prix_formate || `${formation.prix} CFA`}
                           </Typography>
                         </Box>
@@ -992,129 +876,121 @@ const FormationDetail = () => {
                   )}
                 </>
               ) : (
-                // ===== ACCÈS AUTORISÉ =====
+                /* ─── ACCÈS AUTORISÉ ─────────────────────────── */
                 <Box>
                   <Alert
                     severity="success"
-                    sx={{
-                      mb: 2,
-                      borderRadius: 2,
-                      backgroundColor: "#E8F5E9",
-                      border: "1px solid #66BB6A",
-                    }}
+                    sx={{ mb: 2.5, borderRadius: 2, bgcolor: "#ECFDF5", border: "1px solid #A7F3D0" }}
                   >
-                    🎉 Félicitations ! Vous avez accès.
+                    Félicitations ! Vous avez accès à la formation.
                   </Alert>
 
                   <Paper
+                    elevation={0}
                     sx={{
-                      p: 2.5,
+                      p: 3,
                       textAlign: "center",
                       borderRadius: 2.5,
-                      border: "2px solid #66BB6A",
-                      backgroundColor: "#F5FFF5",
+                      border: "1px solid #E2E8F0",
+                      bgcolor: "#F8FAFC",
                     }}
                   >
-                    <Typography variant="caption" sx={{ color: "#888" }}>
-                      🔑 Code d'accès
+                    <Typography sx={{ color: "#94A3B8", fontSize: "0.8rem", mb: 1 }}>
+                      Code d'accès
                     </Typography>
                     <Typography
-                      variant="h5"
                       sx={{
-                        fontWeight: 800,
-                        color: "#2E7D32",
+                        fontWeight: 700,
+                        color: "#0F172A",
                         fontFamily: "monospace",
-                        letterSpacing: 4,
-                        py: 1.5,
+                        letterSpacing: 3,
+                        fontSize: "1.4rem",
+                        py: 1,
                       }}
                     >
                       {codeAcces?.code_acces || "ACCES-XXXX"}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: "#888" }}>
+                    <Typography sx={{ color: "#94A3B8", fontSize: "0.75rem" }}>
                       Valable 24h
                     </Typography>
                   </Paper>
 
-                  {/* ✅ BOUTON ACCÉDER À LA FORMATION */}
                   <Button
                     variant="contained"
                     fullWidth
                     onClick={handleGoToLive}
                     sx={{
                       mt: 2.5,
-                      backgroundColor: "#E53935",
-                      borderRadius: 50,
+                      bgcolor: "#EF4444",
+                      borderRadius: 2,
                       py: 1.5,
-                      fontWeight: 700,
+                      fontWeight: 600,
                       textTransform: "none",
-                      "&:hover": { backgroundColor: "#C62828" },
+                      fontSize: "0.95rem",
+                      "&:hover": { bgcolor: "#DC2626" },
                     }}
                     startIcon={<PlayArrow />}
                   >
-                    {formation.est_live
-                      ? "▶ Rejoindre le live"
-                      : "▶ Accéder au replay"}
+                    {formation.est_live ? "Rejoindre le live" : "Accéder au replay"}
                   </Button>
 
-                  {/* ✅ Message de sécurité */}
                   <Typography
-                    variant="caption"
                     sx={{
                       display: "block",
                       textAlign: "center",
-                      mt: 1,
-                      color: "#888",
+                      mt: 1.5,
+                      color: "#94A3B8",
+                      fontSize: "0.75rem",
                     }}
                   >
-                    <Lock
-                      sx={{ fontSize: 14, verticalAlign: "middle", mr: 0.5 }}
-                    />
+                    <Lock sx={{ fontSize: 14, verticalAlign: "middle", mr: 0.5 }} />
                     Accès sécurisé avec votre code
                   </Typography>
                 </Box>
               )}
-            </Box>
+            </Paper>
           </Grid>
         </Grid>
       </Container>
 
-      {/* ===== DIALOG DE CONFIRMATION ===== */}
-      <Dialog
-        open={confirmDialogOpen}
-        onClose={() => setConfirmDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ fontWeight: 700 }}>💳 Confirmation</DialogTitle>
+      {/* ─── DIALOG CONFIRMATION ──────────────────────────────── */}
+      <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600, color: "#0F172A" }}>Confirmation de paiement</DialogTitle>
         <DialogContent>
-          <Typography>
+          <Typography sx={{ color: "#475569" }}>
             Vous allez payer{" "}
-            <strong style={{ color: "#2E7D32" }}>
+            <strong style={{ color: "#0F172A" }}>
               {formation.prix_formate || `${formation.prix} CFA`}
             </strong>{" "}
             pour :
           </Typography>
           <Paper
+            elevation={0}
             sx={{
               p: 2,
-              mt: 1.5,
-              backgroundColor: "#E8F5E9",
+              mt: 2,
+              bgcolor: "#F8FAFC",
               borderRadius: 2,
-              border: "1px solid #66BB6A",
+              border: "1px solid #E2E8F0",
             }}
           >
-            <Typography fontWeight={700}>« {formation.titre} »</Typography>
+            <Typography sx={{ fontWeight: 600, color: "#0F172A" }}>« {formation.titre} »</Typography>
           </Paper>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmDialogOpen(false)}>Annuler</Button>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setConfirmDialogOpen(false)} sx={{ color: "#64748B", textTransform: "none" }}>
+            Annuler
+          </Button>
           <Button
             onClick={handleConfirmerPaiement}
             variant="contained"
             disabled={processingPaiement}
             sx={{
-              backgroundColor: "#2E7D32",
-              "&:hover": { backgroundColor: "#1B5E20" },
+              bgcolor: "#0F172A",
+              textTransform: "none",
+              borderRadius: 2,
+              px: 3,
+              "&:hover": { bgcolor: "#1E293B" },
             }}
           >
             {processingPaiement ? "Traitement..." : "Confirmer"}
@@ -1122,13 +998,9 @@ const FormationDetail = () => {
         </DialogActions>
       </Dialog>
 
-      {/* ===== SNACKBAR ===== */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={5000}
-        onClose={() => setSnackbarOpen(false)}
-      >
-        <Alert severity={snackbarSeverity} sx={{ borderRadius: 2.5 }}>
+      {/* ─── SNACKBAR ─────────────────────────────────────────── */}
+      <Snackbar open={snackbarOpen} autoHideDuration={5000} onClose={() => setSnackbarOpen(false)}>
+        <Alert severity={snackbarSeverity} sx={{ borderRadius: 2 }} onClose={() => setSnackbarOpen(false)}>
           {snackbarMessage}
         </Alert>
       </Snackbar>

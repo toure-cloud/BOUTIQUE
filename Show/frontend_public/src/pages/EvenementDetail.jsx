@@ -21,16 +21,15 @@ import {
   CalendarToday,
   LocationOn,
   People,
-  AttachMoney,
   Share,
   CheckCircle,
   AccessTime,
   Event,
   NavigateNext,
-  LocalShipping,
   Verified,
   Payment,
-  Security,
+  LocalActivity,
+  ArrowForward,
 } from "@mui/icons-material";
 import { evenementService } from "../services/evenementService";
 import heroImage from "../assets/images/tibetia.jpeg";
@@ -95,31 +94,28 @@ const EvenementDetail = () => {
 
   const getStatutConfig = (statut) => {
     const map = {
-      A_VENIR: { label: "À venir", color: "#2563EB", bg: "rgba(37, 99, 235, 0.1)" },
-      EN_COURS: { label: "En cours", color: "#DC2626", bg: "rgba(220, 38, 38, 0.1)" },
-      TERMINE: { label: "Terminé", color: "#059669", bg: "rgba(5, 150, 105, 0.1)" },
-      ANNULE: { label: "Annulé", color: "#6B7280", bg: "rgba(107, 114, 128, 0.1)" },
+      A_VENIR: { label: "À venir", color: "#2563EB", bg: "rgba(37, 99, 235, 0.12)" },
+      EN_COURS: { label: "En cours", color: "#DC2626", bg: "rgba(220, 38, 38, 0.12)" },
+      TERMINE: { label: "Terminé", color: "#059669", bg: "rgba(5, 150, 105, 0.12)" },
+      ANNULE: { label: "Annulé", color: "#6B7280", bg: "rgba(107, 114, 128, 0.12)" },
     };
-    return map[statut] || { label: statut, color: "#6B7280", bg: "rgba(107, 114, 128, 0.1)" };
+    return map[statut] || { label: statut, color: "#6B7280", bg: "rgba(107, 114, 128, 0.12)" };
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // LOADING
-  // ─────────────────────────────────────────────────────────────
+  // ─── LOADING ────────────────────────────────────────────────
   if (loading) {
     return (
-      <Box sx={{ backgroundColor: "#FAFAFA", minHeight: "100vh", py: 6 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={6}>
-            <Grid item xs={12} md={7}>
-              <Skeleton variant="rectangular" sx={{ aspectRatio: "16/10", mb: 2 }} />
+      <Box sx={{ bgcolor: "#F8FAFC", minHeight: "100vh" }}>
+        <Skeleton variant="rectangular" height={480} sx={{ bgcolor: "#E2E8F0" }} />
+        <Container maxWidth="lg" sx={{ py: 6 }}>
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={8}>
+              <Skeleton width="40%" height={20} sx={{ mb: 2 }} />
+              <Skeleton width="80%" height={48} sx={{ mb: 3 }} />
+              <Skeleton width="100%" height={120} />
             </Grid>
-            <Grid item xs={12} md={5}>
-              <Skeleton width="30%" height={18} sx={{ mb: 2 }} />
-              <Skeleton width="90%" height={40} sx={{ mb: 2 }} />
-              <Skeleton width="50%" height={24} sx={{ mb: 3 }} />
-              <Skeleton width="100%" height={80} sx={{ mb: 3 }} />
-              <Skeleton width="100%" height={52} />
+            <Grid item xs={12} md={4}>
+              <Skeleton variant="rectangular" height={280} sx={{ borderRadius: 3 }} />
             </Grid>
           </Grid>
         </Container>
@@ -129,7 +125,7 @@ const EvenementDetail = () => {
 
   if (error) {
     return (
-      <Box sx={{ backgroundColor: "#FAFAFA", minHeight: "100vh", py: 10 }}>
+      <Box sx={{ bgcolor: "#F8FAFC", minHeight: "100vh", display: "flex", alignItems: "center" }}>
         <Container maxWidth="sm">
           <Alert
             severity="error"
@@ -138,7 +134,7 @@ const EvenementDetail = () => {
                 Réessayer
               </Button>
             }
-            sx={{ borderRadius: 0 }}
+            sx={{ borderRadius: 2 }}
           >
             {error}
           </Alert>
@@ -157,218 +153,431 @@ const EvenementDetail = () => {
   const imageUrl = evenement.image_url || heroImage;
 
   return (
-    <Box sx={{ backgroundColor: "#FAFAFA", minHeight: "100vh", pb: { xs: 12, md: 8 } }}>
-      <Container maxWidth="lg" sx={{ pt: { xs: 3, md: 5 }, pb: 4 }}>
-        {/* Breadcrumbs */}
-        <Breadcrumbs
-          separator={<NavigateNext sx={{ fontSize: 16, color: "#999" }} />}
-          sx={{ mb: 3 }}
-        >
-          <Link to="/" style={{ textDecoration: "none", color: "#777", fontSize: "0.85rem" }}>
-            Accueil
-          </Link>
-          <Link
-            to="/evenements"
-            style={{ textDecoration: "none", color: "#777", fontSize: "0.85rem" }}
-          >
-            Événements
-          </Link>
-          <Typography sx={{ color: "#111", fontWeight: 500, fontSize: "0.85rem" }}>
-            {evenement.titre}
-          </Typography>
-        </Breadcrumbs>
-
-        {/* Bouton retour */}
-        <Button
-          startIcon={<ArrowBack sx={{ fontSize: 18 }} />}
-          onClick={() => navigate(-1)}
+    <Box sx={{ bgcolor: "#F8FAFC", minHeight: "100vh", color: "#0F172A", pb: { xs: 14, md: 8 } }}>
+      {/* ─── HERO IMMERSIF ─────────────────────────────────────── */}
+      <Box
+        sx={{
+          position: "relative",
+          height: { xs: 380, md: 500 },
+          overflow: "hidden",
+        }}
+      >
+        <Box
+          component="img"
+          src={imageUrl}
+          alt={evenement.titre}
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = heroImage;
+          }}
           sx={{
-            mb: 4,
-            color: "#666",
-            textTransform: "none",
-            fontWeight: 500,
-            fontSize: "0.875rem",
-            px: 0,
-            "&:hover": { backgroundColor: "transparent", color: "#111" },
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+
+        {/* Gradient overlay plus léger */}
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(to top, rgba(15,23,42,0.75) 0%, rgba(15,23,42,0.35) 45%, rgba(15,23,42,0.15) 100%)",
+          }}
+        />
+
+        {/* Contenu du hero */}
+        <Container
+          maxWidth="lg"
+          sx={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            pb: { xs: 4, md: 5 },
           }}
         >
-          Retour aux événements
-        </Button>
+          <Breadcrumbs
+            separator={<NavigateNext sx={{ fontSize: 14, color: "rgba(255,255,255,0.6)" }} />}
+            sx={{ mb: 2 }}
+          >
+            <Link to="/" style={{ textDecoration: "none", color: "rgba(255,255,255,0.7)", fontSize: "0.8rem" }}>
+              Accueil
+            </Link>
+            <Link
+              to="/evenements"
+              style={{ textDecoration: "none", color: "rgba(255,255,255,0.7)", fontSize: "0.8rem" }}
+            >
+              Événements
+            </Link>
+            <Typography sx={{ color: "#fff", fontSize: "0.8rem", fontWeight: 500 }}>
+              {evenement.titre}
+            </Typography>
+          </Breadcrumbs>
 
-        <Grid container spacing={{ xs: 4, md: 6 }}>
-          {/* ─── COLONNE IMAGE ─────────────────────────────────── */}
-          <Grid item xs={12} md={7}>
-            <Box sx={{ position: { md: "sticky" }, top: 100 }}>
-              <Box
-                sx={{
-                  position: "relative",
-                  aspectRatio: "16/10",
-                  backgroundColor: "#F5F5F5",
-                  overflow: "hidden",
-                }}
-              >
-                <Box
-                  component="img"
-                  src={imageUrl}
-                  alt={evenement.titre}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = heroImage;
-                  }}
-                  sx={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
+          <Chip
+            label={statutConfig.label}
+            size="small"
+            sx={{
+              mb: 2,
+              bgcolor: "rgba(255,255,255,0.18)",
+              color: "#fff",
+              fontWeight: 600,
+              fontSize: "0.75rem",
+              height: 28,
+              borderRadius: 1.5,
+              backdropFilter: "blur(8px)",
+              border: "1px solid rgba(255,255,255,0.25)",
+            }}
+          />
 
-                {/* Badge statut */}
-                <Chip
-                  label={statutConfig.label}
-                  size="small"
-                  sx={{
-                    position: "absolute",
-                    top: 16,
-                    left: 16,
-                    backgroundColor: statutConfig.bg,
-                    color: statutConfig.color,
-                    fontWeight: 600,
-                    fontSize: "0.75rem",
-                    height: 28,
-                    borderRadius: 0,
-                    zIndex: 2,
-                  }}
-                />
-              </Box>
-            </Box>
-          </Grid>
+          {evenement.theme && (
+            <Typography
+              sx={{
+                color: "rgba(255,255,255,0.8)",
+                fontWeight: 500,
+                letterSpacing: 1.2,
+                fontSize: "0.75rem",
+                textTransform: "uppercase",
+                mb: 1,
+              }}
+            >
+              {evenement.theme}
+            </Typography>
+          )}
 
-          {/* ─── COLONNE DÉTAILS ───────────────────────────────── */}
-          <Grid item xs={12} md={5}>
-            <Box>
-              {/* Thème */}
-              {evenement.theme && (
-                <Typography
-                  variant="overline"
-                  sx={{
-                    color: "#888",
-                    fontWeight: 500,
-                    letterSpacing: 1.5,
-                    fontSize: "0.7rem",
-                    display: "block",
-                    mb: 1,
-                  }}
-                >
-                  {evenement.theme}
-                </Typography>
-              )}
+          <Typography
+            sx={{
+              fontFamily: '"Playfair Display", serif',
+              fontWeight: 500,
+              fontSize: { xs: "2rem", md: "3rem" },
+              lineHeight: 1.15,
+              color: "#fff",
+              maxWidth: 720,
+              mb: 1,
+              textShadow: "0 2px 12px rgba(0,0,0,0.3)",
+            }}
+          >
+            {evenement.titre}
+          </Typography>
+        </Container>
+      </Box>
 
-              {/* Titre */}
+      {/* ─── CONTENU PRINCIPAL ─────────────────────────────────── */}
+      <Container maxWidth="lg" sx={{ mt: { xs: -3, md: -5 }, position: "relative", zIndex: 2 }}>
+        <Grid container spacing={4}>
+          {/* Colonne gauche */}
+          <Grid item xs={12} md={8}>
+            {/* Infos rapides */}
+            <Paper
+              elevation={0}
+              sx={{
+                bgcolor: "#FFFFFF",
+                borderRadius: 3,
+                p: 3,
+                mb: 4,
+                border: "1px solid #E2E8F0",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
+              }}
+            >
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
+                    <Box
+                      sx={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 2,
+                        bgcolor: "rgba(37,99,235,0.1)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#2563EB",
+                      }}
+                    >
+                      <CalendarToday sx={{ fontSize: 20 }} />
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: "#64748B", fontSize: "0.75rem", mb: 0.3 }}>
+                        Date & heure
+                      </Typography>
+                      <Typography sx={{ fontWeight: 600, fontSize: "0.95rem", color: "#0F172A" }}>
+                        {formatDate(evenement.date_debut)}
+                      </Typography>
+                      {formatTime(evenement.date_debut) && (
+                        <Typography sx={{ color: "#64748B", fontSize: "0.85rem" }}>
+                          {formatTime(evenement.date_debut)}
+                          {evenement.date_fin && ` – ${formatTime(evenement.date_fin)}`}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
+                    <Box
+                      sx={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 2,
+                        bgcolor: "rgba(5,150,105,0.1)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#059669",
+                      }}
+                    >
+                      <LocationOn sx={{ fontSize: 20 }} />
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: "#64748B", fontSize: "0.75rem", mb: 0.3 }}>
+                        Lieu
+                      </Typography>
+                      <Typography sx={{ fontWeight: 600, fontSize: "0.95rem", color: "#0F172A" }}>
+                        {evenement.lieu || "Lieu à confirmer"}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
+                    <Box
+                      sx={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 2,
+                        bgcolor: "rgba(245,158,11,0.1)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#D97706",
+                      }}
+                    >
+                      <People sx={{ fontSize: 20 }} />
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: "#64748B", fontSize: "0.75rem", mb: 0.3 }}>
+                        Places disponibles
+                      </Typography>
+                      <Typography sx={{ fontWeight: 600, fontSize: "0.95rem", color: "#0F172A" }}>
+                        {evenement.places_restantes ?? 0}
+                        {evenement.capacite_max && (
+                          <Typography component="span" sx={{ color: "#64748B", fontWeight: 400 }}>
+                            {" "}
+                            / {evenement.capacite_max}
+                          </Typography>
+                        )}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
+                    <Box
+                      sx={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 2,
+                        bgcolor: "rgba(124,58,237,0.1)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#7C3AED",
+                      }}
+                    >
+                      <AccessTime sx={{ fontSize: 20 }} />
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: "#64748B", fontSize: "0.75rem", mb: 0.3 }}>
+                        Durée
+                      </Typography>
+                      <Typography sx={{ fontWeight: 600, fontSize: "0.95rem", color: "#0F172A" }}>
+                        {evenement.duree || "À définir"}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* Description */}
+            <Box sx={{ mb: 5 }}>
               <Typography
                 sx={{
                   fontFamily: '"Playfair Display", serif',
-                  fontWeight: 400,
-                  fontSize: { xs: "1.9rem", md: "2.3rem" },
-                  color: "#111",
-                  lineHeight: 1.2,
+                  fontSize: "1.5rem",
+                  fontWeight: 500,
                   mb: 2.5,
-                  letterSpacing: -0.3,
+                  color: "#0F172A",
                 }}
               >
-                {evenement.titre}
+                À propos
               </Typography>
-
-              {/* Infos principales */}
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mb: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                  <CalendarToday sx={{ fontSize: 18, color: "#999" }} />
-                  <Box>
-                    <Typography sx={{ color: "#111", fontWeight: 500, fontSize: "0.95rem" }}>
-                      {formatDate(evenement.date_debut)}
-                    </Typography>
-                    {formatTime(evenement.date_debut) && (
-                      <Typography sx={{ color: "#777", fontSize: "0.85rem" }}>
-                        {formatTime(evenement.date_debut)}
-                        {evenement.date_fin && ` – ${formatTime(evenement.date_fin)}`}
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                  <LocationOn sx={{ fontSize: 18, color: "#999" }} />
-                  <Typography sx={{ color: "#111", fontSize: "0.95rem" }}>
-                    {evenement.lieu || "Lieu à confirmer"}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                  <People sx={{ fontSize: 18, color: "#999" }} />
-                  <Typography sx={{ color: "#111", fontSize: "0.95rem" }}>
-                    {evenement.places_restantes ?? 0} place
-                    {(evenement.places_restantes ?? 0) > 1 ? "s" : ""} restante
-                    {(evenement.places_restantes ?? 0) > 1 ? "s" : ""}
-                    {evenement.capacite_max && (
-                      <Typography component="span" sx={{ color: "#888", fontSize: "0.85rem" }}>
-                        {" "}
-                        / {evenement.capacite_max}
-                      </Typography>
-                    )}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                  <AttachMoney sx={{ fontSize: 18, color: "#999" }} />
-                  <Typography sx={{ color: "#111", fontWeight: 600, fontSize: "1.05rem" }}>
-                    {formatPrice(evenement.prix)}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Divider sx={{ mb: 3, borderColor: "#E5E5E5" }} />
-
-              {/* Description */}
               <Typography
                 sx={{
-                  color: "#555",
-                  lineHeight: 1.75,
-                  fontSize: "0.95rem",
-                  mb: 4,
+                  color: "#475569",
+                  lineHeight: 1.8,
+                  fontSize: "1.05rem",
                   whiteSpace: "pre-line",
                 }}
               >
                 {evenement.description || "Aucune description disponible pour cet événement."}
               </Typography>
+            </Box>
 
-              {/* Boutons d'action */}
-              <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 4 }}>
+            {/* Description longue */}
+            {evenement.description_longue && (
+              <Box sx={{ mb: 5 }}>
+                <Typography
+                  sx={{
+                    fontFamily: '"Playfair Display", serif',
+                    fontSize: "1.5rem",
+                    fontWeight: 500,
+                    mb: 2.5,
+                    color: "#0F172A",
+                  }}
+                >
+                  En détail
+                </Typography>
+                <Typography
+                  sx={{
+                    color: "#475569",
+                    lineHeight: 1.85,
+                    fontSize: "1.05rem",
+                    whiteSpace: "pre-line",
+                  }}
+                >
+                  {evenement.description_longue}
+                </Typography>
+              </Box>
+            )}
+
+            {/* Avantages */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr 1fr", sm: "1fr 1fr 1fr 1fr" },
+                gap: 2,
+              }}
+            >
+              {[
+                { icon: <CheckCircle />, title: "Confirmation", subtitle: "Immédiate" },
+                { icon: <Verified />, title: "Places limitées", subtitle: "Réservez vite" },
+                { icon: <Payment />, title: "Paiement", subtitle: "Sécurisé" },
+                { icon: <LocalActivity />, title: "Accès", subtitle: "Garanti" },
+              ].map((item, i) => (
+                <Paper
+                  key={i}
+                  elevation={0}
+                  sx={{
+                    bgcolor: "#FFFFFF",
+                    borderRadius: 2.5,
+                    p: 2.2,
+                    border: "1px solid #E2E8F0",
+                    textAlign: "center",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      borderColor: "#93C5FD",
+                      boxShadow: "0 8px 20px rgba(37,99,235,0.08)",
+                      transform: "translateY(-3px)",
+                    },
+                  }}
+                >
+                  <Box sx={{ color: "#2563EB", mb: 1 }}>{item.icon}</Box>
+                  <Typography sx={{ fontWeight: 600, fontSize: "0.85rem", mb: 0.3, color: "#0F172A" }}>
+                    {item.title}
+                  </Typography>
+                  <Typography sx={{ color: "#64748B", fontSize: "0.75rem" }}>
+                    {item.subtitle}
+                  </Typography>
+                </Paper>
+              ))}
+            </Box>
+          </Grid>
+
+          {/* ─── STICKY BOOKING CARD (Desktop) ─────────────────── */}
+          <Grid item xs={12} md={4}>
+            <Box sx={{ position: { md: "sticky" }, top: 100 }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  bgcolor: "#FFFFFF",
+                  borderRadius: 3,
+                  p: 3.5,
+                  border: "1px solid #E2E8F0",
+                  boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "1.9rem",
+                    fontWeight: 700,
+                    mb: 0.5,
+                    color: "#0F172A",
+                  }}
+                >
+                  {formatPrice(evenement.prix)}
+                </Typography>
+                <Typography sx={{ color: "#64748B", fontSize: "0.85rem", mb: 3 }}>
+                  par personne
+                </Typography>
+
+                <Divider sx={{ borderColor: "#E2E8F0", mb: 3 }} />
+
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mb: 3 }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <Typography sx={{ color: "#64748B", fontSize: "0.9rem" }}>
+                      Date
+                    </Typography>
+                    <Typography sx={{ fontWeight: 500, fontSize: "0.9rem", color: "#0F172A" }}>
+                      {formatDate(evenement.date_debut).split(" ").slice(0, 3).join(" ")}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <Typography sx={{ color: "#64748B", fontSize: "0.9rem" }}>
+                      Places restantes
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                        color: isFull ? "#DC2626" : "#059669",
+                      }}
+                    >
+                      {evenement.places_restantes ?? 0}
+                    </Typography>
+                  </Box>
+                </Box>
+
                 <Button
+                  fullWidth
                   variant="contained"
                   disabled={!canRegister || isRegistering}
-                  onClick={() => {
-                    // Redirige vers la page d'inscription ou ouvre un modal
-                    navigate(`/evenements/${evenement.id}/inscription`);
-                  }}
-                  startIcon={isRegistering ? <CircularProgress size={18} color="inherit" /> : <Event />}
+                  onClick={() => navigate(`/evenements/${evenement.id}/inscription`)}
+                  endIcon={!isRegistering && canRegister ? <ArrowForward /> : null}
+                  startIcon={isRegistering ? <CircularProgress size={18} color="inherit" /> : null}
                   sx={{
-                    backgroundColor: canRegister ? "#111" : "#E5E5E5",
-                    color: canRegister ? "#fff" : "#999",
-                    borderRadius: 0,
-                    px: 4,
-                    py: 1.6,
+                    bgcolor: canRegister ? "#2563EB" : "#E2E8F0",
+                    color: canRegister ? "#fff" : "#94A3B8",
+                    borderRadius: 2,
+                    py: 1.7,
                     fontWeight: 600,
-                    fontSize: "0.9rem",
+                    fontSize: "1rem",
                     textTransform: "none",
-                    flex: 1,
-                    minWidth: 200,
-                    boxShadow: "none",
+                    boxShadow: canRegister ? "0 8px 24px rgba(37,99,235,0.3)" : "none",
+                    transition: "all 0.25s",
                     "&:hover": {
-                      backgroundColor: canRegister ? "#333" : "#E5E5E5",
-                      boxShadow: "none",
+                      bgcolor: canRegister ? "#1D4ED8" : "#E2E8F0",
+                      boxShadow: canRegister ? "0 12px 28px rgba(37,99,235,0.4)" : "none",
+                      transform: canRegister ? "translateY(-1px)" : "none",
                     },
                     "&.Mui-disabled": {
-                      backgroundColor: "#E5E5E5",
-                      color: "#999",
+                      bgcolor: "#E2E8F0",
+                      color: "#94A3B8",
                     },
                   }}
                 >
@@ -378,107 +587,39 @@ const EvenementDetail = () => {
                     ? "Événement annulé"
                     : isPast
                     ? "Événement terminé"
-                    : "S'inscrire à l'événement"}
+                    : "S'inscrire maintenant"}
                 </Button>
 
-                <IconButton
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                  }}
-                  sx={{
-                    border: "1px solid #DDD",
-                    borderRadius: 0,
-                    width: 52,
-                    height: 52,
-                    color: "#666",
-                    "&:hover": { backgroundColor: "#F5F5F5", borderColor: "#CCC" },
-                  }}
-                >
-                  <Share />
-                </IconButton>
-              </Box>
+                <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                  <IconButton
+                    onClick={() => navigator.clipboard.writeText(window.location.href)}
+                    sx={{
+                      color: "#64748B",
+                      "&:hover": { color: "#2563EB", bgcolor: "rgba(37,99,235,0.08)" },
+                    }}
+                  >
+                    <Share fontSize="small" />
+                  </IconButton>
+                </Box>
+              </Paper>
 
-              {/* Infos pratiques */}
-              <Box
+              {/* Bouton retour */}
+              <Button
+                startIcon={<ArrowBack sx={{ fontSize: 16 }} />}
+                onClick={() => navigate(-1)}
                 sx={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 2,
-                  pt: 3,
-                  borderTop: "1px solid #E5E5E5",
+                  mt: 2,
+                  color: "#64748B",
+                  textTransform: "none",
+                  fontSize: "0.85rem",
+                  "&:hover": { color: "#0F172A", bgcolor: "transparent" },
                 }}
               >
-                {[
-                  {
-                    icon: <CheckCircle sx={{ fontSize: 20 }} />,
-                    title: "Confirmation",
-                    subtitle: "Immédiate",
-                  },
-                  {
-                    icon: <AccessTime sx={{ fontSize: 20 }} />,
-                    title: "Durée",
-                    subtitle: evenement.duree || "À définir",
-                  },
-                  {
-                    icon: <Verified sx={{ fontSize: 20 }} />,
-                    title: "Places limitées",
-                    subtitle: "Réservez vite",
-                  },
-                  {
-                    icon: <Payment sx={{ fontSize: 20 }} />,
-                    title: "Paiement",
-                    subtitle: "Sécurisé",
-                  },
-                ].map((item, index) => (
-                  <Box key={index} sx={{ display: "flex", alignItems: "flex-start", gap: 1.25 }}>
-                    <Box sx={{ color: "#111", mt: 0.2 }}>{item.icon}</Box>
-                    <Box>
-                      <Typography
-                        sx={{
-                          fontWeight: 600,
-                          color: "#333",
-                          fontSize: "0.8rem",
-                          mb: 0.2,
-                        }}
-                      >
-                        {item.title}
-                      </Typography>
-                      <Typography sx={{ color: "#888", fontSize: "0.75rem" }}>
-                        {item.subtitle}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
+                Retour aux événements
+              </Button>
             </Box>
           </Grid>
         </Grid>
-
-        {/* ─── SECTION DESCRIPTION LONGUE (si besoin) ─────────── */}
-        {evenement.description_longue && (
-          <Box sx={{ mt: 8 }}>
-            <Typography
-              sx={{
-                fontFamily: '"Playfair Display", serif',
-                fontSize: "1.5rem",
-                color: "#111",
-                mb: 3,
-              }}
-            >
-              À propos de cet événement
-            </Typography>
-            <Typography
-              sx={{
-                color: "#555",
-                lineHeight: 1.8,
-                fontSize: "1rem",
-                whiteSpace: "pre-line",
-              }}
-            >
-              {evenement.description_longue}
-            </Typography>
-          </Box>
-        )}
       </Container>
 
       {/* ─── BARRE STICKY MOBILE ──────────────────────────────── */}
@@ -489,8 +630,9 @@ const EvenementDetail = () => {
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: "#fff",
-          borderTop: "1px solid #E5E5E5",
+          bgcolor: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(12px)",
+          borderTop: "1px solid #E2E8F0",
           p: 2,
           zIndex: 100,
           boxShadow: "0 -4px 20px rgba(0,0,0,0.06)",
@@ -498,11 +640,11 @@ const EvenementDetail = () => {
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontWeight: 600, fontSize: "1rem", color: "#111" }}>
+            <Typography sx={{ fontWeight: 700, fontSize: "1.15rem", color: "#0F172A" }}>
               {formatPrice(evenement.prix)}
             </Typography>
-            <Typography sx={{ color: "#777", fontSize: "0.8rem" }}>
-              {formatDate(evenement.date_debut)}
+            <Typography sx={{ color: "#64748B", fontSize: "0.8rem" }}>
+              {formatDate(evenement.date_debut).split(" ").slice(0, 3).join(" ")}
             </Typography>
           </Box>
           <Button
@@ -510,18 +652,17 @@ const EvenementDetail = () => {
             disabled={!canRegister}
             onClick={() => navigate(`/evenements/${evenement.id}/inscription`)}
             sx={{
-              backgroundColor: canRegister ? "#111" : "#E5E5E5",
-              color: canRegister ? "#fff" : "#999",
-              borderRadius: 0,
-              px: 3,
-              py: 1.4,
+              bgcolor: canRegister ? "#2563EB" : "#E2E8F0",
+              color: canRegister ? "#fff" : "#94A3B8",
+              borderRadius: 2,
+              px: 3.5,
+              py: 1.5,
               fontWeight: 600,
-              fontSize: "0.875rem",
+              fontSize: "0.9rem",
               textTransform: "none",
-              boxShadow: "none",
+              boxShadow: canRegister ? "0 6px 20px rgba(37,99,235,0.3)" : "none",
               "&:hover": {
-                backgroundColor: canRegister ? "#333" : "#E5E5E5",
-                boxShadow: "none",
+                bgcolor: canRegister ? "#1D4ED8" : "#E2E8F0",
               },
             }}
           >

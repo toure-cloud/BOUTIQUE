@@ -15,8 +15,6 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  useTheme,
-  useMediaQuery,
   IconButton,
 } from '@mui/material';
 import {
@@ -27,26 +25,20 @@ import {
   Group,
   PlayArrow,
   Check,
-  ShoppingBag,
   Star,
 } from '@mui/icons-material';
 import { forfaitService } from '../services/forfaitService';
 import { evenementService } from '../services/evenementService';
 import { formationService } from '../services/formationService';
-
 import heroImage from '../assets/images/tibetia.jpeg?url';
 
 const Home = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [forfaits, setForfaits] = useState([]);
   const [evenements, setEvenements] = useState([]);
   const [formations, setFormations] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [selfStudyTab, setSelfStudyTab] = useState('elegance');
 
-  // Refs pour le scroll horizontal
   const selfStudyScrollRef = useRef(null);
   const boutiqueScrollRef = useRef(null);
 
@@ -73,13 +65,12 @@ const Home = () => {
     fetchData();
   }, []);
 
-  // ===== DONNÉES RELOOKING (statiques) =====
   const relookingData = [
     {
       id: 1,
       title: 'Relooking Homme',
       description: 'Révélez votre style avec élégance et confiance',
-      icon: <Person sx={{ fontSize: 42, color: '#666' }} />,
+      icon: <Person sx={{ fontSize: 42, color: '#64748B' }} />,
       path: '/relooking/homme',
       items: [
         'Coaching relooking personnalisé',
@@ -93,7 +84,7 @@ const Home = () => {
       id: 2,
       title: 'Relooking Femme',
       description: 'Révélez votre élégance et votre beauté naturelle',
-      icon: <People sx={{ fontSize: 42, color: '#666' }} />,
+      icon: <People sx={{ fontSize: 42, color: '#64748B' }} />,
       path: '/relooking/femme',
       items: [
         'Relooking complet',
@@ -109,7 +100,7 @@ const Home = () => {
       id: 3,
       title: 'Relooking Atelier',
       description: 'Apprenez et transformez-vous en groupe (2 à 6 personnes)',
-      icon: <Group sx={{ fontSize: 42, color: '#666' }} />,
+      icon: <Group sx={{ fontSize: 42, color: '#64748B' }} />,
       path: '/relooking/atelier',
       items: [
         'Atelier Style et Élégance',
@@ -121,7 +112,6 @@ const Home = () => {
     },
   ];
 
-  // ===== DONNÉES PRODUITS BOUTIQUE =====
   const produitsBoutique = [
     {
       id: 1,
@@ -165,17 +155,12 @@ const Home = () => {
     },
   ];
 
-  // ===== DONNÉES POUR ELEGANCE TIMES ONLINE =====
   const getEleganceData = () => {
     if (formations.length > 0) {
       return formations.map((formation) => ({
         id: formation.id,
         title: formation.titre,
-        badge: formation.est_live
-          ? 'LIVE'
-          : formation.est_replay
-          ? 'REPLAY'
-          : 'PROGRAMMÉ',
+        badge: formation.est_live ? 'LIVE' : formation.est_replay ? 'REPLAY' : 'PROGRAMMÉ',
         items: formation.description
           ? formation.description.split('. ').filter((s) => s.length > 0).slice(0, 4)
           : [],
@@ -242,41 +227,37 @@ const Home = () => {
     return selfStudyTab === 'elegance' ? getEleganceData() : relookingData;
   };
 
-  // ===== FONCTIONS DE SCROLL =====
   const scrollLeft = (ref) => {
-    if (ref.current) {
-      ref.current.scrollBy({ left: -320, behavior: 'smooth' });
-    }
+    if (ref.current) ref.current.scrollBy({ left: -320, behavior: 'smooth' });
   };
 
   const scrollRight = (ref) => {
-    if (ref.current) {
-      ref.current.scrollBy({ left: 320, behavior: 'smooth' });
-    }
+    if (ref.current) ref.current.scrollBy({ left: 320, behavior: 'smooth' });
   };
 
-  // ===== RENDU D'UNE CARTE SELF-STUDY =====
+  // ─── CARTE SELF-STUDY ───────────────────────────────────────
   const renderSelfStudyCard = (item) => (
     <Card
       key={item.id}
+      elevation={0}
       sx={{
-        minWidth: { xs: 240, sm: 260, md: 280 },
-        maxWidth: { xs: 240, sm: 260, md: 280 },
+        minWidth: { xs: 250, sm: 270, md: 290 },
+        maxWidth: { xs: 250, sm: 270, md: 290 },
         borderRadius: 3,
-        border: '1px solid #EEEEEE',
+        border: '1px solid #E2E8F0',
         overflow: 'hidden',
-        transition: 'transform 0.28s ease, box-shadow 0.28s ease',
-        backgroundColor: '#FFFFFF',
+        bgcolor: '#fff',
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
+        transition: 'all 0.25s ease',
         '&:hover': {
           transform: 'translateY(-6px)',
-          boxShadow: '0 18px 40px rgba(0,0,0,0.07)',
+          boxShadow: '0 16px 40px rgba(15,23,42,0.08)',
+          borderColor: '#CBD5E1',
         },
       }}
     >
-      {/* Badge */}
       {item.badge && (
         <Chip
           label={item.badge}
@@ -286,27 +267,20 @@ const Home = () => {
             top: 14,
             right: 14,
             zIndex: 2,
-            backgroundColor: item.est_live ? '#E53935' : '#1A1A1A',
-            color: '#FFFFFF',
-            fontWeight: 700,
+            bgcolor: item.est_live ? '#EF4444' : '#0F172A',
+            color: '#fff',
+            fontWeight: 600,
             fontSize: '0.65rem',
-            letterSpacing: 0.6,
             height: 24,
-            animation: item.est_live ? 'pulse 1.6s infinite' : 'none',
-            '@keyframes pulse': {
-              '0%': { opacity: 1 },
-              '50%': { opacity: 0.55 },
-              '100%': { opacity: 1 },
-            },
+            borderRadius: 1,
           }}
         />
       )}
 
-      {/* En-tête image / icône */}
       <Box
         sx={{
-          height: selfStudyTab === 'elegance' ? 140 : 150,
-          backgroundColor: '#F0F0F0',
+          height: 150,
+          bgcolor: '#F1F5F9',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -320,14 +294,10 @@ const Home = () => {
               component="img"
               image={`${import.meta.env.VITE_MEDIA_URL}${item.image}`}
               alt={item.title}
-              sx={{
-                height: '100%',
-                width: '100%',
-                objectFit: 'cover',
-              }}
+              sx={{ height: '100%', width: '100%', objectFit: 'cover' }}
             />
           ) : (
-            <Typography sx={{ fontSize: '3.2rem', opacity: 0.25 }}>🎓</Typography>
+            <Typography sx={{ fontSize: '2.8rem', opacity: 0.2 }}>🎓</Typography>
           )
         ) : (
           item.icon
@@ -338,105 +308,70 @@ const Home = () => {
             sx={{
               position: 'absolute',
               inset: 0,
-              backgroundColor: 'rgba(229, 57, 53, 0.18)',
+              bgcolor: 'rgba(239,68,68,0.15)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
             <Chip
-              icon={<PlayArrow sx={{ color: '#fff !important', fontSize: 18 }} />}
+              icon={<PlayArrow sx={{ color: '#fff !important', fontSize: 16 }} />}
               label="EN DIRECT"
               sx={{
-                backgroundColor: 'rgba(229, 57, 53, 0.95)',
+                bgcolor: '#EF4444',
                 color: '#fff',
-                fontWeight: 700,
-                fontSize: '0.75rem',
-                height: 32,
-                px: 1,
-                borderRadius: 50,
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                height: 28,
+                borderRadius: 1.5,
               }}
             />
           </Box>
         )}
       </Box>
 
-      <CardContent
-        sx={{
-          flexGrow: 1,
-          p: 2.5,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+      <CardContent sx={{ flexGrow: 1, p: 2.5, display: 'flex', flexDirection: 'column' }}>
         <Typography
-          variant="h6"
           sx={{
-            fontWeight: 700,
-            color: '#1A1A1A',
-            mb: 1.2,
-            fontSize: selfStudyTab === 'elegance' ? '1rem' : '1.1rem',
+            fontWeight: 600,
+            color: '#0F172A',
+            mb: 1,
+            fontSize: '1.05rem',
             fontFamily: '"Playfair Display", serif',
             lineHeight: 1.3,
-            minHeight: selfStudyTab === 'elegance' ? 48 : 40,
+            minHeight: 48,
           }}
         >
           {item.title}
         </Typography>
 
         {selfStudyTab === 'relooking' && item.description && (
-          <Typography
-            variant="body2"
-            sx={{
-              color: '#666',
-              fontSize: '0.8rem',
-              mb: 2,
-              lineHeight: 1.5,
-              minHeight: 40,
-            }}
-          >
+          <Typography sx={{ color: '#64748B', fontSize: '0.82rem', mb: 2, lineHeight: 1.5 }}>
             {item.description}
           </Typography>
         )}
 
-        {/* Prix / Durée pour formations */}
         {selfStudyTab === 'elegance' && item.isFormation && (
           <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
-              <Typography variant="caption" sx={{ color: '#999', fontSize: '0.7rem' }}>Prix</Typography>
-              <Typography variant="body2" sx={{ color: '#1A1A1A', fontWeight: 700, fontSize: '0.85rem' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+              <Typography sx={{ color: '#94A3B8', fontSize: '0.72rem' }}>Prix</Typography>
+              <Typography sx={{ color: '#0F172A', fontWeight: 600, fontSize: '0.85rem' }}>
                 {item.prix}
               </Typography>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
-              <Typography variant="caption" sx={{ color: '#999', fontSize: '0.7rem' }}>Durée</Typography>
-              <Typography variant="body2" sx={{ color: '#555', fontSize: '0.8rem' }}>
-                {item.duree}
-              </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography sx={{ color: '#94A3B8', fontSize: '0.72rem' }}>Durée</Typography>
+              <Typography sx={{ color: '#475569', fontSize: '0.82rem' }}>{item.duree}</Typography>
             </Box>
-            {item.date_live && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="caption" sx={{ color: '#999', fontSize: '0.7rem' }}>Date</Typography>
-                <Typography variant="body2" sx={{ color: '#555', fontSize: '0.8rem' }}>
-                  {new Date(item.date_live).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </Typography>
-              </Box>
-            )}
           </Box>
         )}
 
         <Typography
-          variant="caption"
           sx={{
-            color: '#999',
+            color: '#94A3B8',
             fontWeight: 600,
-            fontSize: '0.65rem',
-            letterSpacing: 0.8,
-            display: 'block',
+            fontSize: '0.68rem',
+            letterSpacing: 0.6,
             mb: 1,
             textTransform: 'uppercase',
           }}
@@ -444,55 +379,37 @@ const Home = () => {
           {selfStudyTab === 'elegance' ? 'Vous apprendrez' : 'Prestations'}
         </Typography>
 
-        <List dense disablePadding sx={{ mb: 2, flexGrow: 1 }}>
+        <List dense disablePadding sx={{ mb: 2.5, flexGrow: 1 }}>
           {item.items.slice(0, 4).map((point, idx) => (
-            <ListItem key={idx} disablePadding sx={{ py: 0.2 }}>
-              <ListItemIcon sx={{ minWidth: 20 }}>
-                <Check sx={{ fontSize: 14, color: '#888' }} />
+            <ListItem key={idx} disablePadding sx={{ py: 0.25 }}>
+              <ListItemIcon sx={{ minWidth: 22 }}>
+                <Check sx={{ fontSize: 14, color: '#94A3B8' }} />
               </ListItemIcon>
               <ListItemText
                 primary={point}
                 primaryTypographyProps={{
-                  variant: 'body2',
-                  sx: {
-                    color: '#555',
-                    fontSize: '0.75rem',
-                    lineHeight: 1.3,
-                  },
+                  sx: { color: '#475569', fontSize: '0.78rem', lineHeight: 1.35 },
                 }}
               />
             </ListItem>
           ))}
-          {item.items.length > 4 && (
-            <ListItem disablePadding sx={{ py: 0.2 }}>
-              <ListItemText
-                primary={`+${item.items.length - 4} autres...`}
-                primaryTypographyProps={{
-                  variant: 'caption',
-                  sx: { color: '#AAA', fontSize: '0.7rem', fontStyle: 'italic' },
-                }}
-              />
-            </ListItem>
-          )}
         </List>
 
-        {/* Bouton */}
         {selfStudyTab === 'relooking' && item.path && (
           <Button
             component={Link}
             to={item.path}
-            variant="contained"
             fullWidth
             sx={{
               mt: 'auto',
-              backgroundColor: '#1A1A1A',
+              bgcolor: '#0F172A',
               color: '#fff',
-              borderRadius: 50,
-              py: 1,
+              borderRadius: 2,
+              py: 1.1,
               textTransform: 'none',
-              fontSize: '0.8rem',
+              fontSize: '0.85rem',
               fontWeight: 600,
-              '&:hover': { backgroundColor: '#333' },
+              '&:hover': { bgcolor: '#1E293B' },
             }}
             endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
           >
@@ -504,28 +421,21 @@ const Home = () => {
           <Button
             component={Link}
             to={item.path}
-            variant="contained"
             fullWidth
             sx={{
               mt: 'auto',
-              backgroundColor: item.est_live ? '#E53935' : '#1A1A1A',
+              bgcolor: item.est_live ? '#EF4444' : '#0F172A',
               color: '#fff',
-              borderRadius: 50,
-              py: 1,
+              borderRadius: 2,
+              py: 1.1,
               textTransform: 'none',
-              fontSize: '0.8rem',
+              fontSize: '0.85rem',
               fontWeight: 600,
               '&:hover': {
-                backgroundColor: item.est_live ? '#C62828' : '#333',
+                bgcolor: item.est_live ? '#DC2626' : '#1E293B',
               },
             }}
-            endIcon={
-              item.est_live ? (
-                <PlayArrow sx={{ fontSize: 16 }} />
-              ) : (
-                <ArrowForward sx={{ fontSize: 16 }} />
-              )
-            }
+            endIcon={item.est_live ? <PlayArrow sx={{ fontSize: 16 }} /> : <ArrowForward sx={{ fontSize: 16 }} />}
           >
             {item.est_live ? 'Rejoindre' : 'Détails'}
           </Button>
@@ -534,24 +444,27 @@ const Home = () => {
     </Card>
   );
 
-  // ===== RENDU D'UNE CARTE BOUTIQUE =====
+  // ─── CARTE BOUTIQUE ─────────────────────────────────────────
   const renderBoutiqueCard = (product) => (
     <Card
       key={product.id}
+      elevation={0}
       sx={{
-        minWidth: { xs: 220, sm: 240, md: 260 },
-        maxWidth: { xs: 220, sm: 240, md: 260 },
+        minWidth: { xs: 230, sm: 250, md: 270 },
+        maxWidth: { xs: 230, sm: 250, md: 270 },
         borderRadius: 3,
-        border: '1px solid #EEEEEE',
+        border: '1px solid #E2E8F0',
         overflow: 'hidden',
-        backgroundColor: '#FFFFFF',
+        bgcolor: '#fff',
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
-        transition: 'transform 0.35s ease, box-shadow 0.35s ease',
+        transition: 'all 0.25s ease',
         '&:hover': {
-          transform: 'translateY(-8px)',
-          boxShadow: '0 20px 44px rgba(0,0,0,0.1)',
+          transform: 'translateY(-6px)',
+          boxShadow: '0 16px 40px rgba(15,23,42,0.08)',
+          borderColor: '#CBD5E1',
+          '& .product-img': { transform: 'scale(1.05)' },
         },
       }}
     >
@@ -560,11 +473,12 @@ const Home = () => {
           height: 200,
           overflow: 'hidden',
           position: 'relative',
-          backgroundColor: '#F8F8F8',
+          bgcolor: '#F1F5F9',
         }}
       >
         <Box
           component="img"
+          className="product-img"
           src={product.image}
           alt={product.title}
           sx={{
@@ -572,36 +486,33 @@ const Home = () => {
             height: '100%',
             objectFit: 'cover',
             transition: 'transform 0.5s ease',
-            '.MuiCard-root:hover &': {
-              transform: 'scale(1.05)',
-            },
           }}
         />
         <Chip
-          icon={<Star sx={{ fontSize: 12, color: '#FFB400 !important' }} />}
+          icon={<Star sx={{ fontSize: 12, color: '#F59E0B !important' }} />}
           label={product.rating}
           size="small"
           sx={{
             position: 'absolute',
             bottom: 10,
             right: 10,
-            backgroundColor: 'rgba(255,255,255,0.9)',
+            bgcolor: 'rgba(255,255,255,0.95)',
             fontWeight: 600,
-            fontSize: '0.65rem',
-            height: 24,
+            fontSize: '0.7rem',
+            height: 26,
+            borderRadius: 1.5,
           }}
         />
       </Box>
 
       <CardContent sx={{ flexGrow: 1, p: 2.5, display: 'flex', flexDirection: 'column' }}>
         <Typography
-          variant="h6"
           sx={{
-            fontWeight: 700,
-            color: '#1A1A1A',
-            mb: 0.5,
+            fontWeight: 600,
+            color: '#0F172A',
+            mb: 0.6,
             fontFamily: '"Playfair Display", serif',
-            fontSize: '1rem',
+            fontSize: '1.05rem',
             lineHeight: 1.3,
             minHeight: 44,
           }}
@@ -609,20 +520,18 @@ const Home = () => {
           {product.title}
         </Typography>
         <Typography
-          variant="body2"
           sx={{
-            color: '#666',
-            fontSize: '0.8rem',
+            color: '#64748B',
+            fontSize: '0.82rem',
             mb: 2,
-            lineHeight: 1.4,
+            lineHeight: 1.45,
             flexGrow: 1,
-            minHeight: 40,
           }}
         >
           {product.description}
         </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-          <Typography sx={{ fontWeight: 700, color: '#1A1A1A', fontSize: '0.95rem' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography sx={{ fontWeight: 700, color: '#0F172A', fontSize: '1rem' }}>
             {product.price}
           </Typography>
           <Button
@@ -630,17 +539,17 @@ const Home = () => {
             to="/boutique"
             size="small"
             sx={{
-              color: '#1A1A1A',
+              color: '#0F172A',
               textTransform: 'none',
               fontWeight: 600,
-              fontSize: '0.75rem',
-              borderRadius: 50,
+              fontSize: '0.78rem',
+              borderRadius: 2,
               px: 2,
-              border: '1px solid #DDD',
+              border: '1px solid #E2E8F0',
               '&:hover': {
-                backgroundColor: '#1A1A1A',
+                bgcolor: '#0F172A',
                 color: '#fff',
-                borderColor: '#1A1A1A',
+                borderColor: '#0F172A',
               },
             }}
           >
@@ -652,11 +561,11 @@ const Home = () => {
   );
 
   return (
-    <Box sx={{ backgroundColor: '#FAFAFA' }}>
-      {/* ===== HERO SECTION ===== */}
+    <Box sx={{ bgcolor: '#F8FAFC' }}>
+      {/* ─── HERO ─────────────────────────────────────────────── */}
       <Box
         sx={{
-          minHeight: { xs: '92vh', md: '100vh' },
+          minHeight: { xs: '88vh', md: '95vh' },
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
@@ -674,17 +583,15 @@ const Home = () => {
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            objectPosition: 'center 18%',
-            filter: 'contrast(1.05) brightness(1.02)',
+            objectPosition: 'center 20%',
           }}
         />
-
         <Box
           sx={{
             position: 'absolute',
             inset: 0,
             background:
-              'linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.65) 100%)',
+              'linear-gradient(to bottom, rgba(15,23,42,0.35) 0%, rgba(15,23,42,0.55) 50%, rgba(15,23,42,0.75) 100%)',
           }}
         />
 
@@ -694,98 +601,76 @@ const Home = () => {
             position: 'relative',
             zIndex: 1,
             textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: { xs: '92vh', md: '100vh' },
             py: 8,
           }}
         >
           <Typography
-            variant="overline"
             sx={{
-              color: 'rgba(255,255,255,0.85)',
-              letterSpacing: 5,
+              color: 'rgba(255,255,255,0.8)',
+              letterSpacing: 4,
               fontWeight: 500,
               fontSize: { xs: '0.7rem', md: '0.8rem' },
-              display: 'block',
               mb: 2.5,
+              textTransform: 'uppercase',
             }}
           >
-            MADAME TIBETIA
+            Madame Tibetia
           </Typography>
 
           <Typography
-            variant="h1"
             sx={{
-              fontSize: { xs: '2.1rem', sm: '2.8rem', md: '3.8rem', lg: '4.2rem' },
-              fontWeight: 300,
-              color: '#FFFFFF',
-              lineHeight: 1.15,
+              fontSize: { xs: '2.1rem', sm: '2.8rem', md: '3.6rem', lg: '4rem' },
+              fontWeight: 400,
+              color: '#fff',
+              lineHeight: 1.2,
               mb: 2.5,
               fontFamily: '"Playfair Display", serif',
-              textShadow: '0 2px 24px rgba(0,0,0,0.25)',
-              maxWidth: 900,
+              maxWidth: 880,
+              mx: 'auto',
             }}
           >
             Ressource d’apprentissage pour
             <br />
-            <Box
-              component="span"
-              sx={{
-                fontStyle: 'italic',
-                fontWeight: 400,
-                color: 'rgba(255,255,255,0.92)',
-              }}
-            >
+            <Box component="span" sx={{ fontStyle: 'italic' }}>
               avoir la confiance
             </Box>
             <br />
-            <Box
-              component="span"
-              sx={{
-                fontStyle: 'italic',
-                fontWeight: 400,
-                color: 'rgba(255,255,255,0.92)',
-              }}
-            >
+            <Box component="span" sx={{ fontStyle: 'italic' }}>
               et une bonne qualité de vie
             </Box>
           </Typography>
 
           <Typography
-            variant="h6"
             sx={{
               color: 'rgba(255,255,255,0.8)',
               mb: 5,
               fontWeight: 300,
-              fontSize: { xs: '1rem', md: '1.2rem' },
-              letterSpacing: 1.5,
+              fontSize: { xs: '1rem', md: '1.15rem' },
+              letterSpacing: 1,
             }}
           >
             SOYEZ LA BIENVENUE
           </Typography>
 
+          {/* Lien forfait désactivé → redirige vers formations */}
           <Button
             component={Link}
-            to="/forfaits"
+            to="/formations"
             variant="contained"
             size="large"
             sx={{
-              backgroundColor: '#FFFFFF',
-              color: '#1A1A1A',
-              px: { xs: 4, md: 5.5 },
-              py: 1.7,
-              borderRadius: 50,
+              bgcolor: '#fff',
+              color: '#0F172A',
+              px: { xs: 4, md: 5 },
+              py: 1.6,
+              borderRadius: 2.5,
               textTransform: 'none',
               fontSize: { xs: '0.9rem', md: '1rem' },
               fontWeight: 600,
-              letterSpacing: 0.4,
-              boxShadow: '0 8px 30px rgba(0,0,0,0.18)',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
               '&:hover': {
-                backgroundColor: '#F5F5F5',
-                boxShadow: '0 12px 36px rgba(0,0,0,0.22)',
+                bgcolor: '#F1F5F9',
+                boxShadow: '0 12px 36px rgba(0,0,0,0.25)',
               },
             }}
             endIcon={<ArrowForward />}
@@ -795,129 +680,91 @@ const Home = () => {
         </Container>
       </Box>
 
-      {/* ===== SECTION SELF-STUDY ===== */}
-      <Box sx={{ py: { xs: 6, md: 9 }, backgroundColor: '#FAFAFA' }}>
+      {/* ─── SELF-STUDY ───────────────────────────────────────── */}
+      <Box sx={{ py: { xs: 7, md: 10 }, bgcolor: '#F8FAFC' }}>
         <Container maxWidth="lg">
           <Typography
-            variant="h2"
             sx={{
               textAlign: 'center',
-              fontWeight: 300,
-              color: '#1A1A1A',
+              fontWeight: 500,
+              color: '#0F172A',
               mb: 1.5,
               fontFamily: '"Playfair Display", serif',
-              fontSize: { xs: '2rem', md: '3rem' },
-              letterSpacing: -0.5,
+              fontSize: { xs: '2rem', md: '2.8rem' },
             }}
           >
             Self-Study
           </Typography>
-
           <Typography
-            variant="body1"
             sx={{
               textAlign: 'center',
-              color: '#666',
+              color: '#64748B',
               mb: 4,
-              maxWidth: 520,
+              maxWidth: 480,
               mx: 'auto',
-              fontSize: '1rem',
+              fontSize: '1.05rem',
             }}
           >
             Formations en ligne et programmes de relooking
           </Typography>
 
           {/* Onglets */}
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: { xs: 1, sm: 2 },
-              mb: 4,
-            }}
-          >
-            <Button
-              onClick={() => setSelfStudyTab('elegance')}
-              sx={{
-                color: selfStudyTab === 'elegance' ? '#1A1A1A' : '#999',
-                fontSize: { xs: '0.9rem', md: '1rem' },
-                fontWeight: selfStudyTab === 'elegance' ? 700 : 400,
-                textTransform: 'none',
-                borderBottom: selfStudyTab === 'elegance' ? '2.5px solid #1A1A1A' : '2.5px solid transparent',
-                borderRadius: 0,
-                pb: 0.8,
-                px: 1.5,
-                minWidth: 'auto',
-                '&:hover': {
-                  color: '#1A1A1A',
-                  backgroundColor: 'transparent',
-                },
-              }}
-            >
-              Elegance Times online
-            </Button>
-
-            <Typography sx={{ color: '#DDD', fontSize: '1.2rem', mx: 0.5 }}>|</Typography>
-
-            <Button
-              onClick={() => setSelfStudyTab('relooking')}
-              sx={{
-                color: selfStudyTab === 'relooking' ? '#1A1A1A' : '#999',
-                fontSize: { xs: '0.9rem', md: '1rem' },
-                fontWeight: selfStudyTab === 'relooking' ? 700 : 400,
-                textTransform: 'none',
-                borderBottom: selfStudyTab === 'relooking' ? '2.5px solid #1A1A1A' : '2.5px solid transparent',
-                borderRadius: 0,
-                pb: 0.8,
-                px: 1.5,
-                minWidth: 'auto',
-                '&:hover': {
-                  color: '#1A1A1A',
-                  backgroundColor: 'transparent',
-                },
-              }}
-            >
-              Relooking
-            </Button>
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mb: 5 }}>
+            {['elegance', 'relooking'].map((tab) => (
+              <Button
+                key={tab}
+                onClick={() => setSelfStudyTab(tab)}
+                sx={{
+                  px: 3,
+                  py: 1,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: selfStudyTab === tab ? 600 : 500,
+                  fontSize: '0.95rem',
+                  bgcolor: selfStudyTab === tab ? '#0F172A' : 'transparent',
+                  color: selfStudyTab === tab ? '#fff' : '#64748B',
+                  '&:hover': {
+                    bgcolor: selfStudyTab === tab ? '#1E293B' : '#F1F5F9',
+                  },
+                }}
+              >
+                {tab === 'elegance' ? 'Elegance Times online' : 'Relooking'}
+              </Button>
+            ))}
           </Box>
 
-          {/* Conteneur avec scroll horizontal */}
           <Box sx={{ position: 'relative' }}>
             <IconButton
               onClick={() => scrollLeft(selfStudyScrollRef)}
               sx={{
                 position: 'absolute',
-                left: { xs: -12, md: -20 },
+                left: { xs: -8, md: -16 },
                 top: '50%',
                 transform: 'translateY(-50%)',
                 zIndex: 2,
-                backgroundColor: 'rgba(255,255,255,0.95)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                '&:hover': { backgroundColor: '#FFFFFF' },
-                display: { xs: 'none', sm: 'flex' },
+                bgcolor: '#fff',
+                border: '1px solid #E2E8F0',
                 width: 40,
                 height: 40,
+                display: { xs: 'none', sm: 'flex' },
+                '&:hover': { bgcolor: '#F8FAFC' },
               }}
             >
-              <ArrowBack />
+              <ArrowBack sx={{ fontSize: 18 }} />
             </IconButton>
 
             <Box
               ref={selfStudyScrollRef}
               sx={{
                 display: 'flex',
-                flexDirection: 'row',
                 gap: 3,
                 overflowX: 'auto',
-                overflowY: 'hidden',
-                py: 2,
-                px: 1,
+                py: 1,
+                px: 0.5,
                 scrollBehavior: 'smooth',
-                '&::-webkit-scrollbar': { height: 6 },
-                '&::-webkit-scrollbar-track': { backgroundColor: '#F0F0F0', borderRadius: 10 },
-                '&::-webkit-scrollbar-thumb': { backgroundColor: '#D0D0D0', borderRadius: 10 },
-                '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#A0A0A0' },
+                '&::-webkit-scrollbar': { height: 5 },
+                '&::-webkit-scrollbar-track': { bgcolor: '#F1F5F9', borderRadius: 10 },
+                '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: 10 },
               }}
             >
               {getSelfStudyData().map((item) => renderSelfStudyCard(item))}
@@ -927,40 +774,35 @@ const Home = () => {
               onClick={() => scrollRight(selfStudyScrollRef)}
               sx={{
                 position: 'absolute',
-                right: { xs: -12, md: -20 },
+                right: { xs: -8, md: -16 },
                 top: '50%',
                 transform: 'translateY(-50%)',
                 zIndex: 2,
-                backgroundColor: 'rgba(255,255,255,0.95)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                '&:hover': { backgroundColor: '#FFFFFF' },
-                display: { xs: 'none', sm: 'flex' },
+                bgcolor: '#fff',
+                border: '1px solid #E2E8F0',
                 width: 40,
                 height: 40,
+                display: { xs: 'none', sm: 'flex' },
+                '&:hover': { bgcolor: '#F8FAFC' },
               }}
             >
-              <ArrowForward />
+              <ArrowForward sx={{ fontSize: 18 }} />
             </IconButton>
           </Box>
 
-          <Box sx={{ textAlign: 'center', mt: 4 }}>
+          <Box sx={{ textAlign: 'center', mt: 5 }}>
             <Button
               component={Link}
               to={selfStudyTab === 'elegance' ? '/formations' : '/relooking/femme'}
               sx={{
-                color: '#1A1A1A',
+                color: '#0F172A',
                 fontSize: '0.9rem',
                 fontWeight: 500,
                 textTransform: 'none',
-                letterSpacing: 0.8,
-                borderBottom: '1px solid #CCC',
+                borderBottom: '1px solid #CBD5E1',
                 borderRadius: 0,
                 pb: 0.4,
-                '&:hover': {
-                  color: '#555',
-                  backgroundColor: 'transparent',
-                  borderColor: '#999',
-                },
+                '&:hover': { borderColor: '#0F172A', bgcolor: 'transparent' },
               }}
             >
               Voir tous les programmes →
@@ -969,31 +811,29 @@ const Home = () => {
         </Container>
       </Box>
 
-      {/* ===== SECTION BOUTIQUE ===== */}
-      <Box sx={{ py: { xs: 6, md: 9 }, backgroundColor: '#FFFFFF' }}>
+      {/* ─── BOUTIQUE ─────────────────────────────────────────── */}
+      <Box sx={{ py: { xs: 7, md: 10 }, bgcolor: '#fff' }}>
         <Container maxWidth="lg">
           <Typography
-            variant="h2"
             sx={{
               textAlign: 'center',
-              fontWeight: 300,
-              color: '#1A1A1A',
+              fontWeight: 500,
+              color: '#0F172A',
               mb: 1.5,
               fontFamily: '"Playfair Display", serif',
-              fontSize: { xs: '2rem', md: '3rem' },
+              fontSize: { xs: '2rem', md: '2.8rem' },
             }}
           >
             Boutique élégante
           </Typography>
           <Typography
-            variant="body1"
             sx={{
               textAlign: 'center',
-              color: '#666',
-              mb: 4,
-              maxWidth: 520,
+              color: '#64748B',
+              mb: 5,
+              maxWidth: 480,
               mx: 'auto',
-              fontSize: '1rem',
+              fontSize: '1.05rem',
             }}
           >
             Des produits sélectionnés avec soin pour votre bien-être et votre élégance
@@ -1004,36 +844,33 @@ const Home = () => {
               onClick={() => scrollLeft(boutiqueScrollRef)}
               sx={{
                 position: 'absolute',
-                left: { xs: -12, md: -20 },
+                left: { xs: -8, md: -16 },
                 top: '50%',
                 transform: 'translateY(-50%)',
                 zIndex: 2,
-                backgroundColor: 'rgba(255,255,255,0.95)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                '&:hover': { backgroundColor: '#FFFFFF' },
-                display: { xs: 'none', sm: 'flex' },
+                bgcolor: '#fff',
+                border: '1px solid #E2E8F0',
                 width: 40,
                 height: 40,
+                display: { xs: 'none', sm: 'flex' },
+                '&:hover': { bgcolor: '#F8FAFC' },
               }}
             >
-              <ArrowBack />
+              <ArrowBack sx={{ fontSize: 18 }} />
             </IconButton>
 
             <Box
               ref={boutiqueScrollRef}
               sx={{
                 display: 'flex',
-                flexDirection: 'row',
                 gap: 3,
                 overflowX: 'auto',
-                overflowY: 'hidden',
-                py: 2,
-                px: 1,
+                py: 1,
+                px: 0.5,
                 scrollBehavior: 'smooth',
-                '&::-webkit-scrollbar': { height: 6 },
-                '&::-webkit-scrollbar-track': { backgroundColor: '#F0F0F0', borderRadius: 10 },
-                '&::-webkit-scrollbar-thumb': { backgroundColor: '#D0D0D0', borderRadius: 10 },
-                '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#A0A0A0' },
+                '&::-webkit-scrollbar': { height: 5 },
+                '&::-webkit-scrollbar-track': { bgcolor: '#F1F5F9', borderRadius: 10 },
+                '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: 10 },
               }}
             >
               {produitsBoutique.map((product) => renderBoutiqueCard(product))}
@@ -1043,37 +880,37 @@ const Home = () => {
               onClick={() => scrollRight(boutiqueScrollRef)}
               sx={{
                 position: 'absolute',
-                right: { xs: -12, md: -20 },
+                right: { xs: -8, md: -16 },
                 top: '50%',
                 transform: 'translateY(-50%)',
                 zIndex: 2,
-                backgroundColor: 'rgba(255,255,255,0.95)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                '&:hover': { backgroundColor: '#FFFFFF' },
-                display: { xs: 'none', sm: 'flex' },
+                bgcolor: '#fff',
+                border: '1px solid #E2E8F0',
                 width: 40,
                 height: 40,
+                display: { xs: 'none', sm: 'flex' },
+                '&:hover': { bgcolor: '#F8FAFC' },
               }}
             >
-              <ArrowForward />
+              <ArrowForward sx={{ fontSize: 18 }} />
             </IconButton>
           </Box>
 
-          <Box sx={{ textAlign: 'center', mt: 4 }}>
+          <Box sx={{ textAlign: 'center', mt: 5 }}>
             <Button
               component={Link}
               to="/boutique"
               variant="contained"
               sx={{
-                backgroundColor: '#1A1A1A',
+                bgcolor: '#0F172A',
                 color: '#fff',
-                px: 5,
+                px: 4.5,
                 py: 1.4,
-                borderRadius: 50,
+                borderRadius: 2.5,
                 textTransform: 'none',
-                fontSize: '0.9rem',
+                fontSize: '0.95rem',
                 fontWeight: 600,
-                '&:hover': { backgroundColor: '#333' },
+                '&:hover': { bgcolor: '#1E293B' },
               }}
               endIcon={<ArrowForward sx={{ fontSize: 18 }} />}
             >
@@ -1083,31 +920,29 @@ const Home = () => {
         </Container>
       </Box>
 
-      {/* ===== SECTION ÉVÉNEMENTS ===== */}
-      <Box sx={{ py: { xs: 6, md: 9 }, backgroundColor: '#FAFAFA' }}>
+      {/* ─── ÉVÉNEMENTS ───────────────────────────────────────── */}
+      <Box sx={{ py: { xs: 7, md: 10 }, bgcolor: '#F8FAFC' }}>
         <Container maxWidth="lg">
           <Typography
-            variant="h2"
             sx={{
               textAlign: 'center',
-              fontWeight: 300,
-              color: '#1A1A1A',
+              fontWeight: 500,
+              color: '#0F172A',
               mb: 1.5,
               fontFamily: '"Playfair Display", serif',
-              fontSize: { xs: '2rem', md: '3rem' },
+              fontSize: { xs: '2rem', md: '2.8rem' },
             }}
           >
             Événements à venir
           </Typography>
           <Typography
-            variant="body1"
             sx={{
               textAlign: 'center',
-              color: '#666',
-              mb: 4,
-              maxWidth: 520,
+              color: '#64748B',
+              mb: 5,
+              maxWidth: 480,
               mx: 'auto',
-              fontSize: '1rem',
+              fontSize: '1.05rem',
             }}
           >
             Participez à nos prochains événements pour vivre une expérience unique
@@ -1120,14 +955,15 @@ const Home = () => {
                   elevation={0}
                   sx={{
                     borderRadius: 3,
-                    border: '1px solid #EEEEEE',
+                    border: '1px solid #E2E8F0',
                     overflow: 'hidden',
                     height: '100%',
-                    transition: 'transform 0.28s ease, box-shadow 0.28s ease',
-                    backgroundColor: '#fff',
+                    bgcolor: '#fff',
+                    transition: 'all 0.25s ease',
                     '&:hover': {
                       transform: 'translateY(-6px)',
-                      boxShadow: '0 18px 40px rgba(0,0,0,0.07)',
+                      boxShadow: '0 16px 40px rgba(15,23,42,0.08)',
+                      borderColor: '#CBD5E1',
                     },
                   }}
                 >
@@ -1142,12 +978,11 @@ const Home = () => {
                   )}
                   <CardContent sx={{ p: 3 }}>
                     <Typography
-                      variant="caption"
                       sx={{
-                        color: '#999',
-                        fontWeight: 600,
-                        letterSpacing: 0.4,
-                        fontSize: '0.75rem',
+                        color: '#94A3B8',
+                        fontWeight: 500,
+                        fontSize: '0.78rem',
+                        letterSpacing: 0.3,
                       }}
                     >
                       {new Date(evenement.date_debut).toLocaleDateString('fr-FR', {
@@ -1157,50 +992,41 @@ const Home = () => {
                       })}
                     </Typography>
                     <Typography
-                      variant="h6"
                       sx={{
-                        fontWeight: 700,
-                        color: '#1A1A1A',
+                        fontWeight: 600,
+                        color: '#0F172A',
                         mt: 1,
                         mb: 1,
                         fontFamily: '"Playfair Display", serif',
-                        fontSize: '1.1rem',
+                        fontSize: '1.15rem',
                       }}
                     >
                       {evenement.titre}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#666', mb: 0.5 }}>
+                    <Typography sx={{ color: '#64748B', fontSize: '0.9rem', mb: 0.5 }}>
                       {evenement.theme}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#666', mb: 2 }}>
+                    <Typography sx={{ color: '#64748B', fontSize: '0.9rem', mb: 2.5 }}>
                       📍 {evenement.lieu}
                     </Typography>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        mt: 1,
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ color: '#999', fontSize: '0.8rem' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography sx={{ color: '#94A3B8', fontSize: '0.82rem' }}>
                         Places : {evenement.places_restantes}/{evenement.places_total}
                       </Typography>
                       <Button
                         component={Link}
                         to={`/evenements/${evenement.id}`}
-                        variant="outlined"
                         size="small"
                         sx={{
-                          borderRadius: 50,
-                          borderColor: '#CCC',
-                          color: '#1A1A1A',
+                          borderRadius: 2,
+                          border: '1px solid #E2E8F0',
+                          color: '#0F172A',
                           textTransform: 'none',
                           fontWeight: 600,
                           px: 2.2,
                           '&:hover': {
-                            borderColor: '#999',
-                            backgroundColor: 'rgba(0,0,0,0.03)',
+                            borderColor: '#0F172A',
+                            bgcolor: '#F8FAFC',
                           },
                         }}
                       >
@@ -1217,18 +1043,17 @@ const Home = () => {
             <Button
               component={Link}
               to="/evenements"
-              variant="outlined"
               sx={{
-                borderColor: '#CCC',
-                color: '#1A1A1A',
-                borderRadius: 50,
-                px: 5,
+                border: '1px solid #E2E8F0',
+                color: '#0F172A',
+                borderRadius: 2.5,
+                px: 4.5,
                 py: 1.3,
                 textTransform: 'none',
                 fontWeight: 600,
                 '&:hover': {
-                  borderColor: '#999',
-                  backgroundColor: 'rgba(0,0,0,0.03)',
+                  borderColor: '#0F172A',
+                  bgcolor: '#F8FAFC',
                 },
               }}
             >
@@ -1238,14 +1063,14 @@ const Home = () => {
         </Container>
       </Box>
 
-      {/* ===== BANNIÈRE COOKIES ===== */}
+      {/* ─── COOKIE BANNER ────────────────────────────────────── */}
       <Box
         sx={{
           position: 'fixed',
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: '#1A1A1A',
+          bgcolor: '#0F172A',
           color: '#fff',
           py: 1.8,
           px: { xs: 2, md: 4 },
@@ -1257,33 +1082,24 @@ const Home = () => {
           gap: 2,
         }}
       >
-        <Typography
-          variant="body2"
-          sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.8rem' }}
-        >
+        <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.82rem' }}>
           Ce site utilise des cookies pour vous offrir la meilleure expérience.{' '}
-          <Link
-            to="/privacy"
-            style={{
-              color: '#CCC',
-              textDecoration: 'underline',
-            }}
-          >
+          <Link to="/privacy" style={{ color: '#CBD5E1', textDecoration: 'underline' }}>
             En savoir plus
           </Link>
         </Typography>
         <Button
           variant="contained"
           sx={{
-            backgroundColor: '#FFFFFF',
-            color: '#1A1A1A',
-            borderRadius: 50,
-            px: 3.5,
-            py: 0.7,
+            bgcolor: '#fff',
+            color: '#0F172A',
+            borderRadius: 2,
+            px: 3,
+            py: 0.8,
             textTransform: 'none',
-            fontSize: '0.8rem',
+            fontSize: '0.82rem',
             fontWeight: 600,
-            '&:hover': { backgroundColor: '#F0F0F0' },
+            '&:hover': { bgcolor: '#F1F5F9' },
           }}
         >
           Accepter
