@@ -402,20 +402,36 @@ const RelookingHommeDetail = () => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleFormSubmit = (e) => {
+    const handleFormSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    setTimeout(() => {
-      console.log('Inscription:', { ...formData, rubrique: rubrique.nom });
+    try {
+      await relookingService.inscrire({
+        type: 'HOMME',
+        rubrique_id: rubrique.id,
+        rubrique_nom: rubrique.nom,
+        nom: formData.nom,
+        prenom: formData.prenom,
+        email: formData.email,
+        telephone: formData.telephone,
+        date_souhaitee: formData.date,
+        message: formData.message,
+        prix: rubrique.prix,
+        duree: rubrique.duree,
+      });
       setFormSubmitted(true);
-      setLoading(false);
-      setSnackbarMessage('Inscription réussie ! Vous recevrez un email de confirmation.');
+      setSnackbarMessage('✅ Inscription réussie ! Vous recevrez un email de confirmation.');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
-
       setTimeout(() => handleCloseRegister(), 2200);
-    }, 1400);
+    } catch (error) {
+      console.error('❌ Erreur inscription:', error.response?.data || error.message);
+      setSnackbarMessage('❌ Erreur lors de l\'inscription.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

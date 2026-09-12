@@ -230,11 +230,12 @@ class LignePanierSerializer(serializers.ModelSerializer):
     sous_total = serializers.ReadOnlyField()
     produit_nom = serializers.CharField(source='produit.nom', read_only=True)
     produit_prix = serializers.DecimalField(source='produit.prix', read_only=True, max_digits=10, decimal_places=2)
-    produit_image = serializers.SerializerMethodField()  # ✅ AJOUTEZ CECI
+    produit_image = serializers.SerializerMethodField()
+    produit_stock = serializers.IntegerField(source='produit.quantite_stock', read_only=True)  # ✅ AJOUTÉ
 
     class Meta:
         model = LignePanier
-        fields = ['id', 'produit', 'produit_nom', 'produit_prix', 'produit_image', 'quantite', 'prix_unitaire', 'sous_total']
+        fields = ['id', 'produit', 'produit_nom', 'produit_prix', 'produit_image', 'produit_stock', 'quantite', 'prix_unitaire', 'sous_total']
 
     def get_produit_image(self, obj):
         request = self.context.get('request')

@@ -302,19 +302,37 @@ class ClientLoginView(APIView):
                 return Response({'error': 'Client non trouvé'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# api/views.py
 
+@method_decorator(csrf_exempt, name='dispatch')
 class PanierView(APIView):
     def get(self, request, client_id):
+        # ✅ Vérifier que le client existe
+        if not Client.objects.filter(id=client_id).exists():
+            return Response(
+                {'error': 'Client non trouvé. Veuillez vous reconnecter.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         panier, created = Panier.objects.get_or_create(client_id=client_id, est_valide=False)
-        serializer = PanierSerializer(panier, context={'request': request})  # ✅ AJOUTEZ CECI
+        serializer = PanierSerializer(panier, context={'request': request})
         return Response(serializer.data)
 
     def post(self, request, client_id):
+        # ✅ Vérifier que le client existe AVANT de créer le panier
+        if not Client.objects.filter(id=client_id).exists():
+            return Response(
+                {'error': 'Client non trouvé. Veuillez vous reconnecter.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
         panier, created = Panier.objects.get_or_create(client_id=client_id, est_valide=False)
         produit_id = request.data.get('produit_id')
         quantite = int(request.data.get('quantite', 1))
-        produit = Produit.objects.get(id=produit_id)
+        
+        try:
+            produit = Produit.objects.get(id=produit_id)
+        except Produit.DoesNotExist:
+            return Response({'error': 'Produit non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+        
         ligne, created = LignePanier.objects.get_or_create(
             panier=panier, produit=produit,
             defaults={'quantite': quantite, 'prix_unitaire': produit.prix}
@@ -322,14 +340,19 @@ class PanierView(APIView):
         if not created:
             ligne.quantite += quantite
             ligne.save()
+        
         return Response(PanierSerializer(panier, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, client_id):
+        if not Client.objects.filter(id=client_id).exists():
+            return Response(
+                {'error': 'Client non trouvé. Veuillez vous reconnecter.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         ligne_id = request.data.get('ligne_id')
         panier, _ = Panier.objects.get_or_create(client_id=client_id, est_valide=False)
         LignePanier.objects.filter(id=ligne_id, panier=panier).delete()
         return Response(PanierSerializer(panier, context={'request': request}).data)
-    
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CommandeDepuisPanierView(APIView):

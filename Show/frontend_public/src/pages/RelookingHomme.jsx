@@ -1,5 +1,5 @@
 // src/pages/RelookingHomme.jsx
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -9,28 +9,15 @@ import {
   CardContent,
   Button,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
   IconButton,
-  Alert,
-  Snackbar,
-  Grid,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  useTheme,
-  useMediaQuery,
-  CircularProgress,
 } from '@mui/material';
 import {
   ArrowForward,
   ArrowBack,
-  Close,
-  CheckCircle,
   Person,
   Star,
   AccessTime,
@@ -40,12 +27,9 @@ import {
 import heroImage from '../assets/images/tibetia.jpeg?url';
 
 const RelookingHomme = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const scrollContainerRef = useRef(null);
 
-  // Données simplifiées
   const rubriques = [
     {
       id: 1,
@@ -93,22 +77,6 @@ const RelookingHomme = () => {
     },
   ];
 
-  const [selectedRubrique, setSelectedRubrique] = useState(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    nom: '',
-    prenom: '',
-    email: '',
-    telephone: '',
-    date: '',
-    message: '',
-  });
-  const [formSubmitted, setFormSubmitted] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
-  const [loading, setLoading] = useState(false);
-
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({ left: -300, behavior: 'smooth' });
@@ -120,60 +88,6 @@ const RelookingHomme = () => {
       scrollContainerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
     }
   };
-
-  const handleOpenRegister = (rubrique) => {
-    setSelectedRubrique(rubrique);
-    setDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setSelectedRubrique(null);
-    setFormSubmitted(false);
-    setFormData({
-      nom: '',
-      prenom: '',
-      email: '',
-      telephone: '',
-      date: '',
-      message: '',
-    });
-  };
-
-  const handleFormChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-
-const handleFormSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  try {
-    await relookingService.inscrire({
-      type: 'HOMME',
-      rubrique_id: selected.id,
-      rubrique_nom: selected.nom,
-      nom: formData.nom,
-      prenom: formData.prenom,
-      email: formData.email,
-      telephone: formData.telephone,
-      date_souhaitee: formData.date,
-      message: formData.message,
-      prix: selected.prix,
-      duree: selected.duree,
-    });
-    setFormSubmitted(true);
-    setSnackbarMessage('Inscription réussie !');
-    setSnackbarSeverity('success');
-    setSnackbarOpen(true);
-  } catch (error) {
-    setSnackbarMessage('Erreur lors de l\'inscription');
-    setSnackbarSeverity('error');
-    setSnackbarOpen(true);
-  } finally {
-    setLoading(false);
-  }
-};
 
   const handleViewDetails = (rubriqueId) => {
     navigate(`/relooking/homme/${rubriqueId}`);
@@ -397,9 +311,11 @@ const handleFormSubmit = async (e) => {
                           </ListItemIcon>
                           <ListItemText
                             primary={point}
-                            primaryTypographyProps={{
-                              variant: 'caption',
-                              sx: { color: '#666', fontSize: '0.6rem' },
+                            slotProps={{
+                              primary: {
+                                variant: 'caption',
+                                sx: { color: '#666', fontSize: '0.6rem' },
+                              },
                             }}
                           />
                         </ListItem>
@@ -418,44 +334,23 @@ const handleFormSubmit = async (e) => {
                     </Box>
                   </Box>
 
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      variant="contained"
-                      fullWidth
-                      onClick={() => handleViewDetails(item.id)}
-                      sx={{
-                        backgroundColor: '#2C2C2C',
-                        color: '#FFFFFF',
-                        borderRadius: 50,
-                        py: 0.6,
-                        textTransform: 'none',
-                        fontSize: '0.65rem',
-                        '&:hover': { backgroundColor: '#555' },
-                      }}
-                      endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
-                    >
-                      Détails
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      onClick={() => handleOpenRegister(item)}
-                      sx={{
-                        borderColor: '#D4A5A0',
-                        color: '#2C2C2C',
-                        borderRadius: 50,
-                        py: 0.6,
-                        textTransform: 'none',
-                        fontSize: '0.65rem',
-                        minWidth: 80,
-                        '&:hover': {
-                          borderColor: '#C08A85',
-                          backgroundColor: 'rgba(212,165,160,0.1)',
-                        },
-                      }}
-                    >
-                      S'inscrire
-                    </Button>
-                  </Box>
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    onClick={() => handleViewDetails(item.id)}
+                    sx={{
+                      backgroundColor: '#2C2C2C',
+                      color: '#FFFFFF',
+                      borderRadius: 50,
+                      py: 0.6,
+                      textTransform: 'none',
+                      fontSize: '0.65rem',
+                      '&:hover': { backgroundColor: '#555' },
+                    }}
+                    endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+                  >
+                    Détails
+                  </Button>
                 </CardContent>
               </Card>
             ))}
@@ -478,152 +373,6 @@ const handleFormSubmit = async (e) => {
           <ArrowForward />
         </IconButton>
       </Box>
-
-      {/* DIALOG INSCRIPTION */}
-      <Dialog
-        open={dialogOpen}
-        onClose={handleCloseDialog}
-        maxWidth="sm"
-        fullWidth
-        fullScreen={isMobile}
-        PaperProps={{
-          sx: {
-            borderRadius: isMobile ? 0 : 3,
-            overflow: 'hidden',
-          },
-        }}
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h5" sx={{ fontFamily: '"Playfair Display", serif' }}>
-              📝 Inscription
-            </Typography>
-            <IconButton onClick={handleCloseDialog}>
-              <Close />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        <DialogContent dividers>
-          {selectedRubrique && (
-            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-              Vous vous inscrivez à : <strong>{selectedRubrique.nom}</strong>
-            </Alert>
-          )}
-
-          {formSubmitted ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <CheckCircle sx={{ fontSize: 80, color: '#4CAF50', mb: 2 }} />
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>Inscription réussie !</Typography>
-              <Typography variant="body2" sx={{ color: '#666' }}>
-                Vous recevrez un email de confirmation.
-              </Typography>
-            </Box>
-          ) : (
-            <form onSubmit={handleFormSubmit}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Nom"
-                    name="nom"
-                    value={formData.nom}
-                    onChange={handleFormChange}
-                    required
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Prénom"
-                    name="prenom"
-                    value={formData.prenom}
-                    onChange={handleFormChange}
-                    required
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleFormChange}
-                    required
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Téléphone"
-                    name="telephone"
-                    value={formData.telephone}
-                    onChange={handleFormChange}
-                    required
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Date souhaitée"
-                    name="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={handleFormChange}
-                    InputLabelProps={{ shrink: true }}
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Message"
-                    name="message"
-                    multiline
-                    rows={2}
-                    value={formData.message}
-                    onChange={handleFormChange}
-                    size="small"
-                  />
-                </Grid>
-              </Grid>
-
-              <DialogActions sx={{ px: 0, pt: 3 }}>
-                <Button onClick={handleCloseDialog}>Annuler</Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={loading}
-                  sx={{
-                    backgroundColor: '#2C2C2C',
-                    color: '#FFFFFF',
-                    borderRadius: 50,
-                    px: 4,
-                    '&:hover': { backgroundColor: '#555' },
-                  }}
-                >
-                  {loading ? <CircularProgress size={20} /> : "S'inscrire"}
-                </Button>
-              </DialogActions>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={snackbarSeverity} sx={{ borderRadius: 2 }}>
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

@@ -62,17 +62,25 @@ const ProduitDetail = () => {
   const imageUrl = produit?.image_url || produit?.image_principale || heroImage;
 
   const handleAjouterAuPanier = async () => {
-    if (!client) {
-      navigate('/login');
-      return;
+  if (!client) {
+    navigate('/login');
+    return;
+  }
+  try {
+    await panierService.ajouterProduit(client.id, produit.id, quantite);
+    setSnackbar({ open: true, message: '✅ Ajouté au panier !', severity: 'success' });
+  } catch (error) {
+    // ✅ Si le client n'existe plus côté backend, on le déconnecte
+    if (error.response?.status === 404) {
+      localStorage.removeItem('client_data');
+      setClient(null);
+      setSnackbar({ open: true, message: 'Votre session a expiré. Veuillez vous reconnecter.', severity: 'warning' });
+      setTimeout(() => navigate('/login'), 1500);
+    } else {
+      setSnackbar({ open: true, message: '❌ Erreur lors de l\'ajout au panier', severity: 'error' });
     }
-    try {
-      await panierService.ajouterProduit(client.id, produit.id, quantite);
-      setSnackbar({ open: true, message: '✅ Ajouté au panier !', severity: 'success' });
-    } catch (error) {
-      setSnackbar({ open: true, message: '❌ Erreur lors de l\'ajout', severity: 'error' });
-    }
-  };
+  }
+};
 
   const toggleFavori = () => {
     setFavoris(!favoris);

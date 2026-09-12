@@ -17,6 +17,8 @@ import RelookingFemme from './pages/RelookingFemme';
 import RelookingAtelier from './pages/RelookingAtelier';
 import FormationDetail from './pages/FormationDetail'; 
 import RelookingHommeDetail from './pages/RelookingHommeDetail'; 
+import RelookingFemmeDetail from './pages/RelookingFemmeDetail';
+import RelookingAtelierDetail from './pages/RelookingAtelierDetail';
 import Panier from './pages/Panier'; // ✅ UN SEUL IMPORT
 import EleganceTimesOnline from './components/EleganceTimesOnline';
 import DetailsProduits from './pages/ProduitDetail';
@@ -56,6 +58,8 @@ function App() {
                 <Route path="/relooking/femme" element={<RelookingFemme />} />
                 <Route path="/relooking/atelier" element={<RelookingAtelier />} />
                 <Route path="/relooking/homme/:id" element={<RelookingHommeDetail />} />
+                <Route path="/relooking/femme/:id" element={<RelookingFemmeDetail />} />
+                <Route path="/relooking/atelier/:id" element={<RelookingAtelierDetail />} />
                 <Route path="/formations/:id" element={<FormationDetail />} />
                 <Route path="/formations" element={<Formations />} />
                 <Route path="/panier" element={<Panier />} /> {/* ✅ UNE SEULE ROUTE */}
@@ -68,6 +72,8 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/evenements/:id/inscription" element={<EvenementInscription />} />
+                <Route path="/relooking/femme/:id" element={<RelookingFemmeDetail />} />
+                <Route path="/relooking/atelier/:id" element={<RelookingAtelierDetail />} />
               </Routes>
             </Box>
             <Footer />

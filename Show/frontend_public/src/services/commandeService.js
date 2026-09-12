@@ -11,4 +11,23 @@ export const commandeService = {
       throw error;
     }
   },
+    // ✅ Récupérer les commandes d'un client
+  getCommandesClient: async (clientId) => {
+    try {
+      const response = await api.get(`/commandes/?client=${clientId}`);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur getCommandesClient:', error);
+      throw error;
+    }
+  },
+  getCommandeById: async (commandeId) => {
+    try {
+      const response = await api.get(`/commandes/${commandeId}/`);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur getCommandeById:', error);
+      throw error;
+    }
+  },
 };
