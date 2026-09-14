@@ -507,7 +507,7 @@ const NouveauProduit = () => {
                   helperText={error?.prix}
                   size="small"
                   sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                  InputProps={{
+                  SlotProps={{
                     startAdornment: <InputAdornment position="start">CFA</InputAdornment>,
                   }}
                 />
@@ -622,8 +622,10 @@ const NouveauProduit = () => {
                     helperText={error?.prix_promotion}
                     size="small"
                     sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">CFA</InputAdornment>,
+                    SlotProps={{
+                      input: {
+                        startAdornment: <InputAdornment position="start">CFA</InputAdornment>,
+                      },
                     }}
                   />
                 </Grid>

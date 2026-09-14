@@ -6,11 +6,11 @@ import {
   TableContainer, TableHead, TableRow, Chip, IconButton, CircularProgress,
   Alert, TextField, InputAdornment, Avatar, Tooltip, Pagination, Snackbar,
   FormControl, InputLabel, Select, MenuItem, Dialog, DialogTitle,
-  DialogContent, DialogActions, Divider, Stack, Grid, alpha,
+  DialogContent, DialogContentText, DialogActions, Divider, Stack, Grid, alpha,
 } from "@mui/material";
 import {
   Search, Visibility, Refresh, ShoppingCart, Clear, Dashboard as DashboardIcon,
-  Phone, Check, Cancel, Close, Inventory,
+  Phone, Check, Cancel, Close, Inventory, Delete, Warning,
 } from "@mui/icons-material";
 import { adminService } from "../../../services/adminService";
 
@@ -39,8 +39,15 @@ const CommandesList = () => {
   const [rowsPerPage] = useState(10);
   const [actionLoading, setActionLoading] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
+  // ✅ États pour le modal de détails
   const [selectedCommande, setSelectedCommande] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // ✅ États pour la suppression
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [commandeToDelete, setCommandeToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const statuts = [
     { value: "all", label: "Tous les statuts" },
@@ -103,10 +110,10 @@ const CommandesList = () => {
     setActionLoading(id);
     try {
       await adminService.updateCommande(id, { statut: "PAYEE" });
-      setSnackbar({ open: true, message: "Commande validée", severity: "success" });
+      setSnackbar({ open: true, message: "✅ Commande validée", severity: "success" });
       fetchCommandes();
     } catch {
-      setSnackbar({ open: true, message: "Erreur lors de la validation", severity: "error" });
+      setSnackbar({ open: true, message: "❌ Erreur lors de la validation", severity: "error" });
     } finally {
       setActionLoading(null);
     }
@@ -116,23 +123,43 @@ const CommandesList = () => {
     setActionLoading(id);
     try {
       await adminService.updateCommande(id, { statut: "ANNULEE" });
-      setSnackbar({ open: true, message: "Commande annulée", severity: "warning" });
+      setSnackbar({ open: true, message: "❌ Commande annulée", severity: "warning" });
       fetchCommandes();
     } catch {
-      setSnackbar({ open: true, message: "Erreur lors de l'annulation", severity: "error" });
+      setSnackbar({ open: true, message: "❌ Erreur lors de l'annulation", severity: "error" });
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  // ✅ Ouvrir le dialog de suppression
+  const handleDeleteClick = (commande) => {
+    setCommandeToDelete(commande);
+    setDeleteDialogOpen(true);
+  };
+
+  // ✅ Confirmer la suppression
+  const handleDeleteConfirm = async () => {
+    if (!commandeToDelete) return;
+    setDeleting(true);
+    try {
+      await adminService.deleteCommande(commandeToDelete.id);
+      setSnackbar({ open: true, message: `🗑️ Commande #${commandeToDelete.id} supprimée`, severity: "success" });
+      setDeleteDialogOpen(false);
+      setCommandeToDelete(null);
+      fetchCommandes();
+    } catch (err) {
+      console.error("Erreur suppression:", err);
+      setSnackbar({ open: true, message: "❌ Erreur lors de la suppression", severity: "error" });
+    } finally {
+      setDeleting(false);
     }
   };
 
   const formatDate = (d) => {
     if (!d) return "—";
     return new Date(d).toLocaleDateString("fr-FR", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+      day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
     });
   };
 
@@ -171,11 +198,8 @@ const CommandesList = () => {
             startIcon={<DashboardIcon sx={{ fontSize: 18 }} />}
             onClick={() => navigate("/admin/dashboard")}
             sx={{
-              color: T.muted,
-              textTransform: "none",
-              fontWeight: 500,
-              mb: 2.5,
-              px: 0,
+              color: T.muted, textTransform: "none", fontWeight: 500,
+              mb: 2.5, px: 0,
               "&:hover": { color: T.primary, bgcolor: "transparent" },
             }}
           >
@@ -194,14 +218,8 @@ const CommandesList = () => {
         <Paper
           elevation={0}
           sx={{
-            p: 2,
-            mb: 3,
-            borderRadius: 2.5,
-            border: `1px solid ${T.border}`,
-            display: "flex",
-            gap: 2,
-            alignItems: "center",
-            flexWrap: "wrap",
+            p: 2, mb: 3, borderRadius: 2.5, border: `1px solid ${T.border}`,
+            display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap",
           }}
         >
           <TextField
@@ -209,24 +227,22 @@ const CommandesList = () => {
             placeholder="Rechercher par ID, client, téléphone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{
-              flex: 1,
-              minWidth: 240,
-              "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: T.bg },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search sx={{ color: T.muted, fontSize: 20 }} />
-                </InputAdornment>
-              ),
-              endAdornment: searchTerm ? (
-                <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setSearchTerm("")}>
-                    <Clear sx={{ fontSize: 18, color: T.muted }} />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
+            sx={{ flex: 1, minWidth: 240, "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: T.bg } }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: T.muted, fontSize: 20 }} />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm ? (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setSearchTerm("")}>
+                      <Clear sx={{ fontSize: 18, color: T.muted }} />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              },
             }}
           />
 
@@ -260,9 +276,7 @@ const CommandesList = () => {
                   <TableCell sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.8rem" }}>Total</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.8rem" }}>Statut</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.8rem" }}>Date</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.8rem" }} align="center">
-                    Actions
-                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: T.secondary, fontSize: "0.8rem" }} align="center">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -287,12 +301,10 @@ const CommandesList = () => {
                           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                             <Avatar
                               sx={{
-                                width: 36,
-                                height: 36,
+                                width: 36, height: 36,
                                 bgcolor: alpha(T.accent, 0.1),
                                 color: T.accent,
-                                fontSize: "0.8rem",
-                                fontWeight: 600,
+                                fontSize: "0.8rem", fontWeight: 600,
                               }}
                             >
                               {cmd.client_details?.prenom?.[0]}
@@ -319,9 +331,7 @@ const CommandesList = () => {
                             label={cfg.label}
                             size="small"
                             sx={{
-                              height: 24,
-                              fontWeight: 600,
-                              fontSize: "0.72rem",
+                              height: 24, fontWeight: 600, fontSize: "0.72rem",
                               bgcolor: alpha(cfg.color, 0.12),
                               color: cfg.color,
                             }}
@@ -352,13 +362,13 @@ const CommandesList = () => {
                                   size="small"
                                   onClick={() => handleAnnuler(cmd.id)}
                                   disabled={actionLoading === cmd.id}
-                                  sx={{ color: T.danger }}
+                                  sx={{ color: T.warning }}
                                 >
                                   <Cancel fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                             )}
-                            <Tooltip title="Détails">
+                            <Tooltip title="Voir détails">
                               <IconButton
                                 size="small"
                                 onClick={() => {
@@ -368,6 +378,17 @@ const CommandesList = () => {
                                 sx={{ color: T.accent }}
                               >
                                 <Visibility fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            {/* ✅ Bouton Supprimer */}
+                            <Tooltip title="Supprimer la commande">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteClick(cmd)}
+                                disabled={actionLoading === cmd.id}
+                                sx={{ color: T.danger }}
+                              >
+                                <Delete fontSize="small" />
                               </IconButton>
                             </Tooltip>
                           </Stack>
@@ -401,8 +422,8 @@ const CommandesList = () => {
           )}
         </Paper>
 
-        {/* Modal détails */}
-        <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 2.5 } }}>
+        {/* ===== Modal détails commande ===== */}
+        <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth="md" fullWidth SlotProps={{ sx: { borderRadius: 2.5 } }}>
           <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${T.border}` }}>
             <Typography sx={{ fontWeight: 600 }}>Commande #{selectedCommande?.id}</Typography>
             <IconButton onClick={() => setModalOpen(false)} size="small">
@@ -444,13 +465,8 @@ const CommandesList = () => {
                     <Box
                       key={l.id}
                       sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 2,
-                        mb: 1.5,
-                        p: 1.5,
-                        border: `1px solid ${T.border}`,
-                        borderRadius: 2,
+                        display: "flex", alignItems: "center", gap: 2, mb: 1.5,
+                        p: 1.5, border: `1px solid ${T.border}`, borderRadius: 2,
                       }}
                     >
                       {l.produit_image ? (
@@ -487,14 +503,51 @@ const CommandesList = () => {
               onClick={() => setModalOpen(false)}
               variant="contained"
               sx={{
-                bgcolor: T.primary,
-                textTransform: "none",
-                borderRadius: 2,
-                boxShadow: "none",
-                "&:hover": { bgcolor: "#1E293B", boxShadow: "none" },
+                bgcolor: T.primary, textTransform: "none", borderRadius: 2,
+                boxShadow: "none", "&:hover": { bgcolor: "#1E293B", boxShadow: "none" },
               }}
             >
               Fermer
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* ===== Dialog de confirmation de suppression ===== */}
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} SlotProps={{ sx: { borderRadius: 2.5 } }}>
+          <DialogTitle sx={{ fontWeight: 600, color: T.primary, display: "flex", alignItems: "center", gap: 1 }}>
+            <Warning sx={{ color: T.danger }} />
+            Confirmer la suppression
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ color: T.secondary }}>
+              Êtes-vous sûr de vouloir supprimer la commande <strong>#{commandeToDelete?.id}</strong> ?
+              <br /><br />
+              Client : <strong>{commandeToDelete?.client_details?.prenom} {commandeToDelete?.client_details?.nom}</strong>
+              <br />
+              Total : <strong>{formatPrice(commandeToDelete?.total)}</strong>
+              <br /><br />
+              ⚠️ Cette action est <strong>irréversible</strong>.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2.5 }}>
+            <Button
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleting}
+              sx={{ textTransform: "none", color: T.muted }}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleDeleteConfirm}
+              variant="contained"
+              disabled={deleting}
+              startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <Delete />}
+              sx={{
+                bgcolor: T.danger, textTransform: "none", borderRadius: 2,
+                boxShadow: "none", "&:hover": { bgcolor: "#B91C1C", boxShadow: "none" },
+              }}
+            >
+              {deleting ? "Suppression..." : "Supprimer"}
             </Button>
           </DialogActions>
         </Dialog>

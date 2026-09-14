@@ -152,6 +152,24 @@ getParticipantsEvenements: async (params = {}) => {
       throw error;
     }
   },
+  deleteInscription: async (id) => {
+  try {
+    const response = await api.delete(`/admin/inscriptions-formation/${id}/`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Erreur deleteInscription:", error);
+    throw error;
+  }
+},
+deleteCommande: async (id) => {
+  try {
+    const response = await api.delete(`/admin/commandes/${id}/`);
+    return response.data;
+  } catch (error) {
+    console.error(`❌ Erreur deleteCommande(${id}):`, error);
+    throw error;
+  }
+},
 
   // =============================================
   // FORMATIONS

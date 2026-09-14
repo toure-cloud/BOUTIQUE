@@ -44,7 +44,22 @@ const UtilisateursList = () => {
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
       <Paper sx={{ p: 2 }}>
         <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
-          <TextField size="small" placeholder="Rechercher un utilisateur..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><Search sx={{ color: '#BDBDBD' }} /></InputAdornment> }} sx={{ flexGrow: 1, maxWidth: '400px' }} />
+          <TextField
+  size="small"
+  placeholder="Rechercher un utilisateur..."
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value)}
+  slotProps={{
+    input: {
+      startAdornment: (
+        <InputAdornment position="start">
+          <Search sx={{ color: '#BDBDBD' }} />
+        </InputAdornment>
+      ),
+    },
+  }}
+  sx={{ flexGrow: 1, maxWidth: '400px' }}
+/>
           <IconButton onClick={fetchUtilisateurs}><Refresh /></IconButton>
         </Box>
         <TableContainer>

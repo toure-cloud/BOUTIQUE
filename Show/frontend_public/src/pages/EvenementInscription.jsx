@@ -12,7 +12,6 @@ import {
   CircularProgress,
   Alert,
   Breadcrumbs,
-  Divider,
   FormControl,
   InputLabel,
   Select,
@@ -30,6 +29,12 @@ import {
   ArrowForward,
 } from "@mui/icons-material";
 import { evenementService } from "../services/evenementService";
+import {
+  validateTelephone,
+  validateEmail,
+  validateNom,
+  formatTelephone,
+} from "../utils/validators";
 import heroImage from "../assets/images/tibetia.jpeg";
 
 const EvenementInscription = () => {
@@ -52,9 +57,12 @@ const EvenementInscription = () => {
   });
 
   const [formErrors, setFormErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
+  // ─── Chargement de l'événement ──────────────────────────────
   useEffect(() => {
     fetchEvenement();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchEvenement = async () => {
@@ -64,46 +72,109 @@ const EvenementInscription = () => {
       const data = await evenementService.getEvenementById(id);
       setEvenement(data);
     } catch (err) {
+      console.error("❌ Erreur chargement événement:", err);
       setError("Impossible de charger les informations de l'événement.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (formErrors[name]) {
-      setFormErrors((prev) => ({ ...prev, [name]: "" }));
+  // ─── Validation d'un champ ──────────────────────────────────
+  const validateField = (name, value) => {
+    switch (name) {
+      case "prenom":
+        return validateNom(value, "Le prénom");
+      case "nom":
+        return validateNom(value, "Le nom");
+      case "email":
+        return validateEmail(value);
+      case "telephone":
+        return validateTelephone(value);
+      case "nombre_places": {
+        if (!value || value < 1) return "Minimum 1 place";
+        if (
+          evenement?.places_restantes != null &&
+          value > evenement.places_restantes
+        ) {
+          return `Seulement ${evenement.places_restantes} place(s) restante(s)`;
+        }
+        return "";
+      }
+      case "message":
+        if (value && value.length > 500) {
+          return "Maximum 500 caractères.";
+        }
+        return "";
+      default:
+        return "";
     }
   };
 
-  const validate = () => {
-    const errors = {};
-    if (!formData.prenom.trim()) errors.prenom = "Le prénom est requis";
-    if (!formData.nom.trim()) errors.nom = "Le nom est requis";
-    if (!formData.email.trim()) {
-      errors.email = "L'email est requis";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = "Email invalide";
-    }
-    if (!formData.telephone.trim()) {
-      errors.telephone = "Le téléphone est requis";
-    }
-    if (formData.nombre_places < 1) {
-      errors.nombre_places = "Minimum 1 place";
-    }
-    if (
-      evenement?.places_restantes &&
-      formData.nombre_places > evenement.places_restantes
-    ) {
-      errors.nombre_places = `Seulement ${evenement.places_restantes} place(s) restante(s)`;
+  // ─── Changement d'un champ ──────────────────────────────────
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    let cleanValue = value;
+
+    // Nettoyage spécifique
+    if (name === "telephone") {
+      cleanValue = formatTelephone(value);
+    } else if (name === "email") {
+      cleanValue = value.trim();
+    } else if (name === "nom" || name === "prenom") {
+      // Interdire les chiffres
+      cleanValue = value.replace(/[0-9]/g, "");
+    } else if (name === "nombre_places") {
+      cleanValue = Number(value);
     }
 
+    setFormData((prev) => ({ ...prev, [name]: cleanValue }));
+
+    // Effacer l'erreur quand l'utilisateur corrige
+    if (formErrors[name]) {
+      setFormErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+
+    // Validation en temps réel si le champ a déjà été touché
+    if (touched[name]) {
+      const err = validateField(name, cleanValue);
+      setFormErrors((prev) => ({ ...prev, [name]: err }));
+    }
+  };
+
+  // ─── Blur : marquer comme touché + valider ──────────────────
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    const err = validateField(name, value);
+    setFormErrors((prev) => ({ ...prev, [name]: err }));
+  };
+
+  // ─── Validation globale avant envoi ─────────────────────────
+  const validate = () => {
+    const fields = [
+      "prenom",
+      "nom",
+      "email",
+      "telephone",
+      "nombre_places",
+      "message",
+    ];
+    const errors = {};
+    const newTouched = {};
+
+    fields.forEach((field) => {
+      newTouched[field] = true;
+      const err = validateField(field, formData[field]);
+      if (err) errors[field] = err;
+    });
+
+    setTouched(newTouched);
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
+  // ─── Soumission ─────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -112,32 +183,56 @@ const EvenementInscription = () => {
     setError(null);
 
     try {
-      await evenementService.inscrireEvenement({
-        evenement: id,
-        prenom: formData.prenom,
-        nom: formData.nom,
-        email: formData.email,
-        telephone: formData.telephone,
-        notes: formData.message || "",
-      });
+      // ✅ Normalisation des données avant envoi
+      const payload = {
+        evenement: Number(id),
+        prenom: formData.prenom.trim(),
+        nom: formData.nom.trim(),
+        email: formData.email.trim().toLowerCase(),
+        telephone: formData.telephone.replace(/\D/g, ""),
+        nombre_places: Number(formData.nombre_places),
+        notes: formData.message.trim(),
+      };
+
+      console.log("📦 Payload inscription événement:", payload);
+
+      await evenementService.inscrireEvenement(payload);
 
       setSuccess(true);
     } catch (err) {
-      console.log("=== ERREUR COMPLÈTE ===");
-      console.log(err.response?.data);
-      console.log("=======================");
+      console.error("=== ERREUR COMPLÈTE ===");
+      console.error(err.response?.data || err);
+      console.error("=======================");
 
-      setError(
-        err.response?.data?.error ||
-          err.response?.data?.detail ||
-          JSON.stringify(err.response?.data) ||
-          "Une erreur est survenue lors de l'inscription."
-      );
+      // ✅ Gestion propre des erreurs backend (400)
+      const data = err.response?.data;
+
+      if (data && typeof data === "object") {
+        // Erreurs de validation par champ
+        const backendErrors = {};
+        Object.keys(data).forEach((key) => {
+          const val = data[key];
+          backendErrors[key] = Array.isArray(val)
+            ? val[0]
+            : typeof val === "string"
+            ? val
+            : JSON.stringify(val);
+        });
+        setFormErrors((prev) => ({ ...prev, ...backendErrors }));
+        setError("Veuillez corriger les erreurs ci-dessous.");
+      } else {
+        setError(
+          data?.error ||
+            data?.detail ||
+            "Une erreur est survenue lors de l'inscription."
+        );
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
+  // ─── Utilitaires ────────────────────────────────────────────
   const formatDate = (dateString) => {
     if (!dateString) return "Date à confirmer";
     const date = new Date(dateString);
@@ -166,8 +261,16 @@ const EvenementInscription = () => {
       <Box sx={{ bgcolor: "#F8FAFC", minHeight: "100vh", py: 8 }}>
         <Container maxWidth="md">
           <Skeleton width="40%" height={28} sx={{ mb: 4 }} />
-          <Skeleton variant="rectangular" height={140} sx={{ borderRadius: 3, mb: 4 }} />
-          <Skeleton variant="rectangular" height={480} sx={{ borderRadius: 3 }} />
+          <Skeleton
+            variant="rectangular"
+            height={140}
+            sx={{ borderRadius: 3, mb: 4 }}
+          />
+          <Skeleton
+            variant="rectangular"
+            height={480}
+            sx={{ borderRadius: 3 }}
+          />
         </Container>
       </Box>
     );
@@ -175,7 +278,14 @@ const EvenementInscription = () => {
 
   if (error && !evenement) {
     return (
-      <Box sx={{ bgcolor: "#F8FAFC", minHeight: "100vh", display: "flex", alignItems: "center" }}>
+      <Box
+        sx={{
+          bgcolor: "#F8FAFC",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
         <Container maxWidth="sm">
           <Alert
             severity="error"
@@ -251,12 +361,20 @@ const EvenementInscription = () => {
             </Typography>
 
             <Typography sx={{ color: "#64748B", mb: 4, lineHeight: 1.7 }}>
-              Votre place pour <strong>{evenement.titre}</strong> est bien réservée.
+              Votre place pour <strong>{evenement.titre}</strong> est bien
+              réservée.
               <br />
               Vous allez recevoir un email de confirmation.
             </Typography>
 
-            <Box sx={{ display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap" }}>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                justifyContent: "center",
+                flexWrap: "wrap",
+              }}
+            >
               <Button
                 variant="contained"
                 onClick={() => navigate("/evenements")}
@@ -304,22 +422,39 @@ const EvenementInscription = () => {
             separator={<NavigateNext sx={{ fontSize: 14, color: "#94A3B8" }} />}
             sx={{ mb: 2 }}
           >
-            <Link to="/" style={{ textDecoration: "none", color: "#64748B", fontSize: "0.82rem" }}>
+            <Link
+              to="/"
+              style={{
+                textDecoration: "none",
+                color: "#64748B",
+                fontSize: "0.82rem",
+              }}
+            >
               Accueil
             </Link>
             <Link
               to="/evenements"
-              style={{ textDecoration: "none", color: "#64748B", fontSize: "0.82rem" }}
+              style={{
+                textDecoration: "none",
+                color: "#64748B",
+                fontSize: "0.82rem",
+              }}
             >
               Événements
             </Link>
             <Link
               to={`/evenements/${id}`}
-              style={{ textDecoration: "none", color: "#64748B", fontSize: "0.82rem" }}
+              style={{
+                textDecoration: "none",
+                color: "#64748B",
+                fontSize: "0.82rem",
+              }}
             >
               {evenement.titre}
             </Link>
-            <Typography sx={{ color: "#0F172A", fontWeight: 500, fontSize: "0.82rem" }}>
+            <Typography
+              sx={{ color: "#0F172A", fontWeight: 500, fontSize: "0.82rem" }}
+            >
               Inscription
             </Typography>
           </Breadcrumbs>
@@ -388,6 +523,10 @@ const EvenementInscription = () => {
               component="img"
               src={evenement.image_url || heroImage}
               alt={evenement.titre}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = heroImage;
+              }}
               sx={{
                 width: "100%",
                 height: "100%",
@@ -396,7 +535,15 @@ const EvenementInscription = () => {
             />
           </Box>
 
-          <Box sx={{ p: 3, flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <Box
+            sx={{
+              p: 3,
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+            }}
+          >
             <Typography
               sx={{
                 fontSize: "1.15rem",
@@ -469,18 +616,22 @@ const EvenementInscription = () => {
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleSubmit}>
+          <Box component="form" onSubmit={handleSubmit} noValidate>
             <Grid container spacing={2.5}>
-              <Grid item xs={12} sm={6}>
+              {/* Prénom */}
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
-                  label="Prénom"
+                  label="Prénom *"
                   name="prenom"
                   value={formData.prenom}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   error={!!formErrors.prenom}
-                  helperText={formErrors.prenom}
+                  helperText={formErrors.prenom || " "}
                   disabled={!canRegister || submitting}
+                  inputProps={{ maxLength: 50 }}
+                  autoComplete="given-name"
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       borderRadius: 2,
@@ -490,16 +641,20 @@ const EvenementInscription = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              {/* Nom */}
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
-                  label="Nom"
+                  label="Nom *"
                   name="nom"
                   value={formData.nom}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   error={!!formErrors.nom}
-                  helperText={formErrors.nom}
+                  helperText={formErrors.nom || " "}
                   disabled={!canRegister || submitting}
+                  inputProps={{ maxLength: 50 }}
+                  autoComplete="family-name"
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       borderRadius: 2,
@@ -509,17 +664,21 @@ const EvenementInscription = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              {/* Email */}
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
-                  label="Email"
+                  label="Email *"
                   name="email"
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   error={!!formErrors.email}
-                  helperText={formErrors.email}
+                  helperText={formErrors.email || " "}
                   disabled={!canRegister || submitting}
+                  inputProps={{ maxLength: 254 }}
+                  autoComplete="email"
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       borderRadius: 2,
@@ -529,16 +688,42 @@ const EvenementInscription = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              {/* Téléphone */}
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
-                  label="Téléphone"
+                  label="Téléphone *"
                   name="telephone"
                   value={formData.telephone}
                   onChange={handleChange}
+                  onBlur={handleBlur}
+                  onKeyDown={(e) => {
+                    const allowed = [
+                      "Backspace",
+                      "Delete",
+                      "Tab",
+                      "ArrowLeft",
+                      "ArrowRight",
+                      "Home",
+                      "End",
+                    ];
+                    if (
+                      !/^\d$/.test(e.key) &&
+                      !allowed.includes(e.key) &&
+                      !e.ctrlKey &&
+                      !e.metaKey
+                    ) {
+                      e.preventDefault();
+                    }
+                  }}
                   error={!!formErrors.telephone}
-                  helperText={formErrors.telephone}
+                  helperText={formErrors.telephone || "Format : 07 09 87 14 79"}
                   disabled={!canRegister || submitting}
+                  inputProps={{
+                    inputMode: "tel",
+                    maxLength: 14,
+                  }}
+                  autoComplete="tel"
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       borderRadius: 2,
@@ -548,13 +733,16 @@ const EvenementInscription = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              {/* Nombre de places */}
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <FormControl fullWidth error={!!formErrors.nombre_places}>
-                  <InputLabel>Nombre de places</InputLabel>
+                  <InputLabel id="places-label">Nombre de places</InputLabel>
                   <Select
+                    labelId="places-label"
                     name="nombre_places"
                     value={formData.nombre_places}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     label="Nombre de places"
                     disabled={!canRegister || submitting}
                     sx={{
@@ -567,7 +755,8 @@ const EvenementInscription = () => {
                         key={n}
                         value={n}
                         disabled={
-                          evenement.places_restantes && n > evenement.places_restantes
+                          evenement.places_restantes != null &&
+                          n > evenement.places_restantes
                         }
                       >
                         {n} place{n > 1 ? "s" : ""}
@@ -575,24 +764,36 @@ const EvenementInscription = () => {
                     ))}
                   </Select>
                   {formErrors.nombre_places && (
-                    <Typography variant="caption" color="error" sx={{ mt: 0.6, ml: 1.5 }}>
+                    <Typography
+                      variant="caption"
+                      color="error"
+                      sx={{ mt: 0.6, ml: 1.5 }}
+                    >
                       {formErrors.nombre_places}
                     </Typography>
                   )}
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12}>
+              {/* Message */}
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Message (optionnel)"
                   name="message"
                   value={formData.message}
                   onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={!!formErrors.message}
+                  helperText={
+                    formErrors.message ||
+                    `${formData.message.length}/500 caractères`
+                  }
                   multiline
                   rows={3}
                   disabled={!canRegister || submitting}
                   placeholder="Une question ou une information particulière ?"
+                  inputProps={{ maxLength: 500 }}
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       borderRadius: 2,
@@ -619,9 +820,12 @@ const EvenementInscription = () => {
                 }}
               >
                 <Typography sx={{ color: "#475569", fontSize: "0.95rem" }}>
-                  Total ({formData.nombre_places} place{formData.nombre_places > 1 ? "s" : ""})
+                  Total ({formData.nombre_places} place
+                  {formData.nombre_places > 1 ? "s" : ""})
                 </Typography>
-                <Typography sx={{ fontWeight: 700, fontSize: "1.2rem", color: "#0F172A" }}>
+                <Typography
+                  sx={{ fontWeight: 700, fontSize: "1.2rem", color: "#0F172A" }}
+                >
                   {formatPrice(evenement.prix * formData.nombre_places)}
                 </Typography>
               </Box>
@@ -634,7 +838,11 @@ const EvenementInscription = () => {
                 fullWidth
                 disabled={!canRegister || submitting}
                 startIcon={
-                  submitting ? <CircularProgress size={18} color="inherit" /> : <Event />
+                  submitting ? (
+                    <CircularProgress size={18} color="inherit" />
+                  ) : (
+                    <Event />
+                  )
                 }
                 endIcon={!submitting && canRegister ? <ArrowForward /> : null}
                 sx={{

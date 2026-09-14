@@ -6,7 +6,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
-import InscriptionsRelooking from './pages/Admin/Relookings/InscriptionsRelooking';
+import InscriptionsRelooking from "./pages/Admin/Relookings/InscriptionsRelooking";
 import NouveauProduit from "./pages/Admin/Produits/NouveauProduit";
 import NouvelEvenement from "./pages/Admin/Evenements/NouvelEvenement";
 import NouvelleFormation from "./pages/Admin/Formations/NouvelleFormation";
@@ -96,7 +96,10 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-<Route path="/admin/inscriptions-relooking" element={<InscriptionsRelooking />} />
+          <Route
+            path="/admin/inscriptions-relooking"
+            element={<InscriptionsRelooking />}
+          />
           <Route
             path="/admin/inscriptions-formations"
             element={

@@ -382,7 +382,7 @@ const NouvelleFormation = () => {
                       error={!!error?.date_live}
                       helperText={error?.date_live}
                       size="small"
-                      InputLabelProps={{ shrink: true }}
+                      SlotProps={{ shrink: true }}
                       sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
                       InputProps={{
                         startAdornment: (
@@ -419,7 +419,7 @@ const NouvelleFormation = () => {
                   helperText={error?.titre}
                   size="small"
                   sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                  InputProps={{
+                  SlotProps={{
                     startAdornment: (
                       <InputAdornment position="start">
                         <VideoLibrary sx={{ color: T.muted, fontSize: 18 }} />
@@ -475,7 +475,7 @@ const NouvelleFormation = () => {
                   helperText={error?.prix}
                   size="small"
                   sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                  InputProps={{
+                  SlotProps={{
                     startAdornment: (
                       <InputAdornment position="start">
                         <AttachMoney sx={{ color: T.muted, fontSize: 18 }} />
@@ -518,7 +518,7 @@ const NouvelleFormation = () => {
                   placeholder="https://vimeo.com/... ou https://youtube.com/..."
                   size="small"
                   sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                  InputProps={{
+                  SlotProps={{
                     startAdornment: (
                       <InputAdornment position="start">
                         <LinkIcon sx={{ color: T.muted, fontSize: 18 }} />
@@ -528,7 +528,7 @@ const NouvelleFormation = () => {
                 />
               </Grid>
 
-              {/* URL Replay */}
+              
               {(formData.statut === "REPLAY" || formData.statut === "TERMINE") && (
                 <Grid item xs={12}>
                   <TextField

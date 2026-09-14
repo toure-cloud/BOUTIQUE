@@ -235,7 +235,7 @@ const FormationsList = () => {
               minWidth: 240,
               "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: T.bg },
             }}
-            InputProps={{
+            SlotProps={{
               startAdornment: (
                 <InputAdornment position="start">
                   <Search sx={{ color: T.muted, fontSize: 20 }} />
@@ -420,7 +420,7 @@ const FormationsList = () => {
         </Paper>
 
         {/* Dialog suppression */}
-        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} PaperProps={{ sx: { borderRadius: 2.5 } }}>
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} SlotProps={{ sx: { borderRadius: 2.5 } }}>
           <DialogTitle sx={{ fontWeight: 600, color: T.primary }}>Confirmer la suppression</DialogTitle>
           <DialogContent>
             <DialogContentText sx={{ color: T.secondary }}>

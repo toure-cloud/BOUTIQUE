@@ -604,7 +604,7 @@ const NouvelEvenement = () => {
                     ),
                   },
                 }}
-                InputLabelProps={{ shrink: true }}
+                SlotProps={{ shrink: true }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: '12px',
@@ -633,7 +633,7 @@ const NouvelEvenement = () => {
                     ),
                   },
                 }}
-                InputLabelProps={{ shrink: true }}
+                SlotProps={{ shrink: true }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: '12px',

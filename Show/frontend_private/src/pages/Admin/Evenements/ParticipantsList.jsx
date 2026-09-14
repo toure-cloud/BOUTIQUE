@@ -614,7 +614,7 @@ const ParticipantsList = () => {
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
-        PaperProps={{ sx: { borderRadius: '16px', p: 1 } }}
+        SlotProps={{ sx: { borderRadius: '16px', p: 1 } }}
       >
         <DialogTitle sx={{ fontWeight: 700, color: '#2C2C2C' }}>
           Confirmer la suppression

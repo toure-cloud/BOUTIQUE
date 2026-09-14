@@ -11,7 +11,6 @@ import {
   CardMedia,
   Button,
   Chip,
-  CircularProgress,
   Alert,
   TextField,
   InputAdornment,
@@ -36,6 +35,7 @@ import {
   Clear,
 } from '@mui/icons-material';
 import { formationService } from '../services/formationService';
+import { getMediaUrl } from '../utils/media';
 import heroImage from '../assets/images/tibetia.jpeg';
 
 const Formations = () => {
@@ -56,6 +56,7 @@ const Formations = () => {
 
   useEffect(() => {
     fetchFormations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, filterStatut]);
 
   const fetchFormations = async () => {
@@ -67,10 +68,10 @@ const Formations = () => {
         page_size: 9,
       };
       if (filterStatut) params.statut = filterStatut;
-      
+
       const data = await formationService.getFormations(params);
       console.log('📋 Formations reçues:', data);
-      
+
       const formationsList = data.results || data || [];
       setFormations(formationsList);
       setTotalPages(Math.ceil((data.count || formationsList.length || 0) / 9));
@@ -84,9 +85,10 @@ const Formations = () => {
 
   const handleSearch = () => {
     if (searchTerm.trim()) {
-      const filtered = formations.filter(f => 
-        f.titre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      const filtered = formations.filter(
+        (f) =>
+          f.titre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          f.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFormations(filtered);
     } else {
@@ -94,16 +96,21 @@ const Formations = () => {
     }
   };
 
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    fetchFormations();
+  };
+
   const getStatutChip = (statut) => {
-    const config = statuts.find(s => s.value === statut);
+    const config = statuts.find((s) => s.value === statut);
     if (!config) return <Chip label={statut} size="small" />;
-    
+
     let icon = null;
     if (statut === 'LIVE') icon = <PlayArrow sx={{ fontSize: 14 }} />;
     else if (statut === 'REPLAY') icon = <Replay sx={{ fontSize: 14 }} />;
     else if (statut === 'PROGRAMME') icon = <Schedule sx={{ fontSize: 14 }} />;
     else if (statut === 'TERMINE') icon = <CheckCircle sx={{ fontSize: 14 }} />;
-    
+
     return (
       <Chip
         icon={icon}
@@ -138,14 +145,18 @@ const Formations = () => {
           </Box>
           <Grid container spacing={3}>
             {[1, 2, 3, 4, 5, 6].map((item) => (
-              <Grid item xs={12} sm={6} md={4} key={item}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item}>
                 <Card sx={{ borderRadius: '16px' }}>
                   <Skeleton variant="rectangular" height={200} />
                   <CardContent>
                     <Skeleton variant="text" width="60%" />
                     <Skeleton variant="text" width="80%" />
                     <Skeleton variant="text" width="40%" />
-                    <Skeleton variant="rectangular" height={36} sx={{ mt: 2, borderRadius: '50px' }} />
+                    <Skeleton
+                      variant="rectangular"
+                      height={36}
+                      sx={{ mt: 2, borderRadius: '50px' }}
+                    />
                   </CardContent>
                 </Card>
               </Grid>
@@ -160,8 +171,8 @@ const Formations = () => {
     return (
       <Box sx={{ bgcolor: '#F5F7F5', minHeight: '100vh', py: 6 }}>
         <Container maxWidth="lg">
-          <Alert 
-            severity="error" 
+          <Alert
+            severity="error"
             sx={{ borderRadius: '12px' }}
             action={
               <Button color="inherit" size="small" onClick={fetchFormations}>
@@ -248,36 +259,41 @@ const Formations = () => {
               placeholder="Rechercher une formation..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ color: '#94A3B8' }} />
-                  </InputAdornment>
-                ),
-                endAdornment: searchTerm && (
-                  <InputAdornment position="end">
-                    <Button size="small" onClick={() => setSearchTerm('')}>
-                      <Clear sx={{ fontSize: 16 }} />
-                    </Button>
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search sx={{ color: '#94A3B8' }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm ? (
+                    <InputAdornment position="end">
+                      <Button size="small" onClick={handleClearSearch}>
+                        <Clear sx={{ fontSize: 16 }} />
+                      </Button>
+                    </InputAdornment>
+                  ) : null,
+                },
               }}
             />
           </Box>
 
           <Box sx={{ minWidth: 150 }}>
             <FormControl fullWidth size="small">
-              <InputLabel>Statut</InputLabel>
+              <InputLabel id="statut-label">Statut</InputLabel>
               <Select
+                labelId="statut-label"
                 value={filterStatut}
                 onChange={(e) => setFilterStatut(e.target.value)}
                 label="Statut"
               >
                 <MenuItem value="">Tous</MenuItem>
                 {statuts.map((s) => (
-                  <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>
+                  <MenuItem key={s.value} value={s.value}>
+                    {s.label}
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -309,13 +325,15 @@ const Formations = () => {
               Aucune formation trouvée
             </Typography>
             <Typography variant="body2" sx={{ color: '#666666' }}>
-              {searchTerm || filterStatut ? 'Essayez de modifier vos filtres' : 'Revenez plus tard'}
+              {searchTerm || filterStatut
+                ? 'Essayez de modifier vos filtres'
+                : 'Revenez plus tard'}
             </Typography>
           </Paper>
         ) : (
           <Grid container spacing={3}>
             {formations.map((formation) => (
-              <Grid item xs={12} sm={6} md={4} key={formation.id}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={formation.id}>
                 <Card
                   sx={{
                     borderRadius: '16px',
@@ -342,8 +360,12 @@ const Formations = () => {
                   <CardMedia
                     component="img"
                     height={200}
-                    image={formation.image ? `${import.meta.env.VITE_MEDIA_URL}${formation.image}` : heroImage}
+                    image={getMediaUrl(formation.image) || heroImage}
                     alt={formation.titre}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = heroImage;
+                    }}
                     sx={{ objectFit: 'cover' }}
                   />
 
@@ -386,13 +408,19 @@ const Formations = () => {
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8, mb: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <AttachMoney sx={{ fontSize: 16, color: '#2E7D32' }} />
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#1A1A1A' }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 600, color: '#1A1A1A' }}
+                        >
                           {formatPrice(formation.prix)}
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <AccessTime sx={{ fontSize: 16, color: '#2E7D32' }} />
-                        <Typography variant="body2" sx={{ color: '#666666', fontSize: '0.85rem' }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ color: '#666666', fontSize: '0.85rem' }}
+                        >
                           {formation.duree || 'Durée non spécifiée'}
                         </Typography>
                       </Box>

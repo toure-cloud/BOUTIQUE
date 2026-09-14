@@ -1,6 +1,14 @@
-# api/views.py
 from urllib import request
-
+import re
+import traceback
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.response import Response
+from .models import ParticipationEvenement, Client, Evenement
+from .serializers import ParticipationEvenementSerializer
 from rest_framework import viewsets, status
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
@@ -22,7 +30,6 @@ from datetime import datetime, timedelta
 import random
 import json
 import string
-
 from .models import (
     FormationEnLigne,InscriptionRelooking,
     LigneCommande,
@@ -1123,9 +1130,63 @@ class TransactionPaiementViewSet(viewsets.ModelViewSet):
 # ✅ PARTICIPATION ÉVÉNEMENT (PUBLIC + ADMIN)
 # =============================================
 
+
+# ─── Validateurs réutilisables ──────────────────────────────────
+def valider_telephone(telephone):
+    """Retourne (valeur_normalisée, erreur)."""
+    if not telephone:
+        return None, "Le numéro de téléphone est obligatoire."
+
+    chiffres = re.sub(r'\D', '', str(telephone))
+
+    if len(chiffres) < 8:
+        return None, "Le numéro de téléphone doit contenir au moins 8 chiffres."
+    if len(chiffres) > 15:
+        return None, "Le numéro de téléphone ne doit pas dépasser 15 chiffres."
+    if not re.match(r'^0\d{9}$', chiffres):
+        return None, "Format attendu : 10 chiffres commençant par 0 (ex: 0709871479)."
+
+    return chiffres, None
+
+
+def valider_email_format(email):
+    """Retourne (valeur_normalisée, erreur)."""
+    if not email:
+        return None, "L'adresse email est obligatoire."
+
+    email = str(email).strip().lower()
+
+    if len(email) > 254:
+        return None, "L'adresse email est trop longue."
+
+    try:
+        validate_email(email)
+    except DjangoValidationError:
+        return None, "Format d'adresse email invalide."
+
+    return email, None
+
+
+def valider_nom_prenom(valeur, label="Le nom"):
+    """Retourne (valeur_normalisée, erreur)."""
+    if not valeur or not str(valeur).strip():
+        return None, f"{label} est obligatoire."
+
+    valeur = str(valeur).strip()
+
+    if len(valeur) < 2:
+        return None, f"{label} doit contenir au moins 2 caractères."
+    if len(valeur) > 50:
+        return None, f"{label} ne doit pas dépasser 50 caractères."
+    if not re.match(r"^[a-zA-ZÀ-ÿ\s\-']+$", valeur):
+        return None, f"{label} ne doit contenir que des lettres."
+
+    return valeur, None
+
+
 class ParticipationEvenementViewSet(viewsets.ModelViewSet):
     """
-    ViewSet pour les participations aux événements
+    ViewSet pour les participations aux événements.
     - CREATE : Public (AllowAny)
     - LIST, RETRIEVE, UPDATE, DELETE : Admin uniquement (IsAdminUser)
     """
@@ -1148,101 +1209,159 @@ class ParticipationEvenementViewSet(viewsets.ModelViewSet):
         if client_id:
             queryset = queryset.filter(client_id=client_id)
 
-        queryset = queryset.select_related('client', 'evenement')
-
-        return queryset.order_by('-date_inscription')
+        return queryset.select_related('client', 'evenement').order_by('-date_inscription')
 
     def create(self, request, *args, **kwargs):
         """
-        ✅ Inscription à un événement (accessible au public)
+        ✅ Inscription à un événement (accessible au public).
+        Toutes les données sont validées AVANT toute écriture en base.
         """
         try:
             data = request.data.copy()
             print(f"📦 Données reçues pour participation: {data}")
 
+            # ─── 1. Validation de l'événement ──────────────────
             evenement_id = data.get('evenement')
             if not evenement_id:
                 return Response(
-                    {'error': "L'événement est requis"},
+                    {'evenement': ["L'événement est requis."]},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
             try:
                 evenement = Evenement.objects.get(id=evenement_id)
-            except Evenement.DoesNotExist:
+            except (Evenement.DoesNotExist, ValueError, TypeError):
                 return Response(
-                    {'error': 'Événement non trouvé'},
+                    {'evenement': ["Événement non trouvé."]},
                     status=status.HTTP_404_NOT_FOUND
                 )
 
             if evenement.places_restantes <= 0:
                 return Response(
-                    {'error': 'Cet événement est complet'},
+                    {'error': "Cet événement est complet."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            email = data.get('email')
-            if not email:
-                return Response(
-                    {'error': "L'email est requis"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # ─── 2. Validation des champs ──────────────────────
+            erreurs = {}
 
-            # Récupérer ou créer le client
+            # Email
+            email, err = valider_email_format(data.get('email'))
+            if err:
+                erreurs['email'] = [err]
+
+            # Nom
+            nom, err = valider_nom_prenom(data.get('nom'), "Le nom")
+            if err:
+                erreurs['nom'] = [err]
+
+            # Prénom
+            prenom, err = valider_nom_prenom(data.get('prenom'), "Le prénom")
+            if err:
+                erreurs['prenom'] = [err]
+
+            # Téléphone
+            telephone, err = valider_telephone(data.get('telephone'))
+            if err:
+                erreurs['telephone'] = [err]
+
+            # Notes (optionnel, 500 max)
+            notes = data.get('notes') or data.get('message') or ''
+            notes = str(notes).strip()
+            if len(notes) > 500:
+                erreurs['notes'] = ["Les notes ne doivent pas dépasser 500 caractères."]
+
+            # Nombre de places (optionnel, défaut 1)
+            try:
+                nombre_places = int(data.get('nombre_places', 1))
+                if nombre_places < 1:
+                    erreurs['nombre_places'] = ["Minimum 1 place."]
+                elif nombre_places > evenement.places_restantes:
+                    erreurs['nombre_places'] = [
+                        f"Seulement {evenement.places_restantes} place(s) restante(s)."
+                    ]
+            except (ValueError, TypeError):
+                erreurs['nombre_places'] = ["Nombre de places invalide."]
+
+            # ─── 3. Si erreurs → renvoyer 400 ──────────────────
+            if erreurs:
+                print(f"❌ Erreurs de validation: {erreurs}")
+                return Response(erreurs, status=status.HTTP_400_BAD_REQUEST)
+
+            # ─── 4. Récupérer ou créer le client ───────────────
             try:
                 client = Client.objects.get(email=email)
                 print(f"✅ Client existant: {client.id}")
+
+                # Mise à jour optionnelle des infos client si elles ont changé
+                updated = False
+                if client.nom != nom:
+                    client.nom = nom
+                    updated = True
+                if client.prenom != prenom:
+                    client.prenom = prenom
+                    updated = True
+                if client.telephone != telephone:
+                    client.telephone = telephone
+                    updated = True
+                if updated:
+                    client.save()
+                    print(f"✅ Client mis à jour: {client.id}")
+
             except Client.DoesNotExist:
                 client = Client.objects.create(
-                    nom=data.get('nom', 'Client'),
-                    prenom=data.get('prenom', 'Inconnu'),
+                    nom=nom,
+                    prenom=prenom,
                     email=email,
-                    telephone=data.get('telephone', '')
+                    telephone=telephone,
                 )
                 print(f"✅ Nouveau client créé: {client.id}")
 
-            # Vérifier si déjà inscrit
+            # ─── 5. Vérifier si déjà inscrit ───────────────────
             existing = ParticipationEvenement.objects.filter(
                 evenement=evenement,
-                client=client
+                client=client,
             ).first()
 
             if existing:
                 return Response(
-                    {'error': 'Vous êtes déjà inscrit à cet événement'},
+                    {'error': "Vous êtes déjà inscrit à cet événement."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Créer la participation
+            # ─── 6. Créer la participation ─────────────────────
             participation = ParticipationEvenement.objects.create(
                 evenement=evenement,
                 client=client,
                 statut='INSCRIT',
-                notes=data.get('message') or data.get('notes') or ''
+                notes=notes,
             )
 
-            # Décrémenter les places restantes
-            evenement.places_restantes -= 1
+            # ─── 7. Décrémenter les places restantes ───────────
+            evenement.places_restantes -= nombre_places
+            if evenement.places_restantes < 0:
+                evenement.places_restantes = 0
             evenement.save()
 
             serializer = self.get_serializer(participation)
 
-            return Response({
-                'success': True,
-                'message': 'Inscription réussie',
-                'data': serializer.data,
-                'places_restantes': evenement.places_restantes,
-            }, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Inscription réussie',
+                    'data': serializer.data,
+                    'places_restantes': evenement.places_restantes,
+                },
+                status=status.HTTP_201_CREATED,
+            )
 
         except Exception as e:
             print(f"❌ Erreur inscription: {str(e)}")
-            import traceback
             traceback.print_exc()
             return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {'error': "Une erreur interne est survenue. Veuillez réessayer."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
 # =============================================
 # ✅ VIEWSETS ADMIN
 # =============================================
@@ -1305,19 +1424,24 @@ class SiteSettingsViewSet(AdminOnlyViewSet):
 # =============================================
 # ✅ COMMANDE VIEWSET
 # =============================================
-
 class CommandeViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour les commandes
     - CREATE (POST) : Public (AllowAny) - Pour passer commande
-    - LIST, RETRIEVE, UPDATE, DELETE : Admin uniquement (IsAdminUser)
+    - LIST (GET) : Public avec filtre client obligatoire (pour que le client voie SES commandes)
+    - RETRIEVE, UPDATE, DELETE : Admin uniquement (IsAdminUser)
     """
     queryset = Commande.objects.all().order_by('-date_commande')
     serializer_class = CommandeSerializer
 
     def get_permissions(self):
+        # ✅ Le public peut créer une commande
         if self.action == 'create':
             return [AllowAny()]
+        # ✅ Le public peut LIRE ses propres commandes (filtrées par client_id)
+        if self.action == 'list':
+            return [AllowAny()]
+        # ❌ Admin uniquement pour tout le reste (retrieve, update, delete)
         return [IsAdminUser()]
 
     def get_serializer_context(self):
@@ -1328,15 +1452,30 @@ class CommandeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         queryset = queryset.select_related('client').prefetch_related('lignes__produit')
+
+        # ✅ Récupérer le client_id depuis les query params
+        client_id = self.request.query_params.get('client')
         
+        # ✅ SÉCURITÉ CRITIQUE :
+        # - Si l'utilisateur est admin → il voit tout (avec filtre optionnel)
+        # - Si l'utilisateur N'EST PAS admin :
+        #     - S'il n'y a PAS de client_id → on renvoie une liste VIDE (aucune fuite)
+        #     - S'il y a un client_id → on filtre par ce client_id
+        if not self.request.user.is_staff:
+            if not client_id:
+                return Commande.objects.none()
+            queryset = queryset.filter(client_id=client_id)
+        else:
+            # Admin : filtrage optionnel
+            if client_id:
+                queryset = queryset.filter(client_id=client_id)
+
+        # Filtrage par statut (optionnel)
         statut = self.request.query_params.get('statut')
         if statut:
             queryset = queryset.filter(statut=statut)
 
-        client_id = self.request.query_params.get('client')
-        if client_id:
-            queryset = queryset.filter(client_id=client_id)
-
+        # Recherche (optionnelle)
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
@@ -1415,12 +1554,11 @@ class CommandeViewSet(viewsets.ModelViewSet):
                 produit.quantite_stock = 0
             produit.save()
 
-            # ✅ 7. ENVOYER LE SMS DE CONFIRMATION AU CLIENT
+            # 7. Envoyer le SMS de confirmation
             try:
                 envoyer_sms_confirmation(client, commande, produit, quantite, total)
             except Exception as e:
                 print(f"❌ Erreur lors de l'envoi du SMS: {str(e)}")
-                # On n'empêche pas la commande de réussir si le SMS échoue
 
             serializer = self.get_serializer(commande)
             return Response({
@@ -1437,7 +1575,6 @@ class CommandeViewSet(viewsets.ModelViewSet):
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
 
 # =============================================
 # ✅ DASHBOARD STATS

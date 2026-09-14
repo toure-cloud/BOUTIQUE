@@ -432,7 +432,7 @@ const ParticipantsEvenements = () => {
                 backgroundColor: "#FAFAFA",
               },
             }}
-            InputProps={{
+            SlotProps={{
               startAdornment: (
                 <InputAdornment position="start">
                   <Search sx={{ color: "#BBB", fontSize: 20 }} />
@@ -668,7 +668,7 @@ const ParticipantsEvenements = () => {
         onClose={() => setDetailOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
+        SlotProps={{ sx: { borderRadius: 2 } }}
       >
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>

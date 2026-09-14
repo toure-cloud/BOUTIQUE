@@ -135,7 +135,7 @@ const Login = () => {
                     setUsername(e.target.value);
                     setError(null);
                   }}
-                  InputProps={{
+                  SlotProps={{
                     startAdornment: (
                       <InputAdornment position="start">
                         <Email className="text-gray-400" />
@@ -165,7 +165,7 @@ const Login = () => {
                     setPassword(e.target.value);
                     setError(null);
                   }}
-                  InputProps={{
+                  SlotProps={{
                     startAdornment: (
                       <InputAdornment position="start">
                         <Lock className="text-gray-400" />

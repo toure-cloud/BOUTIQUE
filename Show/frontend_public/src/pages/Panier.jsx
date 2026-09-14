@@ -5,7 +5,7 @@ import {
   Container, Box, Typography, Button, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton, Alert, CircularProgress,
   Skeleton, Snackbar, Chip, Divider, Stack, Accordion, AccordionSummary,
-  AccordionDetails,
+  AccordionDetails, Avatar,
 } from "@mui/material";
 import {
   ArrowBack, Delete, ShoppingBag, Add, Remove, CheckCircle, Warning,

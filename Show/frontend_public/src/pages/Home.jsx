@@ -30,6 +30,7 @@ import {
 import { forfaitService } from '../services/forfaitService';
 import { evenementService } from '../services/evenementService';
 import { formationService } from '../services/formationService';
+import { getMediaUrl } from '../utils/media';
 import heroImage from '../assets/images/tibetia.jpeg?url';
 
 const Home = () => {
@@ -50,9 +51,15 @@ const Home = () => {
           evenementService.getEvenements({ statut: 'A_VENIR' }),
           formationService.getFormations(),
         ]);
-        const forfaitsList = Array.isArray(forfaitsData) ? forfaitsData : forfaitsData.results || [];
-        const evenementsList = Array.isArray(evenementsData) ? evenementsData : evenementsData.results || [];
-        const formationsList = Array.isArray(formationsData) ? formationsData : formationsData.results || [];
+        const forfaitsList = Array.isArray(forfaitsData)
+          ? forfaitsData
+          : forfaitsData.results || [];
+        const evenementsList = Array.isArray(evenementsData)
+          ? evenementsData
+          : evenementsData.results || [];
+        const formationsList = Array.isArray(formationsData)
+          ? formationsData
+          : formationsData.results || [];
         setForfaits(forfaitsList.slice(0, 4));
         setEvenements(evenementsList.slice(0, 3));
         setFormations(formationsList);
@@ -160,9 +167,16 @@ const Home = () => {
       return formations.map((formation) => ({
         id: formation.id,
         title: formation.titre,
-        badge: formation.est_live ? 'LIVE' : formation.est_replay ? 'REPLAY' : 'PROGRAMMÉ',
+        badge: formation.est_live
+          ? 'LIVE'
+          : formation.est_replay
+          ? 'REPLAY'
+          : 'PROGRAMMÉ',
         items: formation.description
-          ? formation.description.split('. ').filter((s) => s.length > 0).slice(0, 4)
+          ? formation.description
+              .split('. ')
+              .filter((s) => s.length > 0)
+              .slice(0, 4)
           : [],
         path: `/formations/${formation.id}`,
         est_live: formation.est_live,
@@ -204,7 +218,7 @@ const Home = () => {
         items: [
           'Comprendre le style élégant',
           'Construire 12 pièces clés',
-          "Garde-robe alignée Lifestyle",
+          'Garde-robe alignée Lifestyle',
           "Comprendre l'ajustement et la forme",
         ],
         isFormation: false,
@@ -250,6 +264,7 @@ const Home = () => {
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
+        position: 'relative',
         transition: 'all 0.25s ease',
         '&:hover': {
           transform: 'translateY(-6px)',
@@ -292,8 +307,11 @@ const Home = () => {
           item.image ? (
             <CardMedia
               component="img"
-              image={`${import.meta.env.VITE_MEDIA_URL}${item.image}`}
+              image={getMediaUrl(item.image)}
               alt={item.title}
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
               sx={{ height: '100%', width: '100%', objectFit: 'cover' }}
             />
           ) : (
@@ -387,8 +405,10 @@ const Home = () => {
               </ListItemIcon>
               <ListItemText
                 primary={point}
-                primaryTypographyProps={{
-                  sx: { color: '#475569', fontSize: '0.78rem', lineHeight: 1.35 },
+                slotProps={{
+                  primary: {
+                    sx: { color: '#475569', fontSize: '0.78rem', lineHeight: 1.35 },
+                  },
                 }}
               />
             </ListItem>
@@ -435,7 +455,13 @@ const Home = () => {
                 bgcolor: item.est_live ? '#DC2626' : '#1E293B',
               },
             }}
-            endIcon={item.est_live ? <PlayArrow sx={{ fontSize: 16 }} /> : <ArrowForward sx={{ fontSize: 16 }} />}
+            endIcon={
+              item.est_live ? (
+                <PlayArrow sx={{ fontSize: 16 }} />
+              ) : (
+                <ArrowForward sx={{ fontSize: 16 }} />
+              )
+            }
           >
             {item.est_live ? 'Rejoindre' : 'Détails'}
           </Button>
@@ -652,7 +678,6 @@ const Home = () => {
             SOYEZ LA BIENVENUE
           </Typography>
 
-          {/* Lien forfait désactivé → redirige vers formations */}
           <Button
             component={Link}
             to="/formations"
@@ -950,7 +975,7 @@ const Home = () => {
 
           <Grid container spacing={3}>
             {evenements.map((evenement) => (
-              <Grid item xs={12} sm={6} md={4} key={evenement.id}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={evenement.id}>
                 <Card
                   elevation={0}
                   sx={{
@@ -971,8 +996,11 @@ const Home = () => {
                     <CardMedia
                       component="img"
                       height="200"
-                      image={`${import.meta.env.VITE_MEDIA_URL}${evenement.image}`}
+                      image={getMediaUrl(evenement.image)}
                       alt={evenement.titre}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
                       sx={{ objectFit: 'cover' }}
                     />
                   )}
@@ -1009,7 +1037,13 @@ const Home = () => {
                     <Typography sx={{ color: '#64748B', fontSize: '0.9rem', mb: 2.5 }}>
                       📍 {evenement.lieu}
                     </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
                       <Typography sx={{ color: '#94A3B8', fontSize: '0.82rem' }}>
                         Places : {evenement.places_restantes}/{evenement.places_total}
                       </Typography>
