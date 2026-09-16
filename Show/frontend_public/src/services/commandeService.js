@@ -1,5 +1,6 @@
-// frontend_public/src/services/commandeService.js
+// src/services/commandeService.js
 import api from './api';
+import { logger } from '../lib/logger';
 
 export const commandeService = {
   creerCommande: async (commandeData) => {
@@ -7,27 +8,31 @@ export const commandeService = {
       const response = await api.post('/commandes/', commandeData);
       return response.data;
     } catch (error) {
-      console.error('❌ Erreur création commande:', error);
+      logger.warn('Erreur création commande, status:', error.response?.status);
       throw error;
     }
   },
-    // ✅ Récupérer les commandes d'un client
-  getCommandesClient: async (clientId) => {
+
+  // ✅ Le backend filtre automatiquement via X-Client-Token
+  getCommandesClient: async () => {
     try {
-      const response = await api.get(`/commandes/?client=${clientId}`);
+      const response = await api.get('/commandes/');
       return response.data;
     } catch (error) {
-      console.error('❌ Erreur getCommandesClient:', error);
+      logger.warn('Erreur getCommandesClient, status:', error.response?.status);
       throw error;
     }
   },
+
   getCommandeById: async (commandeId) => {
     try {
       const response = await api.get(`/commandes/${commandeId}/`);
       return response.data;
     } catch (error) {
-      console.error('❌ Erreur getCommandeById:', error);
+      logger.warn(`Erreur getCommandeById(${commandeId}), status:`, error.response?.status);
       throw error;
     }
   },
 };
+
+export default commandeService;

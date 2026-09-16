@@ -1,3 +1,4 @@
+import { logger } from '../../../lib/logger';
 // src/pages/Admin/Evenements/InscriptionsList.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -139,7 +140,7 @@ const InscriptionsList = () => {
       };
       setStats(statsData);
     } catch (err) {
-      console.error('Erreur:', err);
+      logger.error('Erreur:', err);
       setError('Impossible de charger les inscriptions');
     } finally {
       setLoading(false);

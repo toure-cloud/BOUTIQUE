@@ -1,3 +1,4 @@
+import { logger } from '../../../lib/logger';
 // src/pages/Admin/Evenements/EvenementsList.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -95,7 +96,7 @@ const EvenementsList = () => {
       setEvenements(eventsList);
       setFilteredEvents(eventsList);
     } catch (err) {
-      console.error("❌ Erreur:", err);
+      logger.error("❌ Erreur:", err);
       setError("Impossible de charger les événements");
     } finally {
       setLoading(false);
@@ -151,7 +152,7 @@ const EvenementsList = () => {
       });
       fetchEvenements();
     } catch (err) {
-      console.error("❌ Erreur suppression:", err);
+      logger.error("❌ Erreur suppression:", err);
       setSnackbar({
         open: true,
         message: "❌ Erreur lors de la suppression",

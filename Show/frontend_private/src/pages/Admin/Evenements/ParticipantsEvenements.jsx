@@ -1,3 +1,4 @@
+import { logger } from '../../../lib/logger';
 // src/pages/Admin/Evenements/ParticipantsEvenements.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -119,7 +120,7 @@ const ParticipantsEvenements = () => {
       setParticipants(normalized);
       setFilteredParticipants(normalized);
     } catch (err) {
-      console.error("❌ Erreur chargement participants:", err);
+      logger.error("❌ Erreur chargement participants:", err);
       setError("Impossible de charger les participants");
       setSnackbar({
         open: true,
@@ -220,7 +221,7 @@ const ParticipantsEvenements = () => {
       setDeleteOpen(false);
       setSelectedParticipant(null);
     } catch (err) {
-      console.error("Erreur suppression:", err);
+      logger.error("Erreur suppression:", err);
       setSnackbar({
         open: true,
         message: "Erreur lors de la suppression",

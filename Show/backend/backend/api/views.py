@@ -1,110 +1,155 @@
-from urllib import request
+# api/views.py
+
+# =============================================
+# ✅ IMPORTS (nettoyés, sans doublons)
+# =============================================
+import base64
+import json
+import random
 import re
+import secrets
+import string
 import traceback
-from django.core.validators import validate_email
-from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAdminUser
-from rest_framework.response import Response
-from .models import ParticipationEvenement, Client, Evenement
-from .serializers import ParticipationEvenementSerializer
-from rest_framework import viewsets, status
-from rest_framework.permissions import AllowAny, IsAdminUser
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from django.db.models import Q, Sum
-from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from django.utils import timezone
-from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
+from datetime import datetime, timedelta
+from io import BytesIO
+
+import qrcode
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from .utils import envoyer_sms_confirmation
-import base64
-import qrcode
-from io import BytesIO
-from datetime import datetime, timedelta
-import random
-import json
-import string
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import validate_email
+from django.db.models import Q, Sum
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from .models import (
-    FormationEnLigne,InscriptionRelooking,
-    LigneCommande,
+    AdminLog,
+    Actualite,
+    AvisProduit,
+    Client,
+    Coach,
+    CodeAccesFormation,
+    Commande,
+    ContactMessage,
     Evenement,
-    Produit,
+    FAQ,
     Forfait,
+    FormationEnLigne,
+    InscriptionFormation,
+    InscriptionRelooking,
+    LigneCommande,
+    LignePanier,
+    MoyenPaiement,
+    Notification,
+    Panier,
+    ParticipationEvenement,
+    Produit,
+    Promotion,
+    RendezVous,
+    RubriqueAtelier,
     RubriqueRelookingFemme,
     RubriqueRelookingHomme,
-    RubriqueAtelier,
-    Coach,
-    Actualite,
-    FAQ,
-    Client,
-    RendezVous,
-    ParticipationEvenement,
-    Panier,
-    Commande,
-    CodeAccesFormation,
-    InscriptionFormation,
-    MoyenPaiement,
-    TransactionPaiement,
-    AvisProduit,
-    Promotion,
-    Wishlist,
-    ContactMessage,
-    Notification,
-    AdminLog,
     SiteSettings,
-    LignePanier,  # ✅ Ajouté
+    TransactionPaiement,
+    Wishlist,
 )
 from .serializers import (
-    FormationEnLigneSerializer,
+    ActualiteSerializer,
+    AdminLogSerializer,
+    AvisProduitSerializer,
+    ClientLoginSerializer,
+    ClientRegisterSerializer,
+    ClientSerializer,
+    CoachSerializer,
+    CodeAccesFormationSerializer,
+    CommandeSerializer,
+    ContactMessageSerializer,
     EvenementSerializer,
-    ProduitSerializer,
+    FAQSerializer,
     ForfaitSerializer,
+    FormationEnLigneSerializer,
+    InscriptionFormationSerializer,
+    InscriptionRelookingSerializer,
+    LignePanierSerializer,
+    MoyenPaiementSerializer,
+    NotificationSerializer,
+    PanierSerializer,
+    ParticipationEvenementSerializer,
+    ProduitSerializer,
+    PromotionSerializer,
+    RendezVousSerializer,
+    RubriqueAtelierSerializer,
     RubriqueRelookingFemmeSerializer,
     RubriqueRelookingHommeSerializer,
-    RubriqueAtelierSerializer,
-    CoachSerializer,
-    ActualiteSerializer,
-    FAQSerializer,
-    ClientSerializer,
-    RendezVousSerializer,
-    ParticipationEvenementSerializer,
-    PanierSerializer,
-    CommandeSerializer,
-    CodeAccesFormationSerializer,
-    InscriptionFormationSerializer,
-    MoyenPaiementSerializer,
-    TransactionPaiementSerializer,
-    AvisProduitSerializer,
-    PromotionSerializer,
-    WishlistSerializer,
-    ContactMessageSerializer,
-    NotificationSerializer,
-    AdminLogSerializer,
     SiteSettingsSerializer,
-    # ✅ Nouveaux serializers pour l'authentification client
-    ClientRegisterSerializer,
-    ClientLoginSerializer,InscriptionRelooking,InscriptionRelookingSerializer,
-    LignePanierSerializer,
+    TransactionPaiementSerializer,
+    WishlistSerializer,
 )
+from .utils import envoyer_sms_confirmation
 
 
 # =============================================
-# ✅ VUES JWT POUR L'AUTHENTIFICATION
+# ✅ HELPERS D'AUTHENTIFICATION CLIENT
+# =============================================
+# Ton modèle Client n'a pas de FK vers User, donc on utilise un système
+# de token simple stocké sur le client. À adapter si tu ajoutes un FK.
+
+def get_client_from_request(request):
+    """
+    Récupère le Client authentifié à partir du header X-Client-Token.
+    Retourne None si absent ou invalide.
+    """
+    token = request.headers.get('X-Client-Token') or request.META.get('HTTP_X_CLIENT_TOKEN')
+    if not token:
+        return None
+    try:
+        return Client.objects.get(api_token=token, api_token_active=True)
+    except Client.DoesNotExist:
+        return None
+
+
+def require_client(request, client_id):
+    """
+    Vérifie que le client authentifié correspond au client_id demandé.
+    Retourne (client, error_response).
+    """
+    client = get_client_from_request(request)
+    if client is None:
+        return None, Response(
+            {'error': 'Authentification client requise.'},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+    if str(client.id) != str(client_id):
+        return None, Response(
+            {'error': 'Accès refusé à ce client.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    return client, None
+
+
+# =============================================
+# ✅ VUES JWT POUR L'AUTHENTIFICATION ADMIN/STAFF
 # =============================================
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CustomTokenObtainView(APIView):
     """
-    Vue pour obtenir un token JWT
-    CSRF exempté UNIQUEMENT pour cette vue
+    Vue pour obtenir un token JWT (admin/staff).
+    CSRF exempté car l'auth est basée sur JWT (pas de session).
     """
     permission_classes = [AllowAny]
+    authentication_classes = []  # Pas d'auth requise pour se connecter
 
     def post(self, request):
         try:
@@ -118,51 +163,52 @@ class CustomTokenObtainView(APIView):
 
             if not username or not password:
                 return Response(
-                    {'error': 'Nom d\'utilisateur et mot de passe requis'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    {'error': "Nom d'utilisateur et mot de passe requis"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             user = authenticate(username=username, password=password)
 
-            if user is not None:
-                refresh = RefreshToken.for_user(user)
-                return Response({
-                    'access': str(refresh.access_token),
-                    'refresh': str(refresh),
-                    'user': {
-                        'id': user.id,
-                        'username': user.username,
-                        'email': user.email,
-                        'first_name': user.first_name,
-                        'last_name': user.last_name,
-                        'is_staff': user.is_staff,
-                        'is_superuser': user.is_superuser,
-                    }
-                })
-            else:
+            if user is None:
                 return Response(
                     {'error': 'Identifiants incorrects'},
-                    status=status.HTTP_401_UNAUTHORIZED
+                    status=status.HTTP_401_UNAUTHORIZED,
                 )
+
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'is_staff': user.is_staff,
+                    'is_superuser': user.is_superuser,
+                },
+            })
+
         except json.JSONDecodeError:
             return Response(
                 {'error': 'Format JSON invalide'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception as e:
             return Response(
                 {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CustomTokenRefreshView(APIView):
     """
-    Vue pour rafraîchir le token JWT
-    CSRF exempté UNIQUEMENT pour cette vue
+    Rafraîchit un token JWT.
     """
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         try:
@@ -172,283 +218,310 @@ class CustomTokenRefreshView(APIView):
                 data = request.POST
 
             refresh_token = data.get('refresh')
-
             if not refresh_token:
                 return Response(
                     {'error': 'Token de rafraîchissement requis'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             try:
                 refresh = RefreshToken(refresh_token)
-                return Response({
-                    'access': str(refresh.access_token),
-                })
-            except Exception:
+                return Response({'access': str(refresh.access_token)})
+            except TokenError:
                 return Response(
                     {'error': 'Token invalide ou expiré'},
-                    status=status.HTTP_401_UNAUTHORIZED
+                    status=status.HTTP_401_UNAUTHORIZED,
                 )
+
         except Exception as e:
             return Response(
                 {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class CurrentUserView(APIView):
+class MeView(APIView):
     """
-    Vue pour récupérer l'utilisateur connecté
-    CSRF exempté UNIQUEMENT pour cette vue
+    Récupère l'utilisateur admin/staff connecté (via JWT).
     """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        auth_header = request.headers.get('Authorization')
-        if not auth_header:
-            return Response({'error': 'Token requis'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        try:
-            from rest_framework_simplejwt.authentication import JWTAuthentication
-            from rest_framework_simplejwt.exceptions import InvalidToken
-
-            auth = JWTAuthentication()
-            token = auth_header.split(' ')[1]
-            validated_token = auth.get_validated_token(token)
-            user = auth.get_user(validated_token)
-
-            return Response({
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'is_staff': user.is_staff,
-                'is_superuser': user.is_superuser,
-            })
-        except (InvalidToken, IndexError):
-            return Response(
-                {'error': 'Token invalide ou expiré'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-        except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+        user = request.user
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
+        })
 
 
 # =============================================
-# ✅ VUES PUBLIQUES POUR OTP & INSCRIPTION
+# ✅ VUES PUBLIQUES : OTP & INSCRIPTION
 # =============================================
 
 @method_decorator(csrf_exempt, name='dispatch')
 class RequestOTPView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         email = request.data.get('email')
-        # Votre logique pour générer et envoyer le code OTP
+        # TODO: logique de génération et envoi du code OTP
         return Response({'success': True, 'message': 'Code envoyé', 'email': email})
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class VerifyOTPView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         email = request.data.get('email')
         code = request.data.get('otp')
-        # Votre logique de vérification du code
+        # TODO: logique de vérification du code
         return Response({'success': True, 'message': 'Code vérifié'})
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class RegisterView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
-        # Votre logique d'inscription (création de l'utilisateur Django)
+        # TODO: logique d'inscription admin
         return Response({'success': True, 'message': 'Utilisateur créé'})
 
 
 # =============================================
-# ✅ VUES CLIENT (Authentification & Panier)
+# ✅ VUES CLIENT (AUTH + PANIER)
 # =============================================
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ClientRegisterView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         serializer = ClientRegisterSerializer(data=request.data)
         if serializer.is_valid():
             client = serializer.save()
-            return Response({'success': True, 'client_id': client.id}, status=status.HTTP_201_CREATED)
+            # Génère un token API pour ce client
+            client.api_token = secrets.token_urlsafe(48)
+            client.api_token_active = True
+            client.save(update_fields=['api_token', 'api_token_active'])
+            return Response(
+                {
+                    'success': True,
+                    'client_id': client.id,
+                    'api_token': client.api_token,
+                },
+                status=status.HTTP_201_CREATED,
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ClientLoginView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         serializer = ClientLoginSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            password = serializer.validated_data['password']
-            try:
-                client = Client.objects.get(email=email)
-                if client.check_password(password):  # ✅ Utiliser check_password()
-                    return Response({
-                        'success': True,
-                        'client': ClientSerializer(client).data
-                    })
-                return Response({'error': 'Mot de passe incorrect'}, status=status.HTTP_400_BAD_REQUEST)
-            except Client.DoesNotExist:
-                return Response({'error': 'Client non trouvé'}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data['email']
+        password = serializer.validated_data['password']
+
+        try:
+            client = Client.objects.get(email=email)
+        except Client.DoesNotExist:
+            return Response(
+                {'error': 'Client non trouvé'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not client.check_password(password):
+            return Response(
+                {'error': 'Mot de passe incorrect'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # (Re)génère un token API à chaque login
+        client.api_token = secrets.token_urlsafe(48)
+        client.api_token_active = True
+        client.save(update_fields=['api_token', 'api_token_active'])
+
+        return Response({
+            'success': True,
+            'client': ClientSerializer(client).data,
+            'api_token': client.api_token,
+        })
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PanierView(APIView):
+    """
+    Panier du client connecté.
+    ✅ Sécurisé : seul le client authentifié peut accéder à son propre panier.
+    """
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def _get_panier(self, client):
+        panier, _ = Panier.objects.get_or_create(client=client, est_valide=False)
+        return panier
+
     def get(self, request, client_id):
-        # ✅ Vérifier que le client existe
-        if not Client.objects.filter(id=client_id).exists():
-            return Response(
-                {'error': 'Client non trouvé. Veuillez vous reconnecter.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        panier, created = Panier.objects.get_or_create(client_id=client_id, est_valide=False)
+        client, error = require_client(request, client_id)
+        if error:
+            return error
+
+        panier = self._get_panier(client)
         serializer = PanierSerializer(panier, context={'request': request})
         return Response(serializer.data)
 
     def post(self, request, client_id):
-        # ✅ Vérifier que le client existe AVANT de créer le panier
-        if not Client.objects.filter(id=client_id).exists():
-            return Response(
-                {'error': 'Client non trouvé. Veuillez vous reconnecter.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        panier, created = Panier.objects.get_or_create(client_id=client_id, est_valide=False)
+        client, error = require_client(request, client_id)
+        if error:
+            return error
+
+        panier = self._get_panier(client)
         produit_id = request.data.get('produit_id')
-        quantite = int(request.data.get('quantite', 1))
-        
+        try:
+            quantite = int(request.data.get('quantite', 1))
+        except (TypeError, ValueError):
+            return Response({'error': 'Quantité invalide'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if quantite < 1:
+            return Response({'error': 'Quantité minimale : 1'}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             produit = Produit.objects.get(id=produit_id)
         except Produit.DoesNotExist:
             return Response({'error': 'Produit non trouvé'}, status=status.HTTP_404_NOT_FOUND)
-        
+
         ligne, created = LignePanier.objects.get_or_create(
-            panier=panier, produit=produit,
-            defaults={'quantite': quantite, 'prix_unitaire': produit.prix}
+            panier=panier,
+            produit=produit,
+            defaults={'quantite': quantite, 'prix_unitaire': produit.prix},
         )
         if not created:
             ligne.quantite += quantite
-            ligne.save()
-        
-        return Response(PanierSerializer(panier, context={'request': request}).data, status=status.HTTP_201_CREATED)
+            ligne.save(update_fields=['quantite'])
+
+        return Response(
+            PanierSerializer(panier, context={'request': request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
     def delete(self, request, client_id):
-        if not Client.objects.filter(id=client_id).exists():
-            return Response(
-                {'error': 'Client non trouvé. Veuillez vous reconnecter.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        client, error = require_client(request, client_id)
+        if error:
+            return error
+
         ligne_id = request.data.get('ligne_id')
-        panier, _ = Panier.objects.get_or_create(client_id=client_id, est_valide=False)
+        if not ligne_id:
+            return Response({'error': 'ligne_id requis'}, status=status.HTTP_400_BAD_REQUEST)
+
+        panier = self._get_panier(client)
         LignePanier.objects.filter(id=ligne_id, panier=panier).delete()
         return Response(PanierSerializer(panier, context={'request': request}).data)
 
+
 @method_decorator(csrf_exempt, name='dispatch')
 class CommandeDepuisPanierView(APIView):
+    """
+    Transforme le panier du client connecté en commande.
+    ✅ Sécurisé : seul le client authentifié peut commander pour lui-même.
+    """
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request, client_id):
+        client, error = require_client(request, client_id)
+        if error:
+            return error
+
         try:
-            # 1. Récupérer le panier du client
-            panier = Panier.objects.filter(client_id=client_id, est_valide=False).first()
+            panier = Panier.objects.filter(client=client, est_valide=False).first()
             if not panier or not panier.lignes.exists():
                 return Response({'error': 'Panier vide'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # 2. Calculer le total
             total = sum(ligne.sous_total for ligne in panier.lignes.all())
 
-            
             commande = Commande.objects.create(
-                client_id=client_id,
+                client=client,
                 statut='EN_ATTENTE',
                 total=total,
                 adresse_livraison=request.data.get('adresse', ''),
                 ville=request.data.get('ville', ''),
                 code_postal=request.data.get('codePostal', ''),
-                telephone=request.data.get('telephone', ''),
-                notes=request.data.get('notes', '')
+                telephone=request.data.get('telephone', client.telephone or ''),
+                notes=request.data.get('notes', ''),
             )
 
-            
             for ligne in panier.lignes.all():
                 LigneCommande.objects.create(
                     commande=commande,
                     produit=ligne.produit,
                     quantite=ligne.quantite,
-                    prix_unitaire=ligne.prix_unitaire
+                    prix_unitaire=ligne.prix_unitaire,
                 )
-                # Mettre à jour le stock
                 produit = ligne.produit
-                produit.quantite_stock -= ligne.quantite
-                if produit.quantite_stock < 0:
-                    produit.quantite_stock = 0
-                produit.save()
+                produit.quantite_stock = max(0, produit.quantite_stock - ligne.quantite)
+                produit.save(update_fields=['quantite_stock'])
 
-          
             panier.est_valide = True
-            panier.save()
+            panier.save(update_fields=['est_valide'])
 
-            
-            client = Client.objects.get(id=client_id)
+            # Envoi SMS (best effort)
             try:
-                envoyer_sms_confirmation(client, commande, ligne.produit, ligne.quantite, total)
+                for ligne in panier.lignes.all():
+                    envoyer_sms_confirmation(client, commande, ligne.produit, ligne.quantite, total)
+                    break  # un seul SMS pour la commande
             except Exception as e:
-                print(f"❌ Erreur SMS: {str(e)}")
-                
+                print(f"❌ Erreur SMS: {e}")
 
-            return Response({'success': True, 'commande_id': commande.id, 'total': total}, status=status.HTTP_201_CREATED)
+            return Response(
+                {'success': True, 'commande_id': commande.id, 'total': total},
+                status=status.HTTP_201_CREATED,
+            )
+
         except Exception as e:
+            traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # =============================================
-# ✅ BASE VIEWSET POUR LE PUBLIC
+# ✅ BASES VIEWSETS (permissions)
 # =============================================
 
 class PublicViewSet(viewsets.ModelViewSet):
     """
-    ViewSet de base :
-    - Lecture (GET) : Public (AllowAny)
-    - Écriture (POST, PUT, DELETE) : Admin uniquement (IsAdminUser)
+    Lecture publique, écriture admin uniquement.
     """
-
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
         return [IsAdminUser()]
 
 
-# =============================================
-# ✅ ADMIN ONLY VIEWSET
-# =============================================
-
 class AdminOnlyViewSet(viewsets.ModelViewSet):
     """
-    ViewSet réservé aux admins (lecture + écriture)
+    Réservé aux admins (lecture + écriture).
     """
-
     def get_permissions(self):
         return [IsAdminUser()]
 
 
 # =============================================
-# ✅ VIEWSETS PUBLICS (Lecture publique, Écriture admin)
+# ✅ VIEWSETS PUBLICS
 # =============================================
 
 class FormationEnLigneViewSet(PublicViewSet):
@@ -457,18 +530,14 @@ class FormationEnLigneViewSet(PublicViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-
         statut = self.request.query_params.get('statut')
         if statut:
             queryset = queryset.filter(statut=statut)
-
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
-                Q(titre__icontains=search) |
-                Q(description__icontains=search)
+                Q(titre__icontains=search) | Q(description__icontains=search)
             )
-
         return queryset.order_by('ordre', '-created_at')
 
 
@@ -477,17 +546,15 @@ class EvenementViewSet(PublicViewSet):
     serializer_class = EvenementSerializer
 
     def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
 
     def get_queryset(self):
         queryset = super().get_queryset()
-
         statut = self.request.query_params.get('statut')
         if statut:
             queryset = queryset.filter(statut=statut)
-
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
@@ -495,13 +562,9 @@ class EvenementViewSet(PublicViewSet):
                 Q(description__icontains=search) |
                 Q(theme__icontains=search)
             )
-
         return queryset
 
     def create(self, request, *args, **kwargs):
-        """
-        ✅ Création d'un événement
-        """
         try:
             data = request.data.copy()
 
@@ -511,7 +574,7 @@ class EvenementViewSet(PublicViewSet):
                 except (ValueError, TypeError):
                     return Response(
                         {'places_total': 'Le nombre de places doit être un nombre valide'},
-                        status=status.HTTP_400_BAD_REQUEST
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
 
             if 'est_gratuit' in data:
@@ -522,7 +585,7 @@ class EvenementViewSet(PublicViewSet):
                     data['est_gratuit'] = False
 
             if 'prix' in data:
-                if data['prix'] == '' or data['prix'] is None:
+                if data['prix'] in ('', None):
                     data['prix'] = 0
                 try:
                     data['prix'] = float(data['prix'])
@@ -533,18 +596,13 @@ class EvenementViewSet(PublicViewSet):
                 data['image'] = request.FILES['image']
 
             serializer = self.get_serializer(data=data)
-
             if serializer.is_valid():
                 self.perform_create(serializer)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ProduitViewSet(PublicViewSet):
@@ -552,24 +610,20 @@ class ProduitViewSet(PublicViewSet):
     serializer_class = ProduitSerializer
 
     def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
 
     def get_queryset(self):
         queryset = super().get_queryset()
-
         categorie = self.request.query_params.get('categorie')
         if categorie:
             queryset = queryset.filter(categorie=categorie)
-
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
-                Q(nom__icontains=search) |
-                Q(description__icontains=search)
+                Q(nom__icontains=search) | Q(description__icontains=search)
             )
-
         return queryset
 
 
@@ -614,24 +668,21 @@ class MoyenPaiementViewSet(PublicViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-
         type_paiement = self.request.query_params.get('type')
         if type_paiement:
             queryset = queryset.filter(type=type_paiement)
-
         return queryset.order_by('ordre')
 
 
 # =============================================
-# ✅ PAIEMENTS (PUBLIC POUR CREATION, ADMIN POUR VISUALISATION)
+# ✅ PAIEMENTS
 # =============================================
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PaiementViewSet(viewsets.ModelViewSet):
     """
-    ViewSet pour les paiements
-    - CREATE, GENERER_QR, CARTE : Public (AllowAny)
-    - LIST, RETRIEVE, UPDATE, DELETE : Admin uniquement (IsAdminUser)
+    CREATE / GENERER_QR / CARTE : public
+    LIST / RETRIEVE / UPDATE / DELETE : admin
     """
     queryset = TransactionPaiement.objects.all().order_by('-date_creation')
     serializer_class = TransactionPaiementSerializer
@@ -643,9 +694,6 @@ class PaiementViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def generer_qr(self, request):
-        """
-        Générer un QR code pour un paiement (accès public)
-        """
         try:
             montant = request.data.get('montant')
             moyen_paiement_id = request.data.get('moyen_paiement')
@@ -654,7 +702,7 @@ class PaiementViewSet(viewsets.ModelViewSet):
             if not montant or not moyen_paiement_id:
                 return Response(
                     {'error': 'Montant et moyen de paiement requis'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             try:
@@ -662,19 +710,23 @@ class PaiementViewSet(viewsets.ModelViewSet):
             except MoyenPaiement.DoesNotExist:
                 return Response(
                     {'error': 'Moyen de paiement invalide'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            reference = f"QR-{datetime.now().strftime('%Y%m%d')}-{''.join(random.choices(string.ascii_uppercase + string.digits, k=8))}"
+            reference = (
+                f"QR-{datetime.now().strftime('%Y%m%d')}-"
+                f"{''.join(random.choices(string.ascii_uppercase + string.digits, k=8))}"
+            )
 
+            expiration = timezone.now() + timedelta(seconds=60)
             qr_data = {
                 'reference': reference,
                 'montant': float(montant),
                 'moyen_paiement': moyen_paiement_id,
                 'moyen_paiement_nom': moyen_paiement.nom,
                 'inscription': inscription_id,
-                'date': datetime.now().isoformat(),
-                'expiration': (datetime.now() + timedelta(seconds=60)).isoformat(),
+                'date': timezone.now().isoformat(),
+                'expiration': expiration.isoformat(),
             }
 
             qr = qrcode.QRCode(
@@ -685,7 +737,6 @@ class PaiementViewSet(viewsets.ModelViewSet):
             )
             qr.add_data(json.dumps(qr_data))
             qr.make(fit=True)
-
             img = qr.make_image(fill_color="black", back_color="white")
             buffer = BytesIO()
             img.save(buffer, format="PNG")
@@ -700,15 +751,15 @@ class PaiementViewSet(viewsets.ModelViewSet):
                 details={
                     'qr_code': True,
                     'inscription_id': inscription_id,
-                    'expiration': (timezone.now() + timedelta(seconds=60)).isoformat(),
-                }
+                    'expiration': expiration.isoformat(),
+                },
             )
 
             return Response({
                 'success': True,
                 'qr_code': qr_base64,
                 'reference': reference,
-                'expiration': (timezone.now() + timedelta(seconds=60)).isoformat(),
+                'expiration': expiration.isoformat(),
                 'transaction_id': transaction.id,
                 'montant': float(montant),
                 'moyen_paiement': moyen_paiement.nom,
@@ -734,7 +785,6 @@ class PaiementViewSet(viewsets.ModelViewSet):
     def carte(self, request):
         try:
             data = request.data
-
             inscription_id = data.get('inscription')
             if not inscription_id:
                 return Response({'error': 'Inscription requise'}, status=status.HTTP_400_BAD_REQUEST)
@@ -749,18 +799,21 @@ class PaiementViewSet(viewsets.ModelViewSet):
                 inscription=inscription,
                 montant=inscription.montant,
                 statut='REUSSI',
-                reference=f"CRD-{datetime.now().strftime('%Y%m%d')}-{''.join(random.choices(string.ascii_uppercase + string.digits, k=6))}",
+                reference=(
+                    f"CRD-{datetime.now().strftime('%Y%m%d')}-"
+                    f"{''.join(random.choices(string.ascii_uppercase + string.digits, k=6))}"
+                ),
                 date_validation=timezone.now(),
                 details={
                     'type': 'CARTE_BANCAIRE',
                     'titulaire': data.get('titulaire', ''),
                     'dernier_chiffres': numero_carte[-4:],
-                }
+                },
             )
 
             inscription.statut = 'PAYEE'
             inscription.reference_paiement = transaction.reference
-            inscription.save()
+            inscription.save(update_fields=['statut', 'reference_paiement'])
 
             return Response({
                 'success': True,
@@ -774,50 +827,39 @@ class PaiementViewSet(viewsets.ModelViewSet):
 
 
 # =============================================
-# ✅ INSCRIPTION FORMATION (PUBLIC + ADMIN)
+# ✅ INSCRIPTIONS FORMATION
 # =============================================
 
 @method_decorator(csrf_exempt, name='dispatch')
 class InscriptionFormationViewSet(viewsets.ModelViewSet):
     """
-    ViewSet pour les inscriptions aux formations
-    - CREATE : Public (AllowAny) - pour s'inscrire
-    - LIST, RETRIEVE, UPDATE, DELETE : Admin uniquement (IsAdminUser)
+    CREATE : public
+    Le reste : admin
     """
     queryset = InscriptionFormation.objects.all()
     serializer_class = InscriptionFormationSerializer
 
     def get_permissions(self):
-        if self.action == 'create':
+        if self.action in ['create', 'verifier_code']:
             return [AllowAny()]
         return [IsAdminUser()]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        queryset = queryset.select_related('client', 'formation', 'code_acces')
-
+        queryset = super().get_queryset().select_related('client', 'formation', 'code_acces')
         formation_id = self.request.query_params.get('formation')
         if formation_id:
             queryset = queryset.filter(formation_id=formation_id)
-
         client_id = self.request.query_params.get('client')
         if client_id:
             queryset = queryset.filter(client_id=client_id)
-
         statut = self.request.query_params.get('statut')
         if statut:
             queryset = queryset.filter(statut=statut)
-
         return queryset.order_by('-date_inscription')
 
     def create(self, request, *args, **kwargs):
-        """
-        ✅ Inscription à une formation (accessible au public)
-        """
         try:
             data = request.data.copy()
-            print(f"📦 Données reçues: {data}")
-
             formation_id = data.get('formation')
             if not formation_id:
                 return Response({'error': 'La formation est requise'}, status=status.HTTP_400_BAD_REQUEST)
@@ -826,82 +868,71 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
 
             email = data.get('email')
             if not email:
-                return Response({'error': 'L\'email est requis'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': "L'email est requis"}, status=status.HTTP_400_BAD_REQUEST)
 
-            try:
-                client = Client.objects.get(email=email)
-            except Client.DoesNotExist:
-                client = Client.objects.create(
-                    email=email,
-                    nom=data.get('nom', 'Client'),
-                    prenom=data.get('prenom', 'Inconnu'),
-                    telephone=data.get('telephone', '')
+            client, _ = Client.objects.get_or_create(
+                email=email,
+                defaults={
+                    'nom': data.get('nom', 'Client'),
+                    'prenom': data.get('prenom', 'Inconnu'),
+                    'telephone': data.get('telephone', ''),
+                },
+            )
+
+            if InscriptionFormation.objects.filter(formation=formation, client=client).exists():
+                return Response(
+                    {'error': 'Vous êtes déjà inscrit à cette formation'},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-
-            existing = InscriptionFormation.objects.filter(
-                formation=formation,
-                client=client
-            ).first()
-
-            if existing:
-                return Response({'error': 'Vous êtes déjà inscrit à cette formation'}, status=status.HTTP_400_BAD_REQUEST)
 
             inscription = InscriptionFormation.objects.create(
                 formation=formation,
                 client=client,
                 statut='EN_ATTENTE',
                 montant=formation.prix,
-                notes=data.get('notes', '')
+                notes=data.get('notes', ''),
             )
 
             serializer = self.get_serializer(inscription)
-
-            return Response({
-                'success': True,
-                'message': 'Inscription réussie',
-                'data': serializer.data,
-                'id': inscription.id,
-            }, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Inscription réussie',
+                    'data': serializer.data,
+                    'id': inscription.id,
+                },
+                status=status.HTTP_201_CREATED,
+            )
 
         except Exception as e:
-            print(f"❌ Erreur inscription: {str(e)}")
-            import traceback
             traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, *args, **kwargs):
-        """
-        ✅ Mise à jour d'une inscription (admin)
-        """
         try:
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
 
             data = {}
-            allowed_fields = ['statut', 'notes']
-
-            for field in allowed_fields:
+            for field in ['statut', 'notes']:
                 if field in request.data:
                     data[field] = request.data[field]
 
             if 'statut' in data:
-                valid_statuts = ['EN_ATTENTE', 'PAYEE', 'ANNULEE', 'REMBOURSEE']
-                if data['statut'] not in valid_statuts:
+                valid = ['EN_ATTENTE', 'PAYEE', 'ANNULEE', 'REMBOURSEE']
+                if data['statut'] not in valid:
                     return Response(
-                        {'error': f'Statut invalide. Choisir parmi: {", ".join(valid_statuts)}'},
-                        status=status.HTTP_400_BAD_REQUEST
+                        {'error': f'Statut invalide. Choisir parmi: {", ".join(valid)}'},
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
 
             serializer = self.get_serializer(instance, data=data, partial=partial)
-
             if serializer.is_valid():
                 self.perform_update(serializer)
                 return Response(serializer.data)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
-            print(f"❌ Erreur mise à jour: {str(e)}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def partial_update(self, request, *args, **kwargs):
@@ -910,25 +941,22 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def generer_code(self, request, pk=None):
-        """
-        Générer un code d'accès pour une inscription (admin uniquement)
-        """
         try:
             inscription = self.get_object()
-
             if inscription.statut != 'PAYEE':
-                return Response({'error': 'L\'inscription doit être payée pour générer un code d\'accès'}, status=status.HTTP_400_BAD_REQUEST)
-
+                return Response(
+                    {'error': "L'inscription doit être payée pour générer un code d'accès"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             if inscription.code_acces:
                 return Response({
                     'success': True,
-                    'message': 'Un code d\'accès existe déjà',
+                    'message': "Un code d'accès existe déjà",
                     'code': inscription.code_acces.code,
-                    'data': CodeAccesFormationSerializer(inscription.code_acces).data
+                    'data': CodeAccesFormationSerializer(inscription.code_acces).data,
                 })
 
             code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-
             code_acces = CodeAccesFormation.objects.create(
                 formation=inscription.formation,
                 client=inscription.client,
@@ -937,15 +965,14 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
                 montant_paye=inscription.montant,
                 reference_paiement=inscription.reference_paiement or '',
             )
-
             inscription.code_acces = code_acces
-            inscription.save()
+            inscription.save(update_fields=['code_acces'])
 
             return Response({
                 'success': True,
-                'message': 'Code d\'accès généré avec succès',
+                'message': "Code d'accès généré avec succès",
                 'code': code,
-                'data': CodeAccesFormationSerializer(code_acces).data
+                'data': CodeAccesFormationSerializer(code_acces).data,
             })
 
         except Exception as e:
@@ -953,35 +980,33 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[AllowAny])
     def verifier_code(self, request, pk=None):
-        """
-        Vérifier un code d'accès (public)
-        """
         try:
             code = request.data.get('code')
             email = request.data.get('email')
-
             if not code or not email:
-                return Response({'error': 'Le code et l\'email sont requis'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': "Le code et l'email sont requis"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             try:
                 code_acces = CodeAccesFormation.objects.get(
-                    code=code,
-                    client__email=email,
-                    statut='ACTIF'
+                    code=code, client__email=email, statut='ACTIF'
                 )
             except CodeAccesFormation.DoesNotExist:
-                return Response({'error': 'Code d\'accès invalide ou expiré'}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {'error': "Code d'accès invalide ou expiré"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
             if code_acces.date_expiration < timezone.now():
                 code_acces.statut = 'EXPIRE'
-                code_acces.save()
-                return Response({'error': 'Code d\'accès expiré'}, status=status.HTTP_400_BAD_REQUEST)
+                code_acces.save(update_fields=['statut'])
+                return Response({'error': "Code d'accès expiré"}, status=status.HTTP_400_BAD_REQUEST)
 
             inscription = InscriptionFormation.objects.filter(
-                code_acces=code_acces,
-                statut='PAYEE'
+                code_acces=code_acces, statut='PAYEE'
             ).first()
-
             if not inscription:
                 return Response({'error': 'Aucune inscription trouvée'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -1008,17 +1033,16 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def valider_paiement(self, request, pk=None):
-        """
-        Valider le paiement d'une inscription
-        """
         try:
             inscription = self.get_object()
-
             if inscription.statut == 'PAYEE':
-                return Response({'success': False, 'message': 'Le paiement est déjà validé'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'success': False, 'message': 'Le paiement est déjà validé'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             inscription.statut = 'PAYEE'
-            inscription.save()
+            inscription.save(update_fields=['statut'])
 
             TransactionPaiement.objects.create(
                 inscription=inscription,
@@ -1028,46 +1052,45 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
                 date_validation=timezone.now(),
                 details={
                     'type': 'validation_manuelle',
-                    'valide_par': request.user.username if request.user.is_authenticated else 'admin'
-                }
+                    'valide_par': request.user.username if request.user.is_authenticated else 'admin',
+                },
             )
 
-            return Response({'success': True, 'message': 'Paiement validé avec succès', 'data': self.get_serializer(inscription).data})
+            return Response({
+                'success': True,
+                'message': 'Paiement validé avec succès',
+                'data': self.get_serializer(inscription).data,
+            })
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
     def refuser(self, request, pk=None):
-        """
-        Refuser une inscription
-        """
         try:
             inscription = self.get_object()
-
             if inscription.statut == 'ANNULEE':
-                return Response({'success': False, 'message': 'L\'inscription est déjà annulée'}, status=status.HTTP_400_BAD_REQUEST)
-
+                return Response(
+                    {'success': False, 'message': "L'inscription est déjà annulée"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             inscription.statut = 'ANNULEE'
-            inscription.save()
-
-            return Response({'success': True, 'message': 'Inscription refusée avec succès', 'data': self.get_serializer(inscription).data})
-
+            inscription.save(update_fields=['statut'])
+            return Response({
+                'success': True,
+                'message': 'Inscription refusée avec succès',
+                'data': self.get_serializer(inscription).data,
+            })
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # =============================================
-# ✅ TRANSACTION PAIEMENT (PUBLIC + ADMIN)
+# ✅ TRANSACTIONS PAIEMENT
 # =============================================
 
 @method_decorator(csrf_exempt, name='dispatch')
 class TransactionPaiementViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet pour les transactions de paiement
-    - CREATE : Public (AllowAny) - pour payer
-    - LIST, RETRIEVE, UPDATE, DELETE : Admin uniquement (IsAdminUser)
-    """
     queryset = TransactionPaiement.objects.all()
     serializer_class = TransactionPaiementSerializer
 
@@ -1077,15 +1100,11 @@ class TransactionPaiementViewSet(viewsets.ModelViewSet):
         return [IsAdminUser()]
 
     def create(self, request, *args, **kwargs):
-        """
-        ✅ Création d'une transaction de paiement
-        """
         try:
             data = request.data.copy()
-
             inscription_id = data.get('inscription')
             if not inscription_id:
-                return Response({'error': 'L\'inscription est requise'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': "L'inscription est requise"}, status=status.HTTP_400_BAD_REQUEST)
 
             inscription = get_object_or_404(InscriptionFormation, id=inscription_id)
 
@@ -1095,12 +1114,12 @@ class TransactionPaiementViewSet(viewsets.ModelViewSet):
                 montant=inscription.montant,
                 statut='EN_ATTENTE',
                 reference=f"TXN-{timezone.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}",
-                details=data.get('details', {})
+                details=data.get('details', {}),
             )
 
             inscription.statut = 'PAYEE'
             inscription.reference_paiement = transaction.reference
-            inscription.save()
+            inscription.save(update_fields=['statut', 'reference_paiement'])
 
             if inscription.formation:
                 code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
@@ -1110,86 +1129,68 @@ class TransactionPaiementViewSet(viewsets.ModelViewSet):
                     code=code,
                     date_expiration=timezone.now() + timedelta(days=30),
                     montant_paye=inscription.montant,
-                    reference_paiement=transaction.reference
+                    reference_paiement=transaction.reference,
                 )
 
             serializer = self.get_serializer(transaction)
-
-            return Response({
-                'success': True,
-                'message': 'Paiement effectué avec succès',
-                'data': serializer.data,
-                'reference': transaction.reference,
-            }, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Paiement effectué avec succès',
+                    'data': serializer.data,
+                    'reference': transaction.reference,
+                },
+                status=status.HTTP_201_CREATED,
+            )
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # =============================================
-# ✅ PARTICIPATION ÉVÉNEMENT (PUBLIC + ADMIN)
+# ✅ PARTICIPATION ÉVÉNEMENT
 # =============================================
 
-
-# ─── Validateurs réutilisables ──────────────────────────────────
 def valider_telephone(telephone):
-    """Retourne (valeur_normalisée, erreur)."""
     if not telephone:
         return None, "Le numéro de téléphone est obligatoire."
-
     chiffres = re.sub(r'\D', '', str(telephone))
-
     if len(chiffres) < 8:
         return None, "Le numéro de téléphone doit contenir au moins 8 chiffres."
     if len(chiffres) > 15:
         return None, "Le numéro de téléphone ne doit pas dépasser 15 chiffres."
     if not re.match(r'^0\d{9}$', chiffres):
         return None, "Format attendu : 10 chiffres commençant par 0 (ex: 0709871479)."
-
     return chiffres, None
 
 
 def valider_email_format(email):
-    """Retourne (valeur_normalisée, erreur)."""
     if not email:
         return None, "L'adresse email est obligatoire."
-
     email = str(email).strip().lower()
-
     if len(email) > 254:
         return None, "L'adresse email est trop longue."
-
     try:
         validate_email(email)
     except DjangoValidationError:
         return None, "Format d'adresse email invalide."
-
     return email, None
 
 
 def valider_nom_prenom(valeur, label="Le nom"):
-    """Retourne (valeur_normalisée, erreur)."""
     if not valeur or not str(valeur).strip():
         return None, f"{label} est obligatoire."
-
     valeur = str(valeur).strip()
-
     if len(valeur) < 2:
         return None, f"{label} doit contenir au moins 2 caractères."
     if len(valeur) > 50:
         return None, f"{label} ne doit pas dépasser 50 caractères."
     if not re.match(r"^[a-zA-ZÀ-ÿ\s\-']+$", valeur):
         return None, f"{label} ne doit contenir que des lettres."
-
     return valeur, None
 
 
 class ParticipationEvenementViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet pour les participations aux événements.
-    - CREATE : Public (AllowAny)
-    - LIST, RETRIEVE, UPDATE, DELETE : Admin uniquement (IsAdminUser)
-    """
     queryset = ParticipationEvenement.objects.all()
     serializer_class = ParticipationEvenementSerializer
 
@@ -1200,32 +1201,23 @@ class ParticipationEvenementViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-
         evenement_id = self.request.query_params.get('evenement')
         if evenement_id:
             queryset = queryset.filter(evenement_id=evenement_id)
-
         client_id = self.request.query_params.get('client')
         if client_id:
             queryset = queryset.filter(client_id=client_id)
-
         return queryset.select_related('client', 'evenement').order_by('-date_inscription')
 
     def create(self, request, *args, **kwargs):
-        """
-        ✅ Inscription à un événement (accessible au public).
-        Toutes les données sont validées AVANT toute écriture en base.
-        """
         try:
             data = request.data.copy()
-            print(f"📦 Données reçues pour participation: {data}")
 
-            # ─── 1. Validation de l'événement ──────────────────
             evenement_id = data.get('evenement')
             if not evenement_id:
                 return Response(
                     {'evenement': ["L'événement est requis."]},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             try:
@@ -1233,45 +1225,37 @@ class ParticipationEvenementViewSet(viewsets.ModelViewSet):
             except (Evenement.DoesNotExist, ValueError, TypeError):
                 return Response(
                     {'evenement': ["Événement non trouvé."]},
-                    status=status.HTTP_404_NOT_FOUND
+                    status=status.HTTP_404_NOT_FOUND,
                 )
 
             if evenement.places_restantes <= 0:
                 return Response(
                     {'error': "Cet événement est complet."},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # ─── 2. Validation des champs ──────────────────────
             erreurs = {}
 
-            # Email
             email, err = valider_email_format(data.get('email'))
             if err:
                 erreurs['email'] = [err]
 
-            # Nom
             nom, err = valider_nom_prenom(data.get('nom'), "Le nom")
             if err:
                 erreurs['nom'] = [err]
 
-            # Prénom
             prenom, err = valider_nom_prenom(data.get('prenom'), "Le prénom")
             if err:
                 erreurs['prenom'] = [err]
 
-            # Téléphone
             telephone, err = valider_telephone(data.get('telephone'))
             if err:
                 erreurs['telephone'] = [err]
 
-            # Notes (optionnel, 500 max)
-            notes = data.get('notes') or data.get('message') or ''
-            notes = str(notes).strip()
+            notes = str(data.get('notes') or data.get('message') or '').strip()
             if len(notes) > 500:
                 erreurs['notes'] = ["Les notes ne doivent pas dépasser 500 caractères."]
 
-            # Nombre de places (optionnel, défaut 1)
             try:
                 nombre_places = int(data.get('nombre_places', 1))
                 if nombre_places < 1:
@@ -1283,68 +1267,28 @@ class ParticipationEvenementViewSet(viewsets.ModelViewSet):
             except (ValueError, TypeError):
                 erreurs['nombre_places'] = ["Nombre de places invalide."]
 
-            # ─── 3. Si erreurs → renvoyer 400 ──────────────────
             if erreurs:
-                print(f"❌ Erreurs de validation: {erreurs}")
                 return Response(erreurs, status=status.HTTP_400_BAD_REQUEST)
 
-            # ─── 4. Récupérer ou créer le client ───────────────
-            try:
-                client = Client.objects.get(email=email)
-                print(f"✅ Client existant: {client.id}")
-
-                # Mise à jour optionnelle des infos client si elles ont changé
-                updated = False
-                if client.nom != nom:
-                    client.nom = nom
-                    updated = True
-                if client.prenom != prenom:
-                    client.prenom = prenom
-                    updated = True
-                if client.telephone != telephone:
-                    client.telephone = telephone
-                    updated = True
-                if updated:
-                    client.save()
-                    print(f"✅ Client mis à jour: {client.id}")
-
-            except Client.DoesNotExist:
-                client = Client.objects.create(
-                    nom=nom,
-                    prenom=prenom,
-                    email=email,
-                    telephone=telephone,
-                )
-                print(f"✅ Nouveau client créé: {client.id}")
-
-            # ─── 5. Vérifier si déjà inscrit ───────────────────
-            existing = ParticipationEvenement.objects.filter(
-                evenement=evenement,
-                client=client,
-            ).first()
-
-            if existing:
-                return Response(
-                    {'error': "Vous êtes déjà inscrit à cet événement."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # ─── 6. Créer la participation ─────────────────────
-            participation = ParticipationEvenement.objects.create(
-                evenement=evenement,
-                client=client,
-                statut='INSCRIT',
-                notes=notes,
+            client, _ = Client.objects.get_or_create(
+                email=email,
+                defaults={'nom': nom, 'prenom': prenom, 'telephone': telephone},
             )
 
-            # ─── 7. Décrémenter les places restantes ───────────
-            evenement.places_restantes -= nombre_places
-            if evenement.places_restantes < 0:
-                evenement.places_restantes = 0
-            evenement.save()
+            if ParticipationEvenement.objects.filter(evenement=evenement, client=client).exists():
+                return Response(
+                    {'error': "Vous êtes déjà inscrit à cet événement."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            participation = ParticipationEvenement.objects.create(
+                evenement=evenement, client=client, statut='INSCRIT', notes=notes,
+            )
+
+            evenement.places_restantes = max(0, evenement.places_restantes - nombre_places)
+            evenement.save(update_fields=['places_restantes'])
 
             serializer = self.get_serializer(participation)
-
             return Response(
                 {
                     'success': True,
@@ -1356,12 +1300,13 @@ class ParticipationEvenementViewSet(viewsets.ModelViewSet):
             )
 
         except Exception as e:
-            print(f"❌ Erreur inscription: {str(e)}")
             traceback.print_exc()
             return Response(
                 {'error': "Une erreur interne est survenue. Veuillez réessayer."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
 # =============================================
 # ✅ VIEWSETS ADMIN
 # =============================================
@@ -1422,60 +1367,48 @@ class SiteSettingsViewSet(AdminOnlyViewSet):
 
 
 # =============================================
-# ✅ COMMANDE VIEWSET
+# ✅ COMMANDES (sécurisé)
 # =============================================
+
 class CommandeViewSet(viewsets.ModelViewSet):
     """
-    ViewSet pour les commandes
-    - CREATE (POST) : Public (AllowAny) - Pour passer commande
-    - LIST (GET) : Public avec filtre client obligatoire (pour que le client voie SES commandes)
-    - RETRIEVE, UPDATE, DELETE : Admin uniquement (IsAdminUser)
+    CREATE : public (invité ou client)
+    LIST : filtrée par X-Client-Token si non-staff
+    RETRIEVE / UPDATE / DELETE : admin
     """
     queryset = Commande.objects.all().order_by('-date_commande')
     serializer_class = CommandeSerializer
 
     def get_permissions(self):
-        # ✅ Le public peut créer une commande
-        if self.action == 'create':
+        if self.action in ['create', 'list']:
             return [AllowAny()]
-        # ✅ Le public peut LIRE ses propres commandes (filtrées par client_id)
-        if self.action == 'list':
-            return [AllowAny()]
-        # ❌ Admin uniquement pour tout le reste (retrieve, update, delete)
         return [IsAdminUser()]
 
     def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        queryset = queryset.select_related('client').prefetch_related('lignes__produit')
+        queryset = super().get_queryset().select_related('client').prefetch_related('lignes__produit')
 
-        # ✅ Récupérer le client_id depuis les query params
-        client_id = self.request.query_params.get('client')
-        
-        # ✅ SÉCURITÉ CRITIQUE :
-        # - Si l'utilisateur est admin → il voit tout (avec filtre optionnel)
-        # - Si l'utilisateur N'EST PAS admin :
-        #     - S'il n'y a PAS de client_id → on renvoie une liste VIDE (aucune fuite)
-        #     - S'il y a un client_id → on filtre par ce client_id
-        if not self.request.user.is_staff:
-            if not client_id:
-                return Commande.objects.none()
-            queryset = queryset.filter(client_id=client_id)
-        else:
-            # Admin : filtrage optionnel
+        # Admin → tout (avec filtres optionnels)
+        if self.request.user.is_authenticated and self.request.user.is_staff:
+            client_id = self.request.query_params.get('client')
             if client_id:
                 queryset = queryset.filter(client_id=client_id)
 
-        # Filtrage par statut (optionnel)
+        # Client authentifié via X-Client-Token → seulement SES commandes
+        else:
+            client = get_client_from_request(self.request)
+            if client is None:
+                return Commande.objects.none()
+            queryset = queryset.filter(client=client)
+
         statut = self.request.query_params.get('statut')
         if statut:
             queryset = queryset.filter(statut=statut)
 
-        # Recherche (optionnelle)
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
@@ -1488,29 +1421,22 @@ class CommandeViewSet(viewsets.ModelViewSet):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        """
-        ✅ Création d'une commande (accessible au public)
-        """
         try:
             data = request.data.copy()
-            print(f"📦 Données commande reçues: {data}")
 
-            # 1. Récupérer ou créer le client
             email = data.get('email')
             if not email:
                 return Response({'error': "L'email est requis"}, status=status.HTTP_400_BAD_REQUEST)
 
-            try:
-                client = Client.objects.get(email=email)
-            except Client.DoesNotExist:
-                client = Client.objects.create(
-                    nom=data.get('nom', 'Client'),
-                    prenom=data.get('prenom', 'Inconnu'),
-                    email=email,
-                    telephone=data.get('telephone', '')
-                )
+            client, _ = Client.objects.get_or_create(
+                email=email,
+                defaults={
+                    'nom': data.get('nom', 'Client'),
+                    'prenom': data.get('prenom', 'Inconnu'),
+                    'telephone': data.get('telephone', ''),
+                },
+            )
 
-            # 2. Récupérer le produit
             produit_id = data.get('produit_id')
             if not produit_id:
                 return Response({'error': "Le produit est requis"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1520,15 +1446,21 @@ class CommandeViewSet(viewsets.ModelViewSet):
             except Produit.DoesNotExist:
                 return Response({'error': 'Produit non trouvé'}, status=status.HTTP_404_NOT_FOUND)
 
-            quantite = int(data.get('quantite', 1))
+            try:
+                quantite = int(data.get('quantite', 1))
+            except (ValueError, TypeError):
+                return Response({'error': 'Quantité invalide'}, status=status.HTTP_400_BAD_REQUEST)
+
             if quantite <= 0:
                 return Response({'error': 'Quantité invalide'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # 3. Calculer le total
-            prix_unitaire = produit.prix_promotion if produit.est_en_promotion and produit.prix_promotion else produit.prix
+            prix_unitaire = (
+                produit.prix_promotion
+                if produit.est_en_promotion and produit.prix_promotion
+                else produit.prix
+            )
             total = float(prix_unitaire) * quantite
 
-            # 4. Créer la commande
             commande = Commande.objects.create(
                 client=client,
                 statut='EN_ATTENTE',
@@ -1536,55 +1468,46 @@ class CommandeViewSet(viewsets.ModelViewSet):
                 adresse_livraison=data.get('adresse', ''),
                 ville=data.get('ville', ''),
                 code_postal=data.get('codePostal', ''),
-                telephone=client.telephone,
-                notes=data.get('notes', '')
+                telephone=client.telephone or '',
+                notes=data.get('notes', ''),
             )
 
-            # 5. Créer la ligne de commande
             LigneCommande.objects.create(
                 commande=commande,
                 produit=produit,
                 quantite=quantite,
-                prix_unitaire=prix_unitaire
+                prix_unitaire=prix_unitaire,
             )
 
-            # 6. Mettre à jour le stock
-            produit.quantite_stock -= quantite
-            if produit.quantite_stock < 0:
-                produit.quantite_stock = 0
-            produit.save()
+            produit.quantite_stock = max(0, produit.quantite_stock - quantite)
+            produit.save(update_fields=['quantite_stock'])
 
-            # 7. Envoyer le SMS de confirmation
             try:
                 envoyer_sms_confirmation(client, commande, produit, quantite, total)
             except Exception as e:
-                print(f"❌ Erreur lors de l'envoi du SMS: {str(e)}")
+                print(f"❌ Erreur lors de l'envoi du SMS: {e}")
 
             serializer = self.get_serializer(commande)
-            return Response({
-                'success': True,
-                'message': 'Commande créée avec succès',
-                'data': serializer.data,
-                'id': commande.id,
-            }, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Commande créée avec succès',
+                    'data': serializer.data,
+                    'id': commande.id,
+                },
+                status=status.HTTP_201_CREATED,
+            )
 
         except Exception as e:
-            import traceback
             traceback.print_exc()
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # =============================================
 # ✅ DASHBOARD STATS
 # =============================================
 
 class DashboardStatsView(APIView):
-    """
-    Vue pour récupérer les statistiques du dashboard
-    Réservé aux admins
-    """
     permission_classes = [IsAdminUser]
 
     def get(self, request):
@@ -1592,7 +1515,6 @@ class DashboardStatsView(APIView):
             now = timezone.now()
             first_day_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-            # ===== STATISTIQUES DE BASE =====
             stats = {
                 'users': User.objects.count(),
                 'clients': Client.objects.count(),
@@ -1604,19 +1526,18 @@ class DashboardStatsView(APIView):
                 'revenue': 0,
             }
 
-            # Revenu total
-            successful_transactions = TransactionPaiement.objects.filter(statut='REUSSI')
-            total_revenue = successful_transactions.aggregate(total=Sum('montant'))['total'] or 0
+            total_revenue = (
+                TransactionPaiement.objects.filter(statut='REUSSI')
+                .aggregate(total=Sum('montant'))['total'] or 0
+            )
             stats['revenue'] = float(total_revenue)
 
-            # ===== ACTIVITÉS RÉCENTES =====
             recent_activities = []
 
-            recent_inscriptions = InscriptionFormation.objects.select_related(
-                'client', 'formation'
-            ).order_by('-date_inscription')[:5]
-
-            for ins in recent_inscriptions:
+            for ins in (
+                InscriptionFormation.objects.select_related('client', 'formation')
+                .order_by('-date_inscription')[:5]
+            ):
                 recent_activities.append({
                     'id': ins.id,
                     'action': 'CREATE',
@@ -1629,11 +1550,10 @@ class DashboardStatsView(APIView):
                     'formation_id': ins.formation.id,
                 })
 
-            recent_transactions = TransactionPaiement.objects.select_related(
-                'inscription'
-            ).order_by('-date_creation')[:3]
-
-            for trans in recent_transactions:
+            for trans in (
+                TransactionPaiement.objects.select_related('inscription')
+                .order_by('-date_creation')[:3]
+            ):
                 recent_activities.append({
                     'id': trans.id,
                     'action': 'CREATE' if trans.statut == 'REUSSI' else 'UPDATE',
@@ -1648,7 +1568,6 @@ class DashboardStatsView(APIView):
             recent_activities.sort(key=lambda x: x['created_at'], reverse=True)
             recent_activities = recent_activities[:10]
 
-            # ===== STATISTIQUES DU MOIS =====
             monthly_stats = {
                 'new_users': User.objects.filter(date_joined__gte=first_day_of_month).count(),
                 'new_inscriptions': InscriptionFormation.objects.filter(
@@ -1662,24 +1581,21 @@ class DashboardStatsView(APIView):
                 ).count(),
                 'revenue_month': float(
                     TransactionPaiement.objects.filter(
-                        statut='REUSSI',
-                        date_validation__gte=first_day_of_month
+                        statut='REUSSI', date_validation__gte=first_day_of_month
                     ).aggregate(total=Sum('montant'))['total'] or 0
                 ),
             }
 
-            # ===== LISTE DES INSCRIPTIONS FORMATIONS EN ATTENTE =====
-            inscriptions_attente = InscriptionFormation.objects.filter(
-                statut='EN_ATTENTE'
-            ).select_related('client', 'formation').order_by('-date_inscription')[:15]
-
+            inscriptions_attente = (
+                InscriptionFormation.objects.filter(statut='EN_ATTENTE')
+                .select_related('client', 'formation')
+                .order_by('-date_inscription')[:15]
+            )
             inscriptions_data = []
             for ins in inscriptions_attente:
                 paiement = TransactionPaiement.objects.filter(
-                    inscription=ins,
-                    statut='REUSSI'
+                    inscription=ins, statut='REUSSI'
                 ).first()
-
                 inscriptions_data.append({
                     'id': ins.id,
                     'client': {
@@ -1701,7 +1617,6 @@ class DashboardStatsView(APIView):
                     'code_acces': ins.code_acces.code if ins.code_acces else None,
                 })
 
-            # ===== STATISTIQUES DES FORMATIONS =====
             formation_stats = {
                 'total_inscriptions': InscriptionFormation.objects.count(),
                 'en_attente': InscriptionFormation.objects.filter(statut='EN_ATTENTE').count(),
@@ -1709,11 +1624,12 @@ class DashboardStatsView(APIView):
                 'inscriptions_recents': inscriptions_data,
             }
 
-            # ===== ✅ LISTE DES PARTICIPANTS À L'ÉVÉNEMENT LE PLUS RÉCENT =====
-            dernier_evenement = Evenement.objects.filter(
-                id__in=ParticipationEvenement.objects.values_list('evenement_id', flat=True).distinct()
-            ).order_by('-date_debut').first()
-
+            dernier_evenement = (
+                Evenement.objects
+                .filter(id__in=ParticipationEvenement.objects.values_list('evenement_id', flat=True).distinct())
+                .order_by('-date_debut')
+                .first()
+            )
             evenement_clients = []
             evenement_titre = "Aucun événement avec participants"
             evenement_id = None
@@ -1722,27 +1638,26 @@ class DashboardStatsView(APIView):
             if dernier_evenement:
                 evenement_titre = dernier_evenement.titre
                 evenement_id = dernier_evenement.id
-
-                participations = ParticipationEvenement.objects.filter(
-                    evenement=dernier_evenement,
-                    statut='INSCRIT'
-                ).select_related('client').order_by('-date_inscription')[:10]
-
+                participations = (
+                    ParticipationEvenement.objects.filter(
+                        evenement=dernier_evenement, statut='INSCRIT'
+                    )
+                    .select_related('client')
+                    .order_by('-date_inscription')[:10]
+                )
                 total_inscrits = ParticipationEvenement.objects.filter(
-                    evenement=dernier_evenement,
-                    statut='INSCRIT'
+                    evenement=dernier_evenement, statut='INSCRIT'
                 ).count()
-
-                for participation in participations:
-                    client = participation.client
+                for p in participations:
+                    c = p.client
                     evenement_clients.append({
-                        'id': client.id,
-                        'nom': client.nom,
-                        'prenom': client.prenom,
-                        'email': client.email,
-                        'telephone': client.telephone,
-                        'statut_inscription': participation.statut,
-                        'date_inscription': participation.date_inscription.isoformat(),
+                        'id': c.id,
+                        'nom': c.nom,
+                        'prenom': c.prenom,
+                        'email': c.email,
+                        'telephone': c.telephone,
+                        'statut_inscription': p.statut,
+                        'date_inscription': p.date_inscription.isoformat(),
                     })
 
             evenement_stats = {
@@ -1752,10 +1667,9 @@ class DashboardStatsView(APIView):
                     'titre': evenement_titre,
                     'clients': evenement_clients,
                     'total_inscrits': total_inscrits,
-                }
+                },
             }
 
-            # ===== ✅ STATISTIQUES DES COMMANDES =====
             commandes_stats = {
                 'total': Commande.objects.count(),
                 'en_attente': Commande.objects.filter(statut='EN_ATTENTE').count(),
@@ -1763,10 +1677,7 @@ class DashboardStatsView(APIView):
                 'livrees': Commande.objects.filter(statut='LIVREE').count(),
                 'recents': [],
             }
-
-            recent_commandes = Commande.objects.select_related('client').order_by('-date_commande')[:10]
-
-            for cmd in recent_commandes:
+            for cmd in Commande.objects.select_related('client').order_by('-date_commande')[:10]:
                 commandes_stats['recents'].append({
                     'id': cmd.id,
                     'client': {
@@ -1790,23 +1701,27 @@ class DashboardStatsView(APIView):
             })
 
         except Exception as e:
-            import traceback
             traceback.print_exc()
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-            # api/views.py (Ajoutez ces vues)
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# =============================================
+# ✅ INSCRIPTION RELOOKING
+# =============================================
 
 @method_decorator(csrf_exempt, name='dispatch')
 class InscriptionRelookingView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         serializer = InscriptionRelookingSerializer(data=request.data)
         if serializer.is_valid():
             inscription = serializer.save()
-            return Response({'success': True, 'id': inscription.id}, status=status.HTTP_201_CREATED)
+            return Response(
+                {'success': True, 'id': inscription.id},
+                status=status.HTTP_201_CREATED,
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

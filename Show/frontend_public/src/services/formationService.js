@@ -1,17 +1,15 @@
-// frontend_public/src/services/formationService.js
+// src/services/formationService.js
 import api from './api';
+import { logger } from '../lib/logger';
 
 export const formationService = {
-  // =============================================
-  // ✅ LECTURE (Public)
-  // =============================================
-
+  // ===== LECTURE =====
   getFormations: async (params = {}) => {
     try {
       const response = await api.get('/formations/', { params });
       return response.data;
     } catch (error) {
-      console.error('❌ Erreur getFormations:', error);
+      logger.warn('Erreur getFormations, status:', error.response?.status);
       throw error;
     }
   },
@@ -21,7 +19,7 @@ export const formationService = {
       const response = await api.get(`/formations/${id}/`);
       return response.data;
     } catch (error) {
-      console.error(`❌ Erreur getFormationById(${id}):`, error);
+      logger.warn(`Erreur getFormationById(${id}), status:`, error.response?.status);
       throw error;
     }
   },
@@ -31,19 +29,14 @@ export const formationService = {
       const response = await api.get('/formations/', { params: { statut } });
       return response.data;
     } catch (error) {
-      console.error(`❌ Erreur getFormationsByStatut(${statut}):`, error);
+      logger.warn(`Erreur getFormationsByStatut(${statut})`);
       throw error;
     }
   },
 
-  // =============================================
-  // ✅ INSCRIPTION (Public)
-  // =============================================
-
-  // ✅ Méthode principale - utilise les données du formulaire
+  // ===== INSCRIPTION =====
   inscrire: async (formationId, clientData, notes = '') => {
     try {
-      // ✅ Utiliser les données passées en paramètre
       const payload = {
         formation: parseInt(formationId),
         email: clientData?.email || '',
@@ -52,29 +45,21 @@ export const formationService = {
         telephone: clientData?.telephone || '',
         notes: notes || '',
       };
-      
-      console.log('📦 Payload inscription:', payload);
-      
+
       const response = await api.post('/inscriptions-formation/', payload);
       return response.data;
     } catch (error) {
-      console.error('❌ Erreur inscription:', error);
-      if (error.response?.data) {
-        console.error('📋 Erreur backend:', error.response.data);
-      }
+      logger.warn('Erreur inscription formation, status:', error.response?.status);
       throw error;
     }
   },
 
-  // ✅ Alias pour compatibilité
+  // Alias
   inscrireAvecDonnees: async (formationId, clientData, notes = '') => {
     return formationService.inscrire(formationId, clientData, notes);
   },
 
-  // =============================================
-  // ✅ PAIEMENT (Public)
-  // =============================================
-
+  // ===== PAIEMENT =====
   creerTransaction: async (data) => {
     try {
       const payload = {
@@ -86,32 +71,24 @@ export const formationService = {
           prenom: data.prenom || '',
           telephone: data.telephone || '',
           notes: data.notes || '',
-        }
+        },
       };
-      
-      console.log('📦 Payload transaction:', payload);
-      
+
       const response = await api.post('/transactions/', payload);
       return response.data;
     } catch (error) {
-      console.error('❌ Erreur création transaction:', error);
-      if (error.response?.data) {
-        console.error('📋 Erreur backend:', error.response.data);
-      }
+      logger.warn('Erreur création transaction, status:', error.response?.status);
       throw error;
     }
   },
 
-  // =============================================
-  // ✅ ADMIN (Nécessite authentification)
-  // =============================================
-
+  // ===== ADMIN =====
   getInscriptions: async (params = {}) => {
     try {
       const response = await api.get('/admin/inscriptions-formation/', { params });
       return response.data;
     } catch (error) {
-      console.error('❌ Erreur getInscriptions:', error);
+      logger.warn('Erreur getInscriptions, status:', error.response?.status);
       throw error;
     }
   },
@@ -121,7 +98,7 @@ export const formationService = {
       const response = await api.get(`/admin/inscriptions-formation/${id}/`);
       return response.data;
     } catch (error) {
-      console.error(`❌ Erreur getInscriptionById(${id}):`, error);
+      logger.warn(`Erreur getInscriptionById(${id})`);
       throw error;
     }
   },
@@ -131,7 +108,7 @@ export const formationService = {
       const response = await api.put(`/admin/inscriptions-formation/${id}/`, data);
       return response.data;
     } catch (error) {
-      console.error(`❌ Erreur updateInscription(${id}):`, error);
+      logger.warn(`Erreur updateInscription(${id}), status:`, error.response?.status);
       throw error;
     }
   },
@@ -141,7 +118,7 @@ export const formationService = {
       const response = await api.delete(`/admin/inscriptions-formation/${id}/`);
       return response.data;
     } catch (error) {
-      console.error(`❌ Erreur deleteInscription(${id}):`, error);
+      logger.warn(`Erreur deleteInscription(${id})`);
       throw error;
     }
   },
@@ -151,7 +128,7 @@ export const formationService = {
       const response = await api.get('/admin/transactions/', { params });
       return response.data;
     } catch (error) {
-      console.error('❌ Erreur getTransactions:', error);
+      logger.warn('Erreur getTransactions');
       throw error;
     }
   },
@@ -161,19 +138,20 @@ export const formationService = {
       const response = await api.post(`/admin/transactions/${id}/valider/`);
       return response.data;
     } catch (error) {
-      console.error(`❌ Erreur validerTransaction(${id}):`, error);
+      logger.warn(`Erreur validerTransaction(${id})`);
       throw error;
     }
   },
+
   verifierCode: async (data) => {
-  try {
-    const response = await api.post('/verifier-code/', data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Erreur vérification code:', error);
-    throw error;
-  }
-},
+    try {
+      const response = await api.post('/verifier-code/', data);
+      return response.data;
+    } catch (error) {
+      logger.warn('Erreur vérification code');
+      throw error;
+    }
+  },
 };
 
 export default formationService;

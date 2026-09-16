@@ -1,3 +1,4 @@
+import { logger } from '../../../lib/logger';
 // src/pages/Admin/Evenements/NouvelEvenement.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -166,12 +167,12 @@ const NouvelEvenement = () => {
       }
 
       // ✅ LOG pour debug
-      console.log('📦 Envoi FormData:');
+      logger.log('📦 Envoi FormData:');
       for (let pair of formDataToSend.entries()) {
         if (pair[1] instanceof File) {
-          console.log(`  ${pair[0]}: ${pair[1].name} (${pair[1].size} bytes)`);
+          logger.log(`  ${pair[0]}: ${pair[1].name} (${pair[1].size} bytes)`);
         } else {
-          console.log(`  ${pair[0]}: ${pair[1]}`);
+          logger.log(`  ${pair[0]}: ${pair[1]}`);
         }
       }
 
@@ -181,7 +182,7 @@ const NouvelEvenement = () => {
         (progress) => setUploadProgress(progress)
       );
 
-      console.log('✅ Réponse:', response);
+      logger.log('✅ Réponse:', response);
       setSuccess(true);
       
       setTimeout(() => {
@@ -189,12 +190,12 @@ const NouvelEvenement = () => {
       }, 2000);
       
     } catch (err) {
-      console.error('❌ Erreur:', err);
+      logger.error('❌ Erreur:', err);
       
       // ✅ Afficher les erreurs du backend
       if (err.response?.data) {
         const backendErrors = err.response.data;
-        console.log('📋 Erreurs backend:', backendErrors);
+        logger.log('📋 Erreurs backend:', backendErrors);
         
         if (typeof backendErrors === 'object') {
           // ✅ Construire un message d'erreur lisible

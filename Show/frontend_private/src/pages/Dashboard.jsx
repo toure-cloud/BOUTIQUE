@@ -1,3 +1,4 @@
+import { logger } from '../lib/logger';
 // src/pages/Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -290,7 +291,7 @@ const Dashboard = () => {
       const data = await adminService.getParticipantsEvenements({ page: 1, page_size: 5 });
       setInscriptionsEvenements(data.results || data || []);
     } catch (err) {
-      console.error("❌ Erreur inscriptions événements:", err);
+      logger.error("❌ Erreur inscriptions événements:", err);
     } finally {
       setLoadingEvenements(false);
     }
@@ -301,7 +302,7 @@ const Dashboard = () => {
       const data = await adminService.getInscriptionsFormations({ page: 1, page_size: 5 });
       setInscriptionsFormations(data.results || data || []);
     } catch (err) {
-      console.error("❌ Erreur inscriptions formations:", err);
+      logger.error("❌ Erreur inscriptions formations:", err);
     } finally {
       setLoadingFormations(false);
     }

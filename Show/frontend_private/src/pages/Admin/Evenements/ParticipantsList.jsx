@@ -1,3 +1,4 @@
+import { logger } from '../../../lib/logger';
 // src/pages/Admin/Evenements/ParticipantsList.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -94,7 +95,7 @@ const ParticipantsList = () => {
     setEvenement(eventData);
 
     const data = await adminService.getParticipantsByEvenement(parseInt(id));
-    console.log('📋 Participants reçus:', data);
+    logger.log('📋 Participants reçus:', data);
     
     // ✅ Extraire correctement les résultats
     let participantsList = [];
@@ -107,13 +108,13 @@ const ParticipantsList = () => {
     // ✅ Vérifier que chaque participation a un client
     participantsList = participantsList.filter(p => p.client !== null);
     
-    console.log('📋 Participants après filtrage:', participantsList);
+    logger.log('📋 Participants après filtrage:', participantsList);
     
     setParticipants(participantsList);
     setFilteredParticipants(participantsList);
     setTotalCount(participantsList.length);
   } catch (err) {
-    console.error('❌ Erreur:', err);
+    logger.error('❌ Erreur:', err);
     setError('Impossible de charger les participants');
   } finally {
     setLoading(false);
@@ -160,7 +161,7 @@ const ParticipantsList = () => {
       });
       fetchData();
     } catch (err) {
-      console.error('❌ Erreur suppression:', err);
+      logger.error('❌ Erreur suppression:', err);
       setSnackbar({
         open: true,
         message: '❌ Erreur lors de la suppression',

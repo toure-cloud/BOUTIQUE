@@ -1098,9 +1098,11 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
 # =============================================
 # ✅ INSCRIPTION RELOOKING
 # =============================================
-
 class InscriptionRelookingSerializer(
-    NameValidationMixin, PhoneValidationMixin, EmailValidationMixin, serializers.ModelSerializer
+    NameValidationMixin,
+    PhoneValidationMixin,
+    EmailValidationMixin,
+    serializers.ModelSerializer
 ):
     class Meta:
         model = InscriptionRelooking
@@ -1108,11 +1110,30 @@ class InscriptionRelookingSerializer(
         read_only_fields = ['id']
 
     def validate(self, data):
-        """Validation globale (à adapter selon vos champs)."""
-        # Exemple : vérifier les champs obligatoires
-        for field in ['nom', 'prenom', 'email', 'telephone']:
-            if field in self.fields and not data.get(field):
+        """
+        Validation globale.
+        ⚠️ En PATCH (partial=True), on ne valide QUE les champs envoyés.
+        On utilise `self.instance` pour récupérer les valeurs existantes
+        quand un champ n'est pas fourni.
+        """
+        # Liste des champs obligatoires à vérifier
+        required_fields = ['nom', 'prenom', 'email', 'telephone']
+
+        for field in required_fields:
+            if field not in self.fields:
+                continue
+
+            # Valeur envoyée OU valeur actuelle si PATCH
+            value_from_data = data.get(field)
+            value_from_instance = (
+                getattr(self.instance, field, None) if self.instance else None
+            )
+
+            value = value_from_data if value_from_data is not None else value_from_instance
+
+            if not value:
                 raise serializers.ValidationError({
                     field: f"Le champ {field} est obligatoire."
                 })
+
         return data

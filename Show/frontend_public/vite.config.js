@@ -1,6 +1,7 @@
-// vite.config.js
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+const isTunnel = !!process.env.CODESPACES || !!process.env.VSCODE_TUNNEL;
 
 export default defineConfig({
   plugins: [react()],
@@ -8,25 +9,30 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3000,
     strictPort: true,
-    hmr: false,
-    watch: {
-      usePolling: true,
-    },
+    allowedHosts: [
+      '.devtunnels.ms',
+      '.app.github.dev',
+      '.githubpreview.dev',
+      'localhost',
+    ],
+    hmr: isTunnel
+      ? {
+          protocol: 'wss',
+          clientPort: 443,
+          // ✅ IMPORTANT : spécifie le host du tunnel
+          host: '7z6hftkf-3000.uks1.devtunnels.ms',
+        }
+      : true,   // ← localhost direct : laisse Vite gérer
   },
   preview: {
     host: '0.0.0.0',
     port: 3000,
     strictPort: true,
-  },
-  optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'react-router-dom',
-      '@mui/material',
-      '@mui/icons-material',
-      '@emotion/react',
-      '@emotion/styled',
+    allowedHosts: [
+      '.devtunnels.ms',
+      '.app.github.dev',
+      '.githubpreview.dev',
+      'localhost',
     ],
   },
-});
+})

@@ -1,3 +1,4 @@
+import { logger } from '../../../lib/logger';
 // src/pages/Admin/Formations/InscriptionsFormations.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -124,7 +125,7 @@ const InscriptionsFormations = () => {
       setActionDialogOpen(false);
       fetchInscriptions();
     } catch (err) {
-      console.error("❌ Erreur:", err);
+      logger.error("❌ Erreur:", err);
       setSnackbar({ open: true, message: "❌ Erreur lors de l'action", severity: "error" });
     } finally {
       setProcessing(false);

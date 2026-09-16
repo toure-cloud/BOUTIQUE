@@ -50,11 +50,9 @@ const Login = () => {
     }
 
     try {
-      // ✅ Utilisation de la fonction login du contexte Auth
       const result = await login(username, password);
       
       if (result.success) {
-        // ✅ Vérifier si l'utilisateur est admin ou staff
         if (result.user?.is_staff || result.user?.is_superuser) {
           navigate('/dashboard');
         } else {
@@ -135,7 +133,7 @@ const Login = () => {
                     setUsername(e.target.value);
                     setError(null);
                   }}
-                  SlotProps={{
+                  InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
                         <Email className="text-gray-400" />
@@ -165,7 +163,7 @@ const Login = () => {
                     setPassword(e.target.value);
                     setError(null);
                   }}
-                  SlotProps={{
+                  InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
                         <Lock className="text-gray-400" />

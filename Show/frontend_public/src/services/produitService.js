@@ -1,37 +1,37 @@
-// frontend_public/src/services/produitService.js
+// src/services/produitService.js
 import api from './api';
+import { logger } from '../lib/logger';
 
 export const produitService = {
-  // ✅ Récupérer tous les produits (public)
   getProduits: async (params = {}) => {
     try {
       const response = await api.get('/produits/', { params });
       return response.data;
     } catch (error) {
-      console.error('❌ Erreur getProduits:', error);
+      logger.warn('Erreur getProduits');
       throw error;
     }
   },
 
-  // ✅ Récupérer un produit par ID
   getProduitById: async (id) => {
     try {
       const response = await api.get(`/produits/${id}/`);
       return response.data;
     } catch (error) {
-      console.error(`❌ Erreur getProduitById(${id}):`, error);
+      logger.warn(`Erreur getProduitById(${id})`);
       throw error;
     }
   },
 
-  // ✅ Récupérer les produits par catégorie
   getProduitsByCategorie: async (categorie) => {
     try {
       const response = await api.get('/produits/', { params: { categorie } });
       return response.data;
     } catch (error) {
-      console.error(`❌ Erreur getProduitsByCategorie(${categorie}):`, error);
+      logger.warn(`Erreur getProduitsByCategorie(${categorie})`);
       throw error;
     }
   },
 };
+
+export default produitService;

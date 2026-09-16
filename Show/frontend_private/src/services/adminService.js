@@ -1,3 +1,4 @@
+import { logger } from '../lib/logger';
 // src/services/adminService.js
 import api from "./api";
 
@@ -10,7 +11,7 @@ export const adminService = {
       const response = await api.get("/admin/dashboard/stats/");
       return response.data;
     } catch (error) {
-      console.error("❌ Erreur dashboard stats:", error);
+      logger.error("❌ Erreur dashboard stats:", error);
       throw error;
     }
   },
@@ -128,7 +129,7 @@ getParticipantsEvenements: async (params = {}) => {
       );
       return response.data;
     } catch (error) {
-      console.error("❌ Erreur getParticipantsByEvenement:", error);
+      logger.error("❌ Erreur getParticipantsByEvenement:", error);
       throw error;
     }
   },
@@ -138,7 +139,7 @@ getParticipantsEvenements: async (params = {}) => {
       const response = await api.delete(`/admin/participations/${id}/`);
       return response.data;
     } catch (error) {
-      console.error("❌ Erreur deleteParticipation:", error);
+      logger.error("❌ Erreur deleteParticipation:", error);
       throw error;
     }
   },
@@ -148,7 +149,7 @@ getParticipantsEvenements: async (params = {}) => {
       const response = await api.put(`/admin/participations/${id}/`, data);
       return response.data;
     } catch (error) {
-      console.error("❌ Erreur updateParticipation:", error);
+      logger.error("❌ Erreur updateParticipation:", error);
       throw error;
     }
   },
@@ -157,7 +158,7 @@ getParticipantsEvenements: async (params = {}) => {
     const response = await api.delete(`/admin/inscriptions-formation/${id}/`);
     return response.data;
   } catch (error) {
-    console.error("❌ Erreur deleteInscription:", error);
+    logger.error("❌ Erreur deleteInscription:", error);
     throw error;
   }
 },
@@ -166,7 +167,7 @@ deleteCommande: async (id) => {
     const response = await api.delete(`/admin/commandes/${id}/`);
     return response.data;
   } catch (error) {
-    console.error(`❌ Erreur deleteCommande(${id}):`, error);
+    logger.error(`❌ Erreur deleteCommande(${id}):`, error);
     throw error;
   }
 },
@@ -219,7 +220,7 @@ deleteCommande: async (id) => {
       });
       return response.data;
     } catch (error) {
-      console.error("❌ Erreur getInscriptionsFormations:", error);
+      logger.error("❌ Erreur getInscriptionsFormations:", error);
       throw error;
     }
   },
@@ -236,7 +237,7 @@ deleteCommande: async (id) => {
       );
       return response.data;
     } catch (error) {
-      console.error("❌ Erreur updateInscription:", error);
+      logger.error("❌ Erreur updateInscription:", error);
       throw error;
     }
   },
@@ -253,8 +254,8 @@ deleteCommande: async (id) => {
       );
       return response.data;
     } catch (error) {
-      console.error("❌ Erreur genererCodeAcces:", error);
-      console.error("📋 Réponse:", error.response?.data);
+      logger.error("❌ Erreur genererCodeAcces:", error);
+      logger.error("📋 Réponse:", error.response?.data);
       throw error;
     }
   },
@@ -267,7 +268,7 @@ deleteCommande: async (id) => {
       const response = await api.get("/admin/paiements/", { params });
       return response.data;
     } catch (error) {
-      console.error("❌ Erreur getPaiements:", error);
+      logger.error("❌ Erreur getPaiements:", error);
       throw error;
     }
   },
@@ -277,7 +278,7 @@ deleteCommande: async (id) => {
       const response = await api.post(`/admin/paiements/${id}/valider/`);
       return response.data;
     } catch (error) {
-      console.error("❌ Erreur validerPaiement:", error);
+      logger.error("❌ Erreur validerPaiement:", error);
       throw error;
     }
   },
@@ -287,7 +288,7 @@ deleteCommande: async (id) => {
       const response = await api.post(`/admin/paiements/${id}/annuler/`);
       return response.data;
     } catch (error) {
-      console.error("❌ Erreur annulerPaiement:", error);
+      logger.error("❌ Erreur annulerPaiement:", error);
       throw error;
     }
   },
@@ -297,7 +298,7 @@ deleteCommande: async (id) => {
       const response = await api.post(`/admin/paiements/${id}/rembourser/`);
       return response.data;
     } catch (error) {
-      console.error("❌ Erreur rembourserPaiement:", error);
+      logger.error("❌ Erreur rembourserPaiement:", error);
       throw error;
     }
   },
@@ -338,7 +339,7 @@ deleteCommande: async (id) => {
     const response = await api.get('/admin/commandes/', { params });
     return response.data;
   } catch (error) {
-    console.error('❌ Erreur getCommandes:', error);
+    logger.error('❌ Erreur getCommandes:', error);
     throw error;
   }
 },
@@ -348,7 +349,7 @@ deleteCommande: async (id) => {
       const response = await api.get(`/admin/commandes/${id}/`);
       return response.data;
     } catch (error) {
-      console.error(`❌ Erreur getCommande(${id}):`, error);
+      logger.error(`❌ Erreur getCommande(${id}):`, error);
       throw error;
     }
   },
@@ -374,7 +375,7 @@ getCommandeDetails: async (commandeId) => {
     const response = await api.get(`/commandes/${commandeId}/`);
     return response.data;
   } catch (error) {
-    console.error("Erreur récupération détails commande:", error);
+    logger.error("Erreur récupération détails commande:", error);
     throw error;
   }
 },
@@ -383,7 +384,7 @@ getCommandeDetails: async (commandeId) => {
       const response = await api.patch(`/admin/commandes/${id}/`, data);
       return response.data;
     } catch (error) {
-      console.error(`❌ Erreur updateCommande(${id}):`, error);
+      logger.error(`❌ Erreur updateCommande(${id}):`, error);
       throw error;
     }
   },

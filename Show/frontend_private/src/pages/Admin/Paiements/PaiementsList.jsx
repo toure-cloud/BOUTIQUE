@@ -1,3 +1,4 @@
+import { logger } from '../../../lib/logger';
 // src/pages/Admin/Paiements/PaiementsList.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -89,13 +90,13 @@ const PaiementsList = () => {
     try {
       // ✅ Utiliser la route correcte
       const data = await adminService.getPaiements();
-      console.log("📋 Paiements reçus:", data);
+      logger.log("📋 Paiements reçus:", data);
 
       const paiementsList = Array.isArray(data) ? data : data.results || [];
       setPaiements(paiementsList);
       setFilteredPaiements(paiementsList);
     } catch (err) {
-      console.error("❌ Erreur:", err);
+      logger.error("❌ Erreur:", err);
       setError("Impossible de charger les paiements");
     } finally {
       setLoading(false);

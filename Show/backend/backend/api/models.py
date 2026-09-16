@@ -75,6 +75,14 @@ class Client(models.Model):
     password = models.CharField(max_length=128, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    api_token = models.CharField(
+        max_length=128,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="Token d'authentification API pour le client.",
+    )
+    api_token_active = models.BooleanField(default=False)
 
     def set_password(self, raw_password):
         """Hache et enregistre le mot de passe"""

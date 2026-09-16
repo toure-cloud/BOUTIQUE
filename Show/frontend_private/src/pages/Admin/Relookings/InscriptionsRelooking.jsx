@@ -1,3 +1,4 @@
+import { logger } from '../../../lib/logger';
 // frontend_private/src/pages/Admin/InscriptionsRelooking.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -65,7 +66,7 @@ const InscriptionsRelooking = () => {
       const details = await adminService.getInscriptionRelookingById(inscription.id);
       setSelected(details);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setDetailLoading(false);
     }

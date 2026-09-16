@@ -16,8 +16,9 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '0.0.0.0',
     '7z6hftkf-8000.uks1.devtunnels.ms',  # ← DevTunnel backend
-    '7z6hftkf-3000.uks1.devtunnels.ms',  # ← DevTunnel frontend
-    '*',  # ⚠️ Seulement en développement
+    '7z6hftkf-3000.uks1.devtunnels.ms', 
+    '7z6hftkf-5174.uks1.devtunnels.ms',# ← DevTunnel frontend
+      
 ]
 
 # Application definition
@@ -71,7 +72,7 @@ TEMPLATES = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
@@ -151,8 +152,8 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-client-token',        # ✅ AJOUT
 ]
-
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
@@ -162,6 +163,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
     "http://127.0.0.1:5174",
     "https://7z6hftkf-3000.uks1.devtunnels.ms",
+    "https://7z6hftkf-5174.uks1.devtunnels.ms",
     "https://7z6hftkf-8000.uks1.devtunnels.ms",
 ]
 # Autoriser les méthodes HTTP
@@ -190,6 +192,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5174",
     "http://127.0.0.1:5174",
     'https://7z6hftkf-3000.uks1.devtunnels.ms',
+    'https://7z6hftkf-5174.uks1.devtunnels.ms',
     'https://7z6hftkf-8000.uks1.devtunnels.ms',
 ]
 
