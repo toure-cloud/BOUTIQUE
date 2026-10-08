@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Container, Typography, Box, Grid, Card, Button, Chip,
   IconButton, TextField, InputAdornment, FormControl, Select,
-  MenuItem, Alert, Pagination, Skeleton, Snackbar,
+  MenuItem, Alert, Pagination, Skeleton, Snackbar, alpha,
 } from '@mui/material';
 import {
   ShoppingBag, Search, Close, Star, Favorite, FavoriteBorder,
@@ -13,6 +13,24 @@ import {
 import { produitService } from '../services/produitService';
 import { panierService } from '../services/panierService';
 import heroImage from '../assets/images/tibetia.jpeg';
+
+// 🎨 Palette (cohérente avec Header / Footer)
+const T = {
+  bg: '#FAFAFA',
+  surface: '#FFFFFF',
+  dark: '#1F1F1F',
+  darkSoft: '#2A2A2A',
+  textPrimary: '#1F1F1F',
+  textSecondary: '#6B6B6B',
+  textMuted: '#9A9A9A',
+  border: '#E8E8E8',
+  accent: '#D4AF37',
+  accentSoft: 'rgba(212, 175, 55, 0.12)',
+  accentHover: '#C9A961',
+  danger: '#DC2626',
+  warning: '#D97706',
+  success: '#059669',
+};
 
 const CATEGORIES = [
   { id: 'robes', label: 'Robes' },
@@ -88,12 +106,11 @@ const Boutique = () => {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
 
-  // ✅ AJOUT AU PANIER (avec vérification du stock et connexion)
   const ajouterAuPanier = async (produit) => {
     if (produit.quantite_stock <= 0) {
       setSnackbar({
         open: true,
-        message: '❌ Ce produit est en rupture de stock',
+        message: 'Ce produit est en rupture de stock',
         severity: 'error',
       });
       return;
@@ -111,7 +128,7 @@ const Boutique = () => {
 
     try {
       await panierService.ajouterProduit(client.id, produit.id, 1);
-      setSnackbar({ open: true, message: '✅ Ajouté au panier !', severity: 'success' });
+      setSnackbar({ open: true, message: 'Ajouté au panier !', severity: 'success' });
     } catch (error) {
       if (error.response?.status === 404) {
         localStorage.removeItem('client_data');
@@ -119,7 +136,7 @@ const Boutique = () => {
         setSnackbar({ open: true, message: 'Session expirée. Reconnectez-vous.', severity: 'warning' });
         setTimeout(() => navigate('/login'), 1500);
       } else {
-        setSnackbar({ open: true, message: '❌ Erreur lors de l\'ajout', severity: 'error' });
+        setSnackbar({ open: true, message: 'Erreur lors de l\'ajout', severity: 'error' });
       }
     }
   };
@@ -150,18 +167,22 @@ const Boutique = () => {
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: 2.5,
-          border: '1px solid #E2E8F0',
-          bgcolor: '#fff',
+          borderRadius: 2,
+          border: `1px solid ${T.border}`,
+          bgcolor: T.surface,
           overflow: 'hidden',
-          opacity: isRupture ? 0.75 : 1,
-          transition: 'all 0.25s ease',
+          opacity: isRupture ? 0.8 : 1,
+          transition: 'all 0.3s ease',
           '&:hover': {
-            borderColor: '#CBD5E1',
-            boxShadow: '0 12px 32px rgba(15,23,42,0.08)',
-            transform: isRupture ? 'none' : 'translateY(-4px)',
+            borderColor: T.accent,
+            boxShadow: `0 16px 40px -12px ${alpha(T.dark, 0.15)}`,
+            transform: isRupture ? 'none' : 'translateY(-6px)',
             '& .product-image': {
-              transform: isRupture ? 'none' : 'scale(1.04)',
+              transform: isRupture ? 'none' : 'scale(1.06)',
+            },
+            '& .add-btn': {
+              bgcolor: T.accent,
+              color: T.dark,
             },
           },
         }}
@@ -173,7 +194,7 @@ const Boutique = () => {
             width: '100%',
             aspectRatio: '3 / 4',
             overflow: 'hidden',
-            bgcolor: '#F1F5F9',
+            bgcolor: '#F5F5F5',
             flexShrink: 0,
           }}
         >
@@ -193,8 +214,8 @@ const Boutique = () => {
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              transition: 'transform 0.5s ease',
-              filter: isRupture ? 'grayscale(0.6)' : 'none',
+              transition: 'transform 0.6s ease',
+              filter: isRupture ? 'grayscale(0.7)' : 'none',
             }}
           />
 
@@ -207,17 +228,18 @@ const Boutique = () => {
                 position: 'absolute',
                 top: 12,
                 left: 12,
-                bgcolor: '#0F172A',
-                color: '#fff',
-                fontWeight: 600,
+                bgcolor: T.accent,
+                color: T.dark,
+                fontWeight: 700,
                 fontSize: '0.7rem',
                 height: 24,
+                borderRadius: 1,
                 zIndex: 2,
               }}
             />
           )}
 
-          {/* Badge rupture de stock */}
+          {/* Badge rupture */}
           {isRupture && (
             <Chip
               icon={<Warning sx={{ fontSize: 14, color: '#fff !important' }} />}
@@ -227,11 +249,12 @@ const Boutique = () => {
                 position: 'absolute',
                 top: 12,
                 left: 12,
-                bgcolor: '#DC2626',
+                bgcolor: T.danger,
                 color: '#fff',
                 fontWeight: 700,
                 fontSize: '0.7rem',
                 height: 24,
+                borderRadius: 1,
                 zIndex: 2,
               }}
             />
@@ -247,16 +270,18 @@ const Boutique = () => {
                 position: 'absolute',
                 top: 12,
                 left: 12,
-                bgcolor: '#D97706',
+                bgcolor: T.warning,
                 color: '#fff',
                 fontWeight: 700,
                 fontSize: '0.65rem',
                 height: 24,
+                borderRadius: 1,
                 zIndex: 2,
               }}
             />
           )}
 
+          {/* Favori */}
           <IconButton
             size="small"
             onClick={(e) => {
@@ -267,18 +292,20 @@ const Boutique = () => {
               position: 'absolute',
               top: 10,
               right: 10,
-              bgcolor: 'rgba(255,255,255,0.95)',
-              width: 36,
-              height: 36,
+              bgcolor: alpha('#FFFFFF', 0.95),
+              width: 34,
+              height: 34,
               zIndex: 2,
+              backdropFilter: 'blur(4px)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              '&:hover': { bgcolor: '#fff' },
+              transition: 'all 0.2s ease',
+              '&:hover': { bgcolor: '#fff', transform: 'scale(1.08)' },
             }}
           >
             {isFav ? (
-              <Favorite sx={{ color: '#EF4444', fontSize: 18 }} />
+              <Favorite sx={{ color: '#EF4444', fontSize: 17 }} />
             ) : (
-              <FavoriteBorder sx={{ color: '#64748B', fontSize: 18 }} />
+              <FavoriteBorder sx={{ color: T.textSecondary, fontSize: 17 }} />
             )}
           </IconButton>
         </Box>
@@ -287,10 +314,10 @@ const Boutique = () => {
         <Box sx={{ p: 2, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
           <Typography
             sx={{
-              color: '#94A3B8',
-              fontWeight: 500,
-              letterSpacing: 0.8,
-              fontSize: '0.7rem',
+              color: T.accent,
+              fontWeight: 600,
+              letterSpacing: 1.2,
+              fontSize: '0.68rem',
               textTransform: 'uppercase',
               mb: 0.6,
             }}
@@ -301,10 +328,11 @@ const Boutique = () => {
           <Typography
             sx={{
               fontWeight: 500,
-              color: isRupture ? '#94A3B8' : '#0F172A',
+              color: isRupture ? T.textMuted : T.textPrimary,
               fontSize: '0.95rem',
               lineHeight: 1.35,
               mb: 1,
+              fontFamily: '"Playfair Display", serif',
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
@@ -315,28 +343,30 @@ const Boutique = () => {
             {produit.nom}
           </Typography>
 
+          {/* Étoiles */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, mb: 1.5 }}>
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
                 sx={{
                   fontSize: 13,
-                  color: star <= Math.round(produit.note || 4.5) ? '#F59E0B' : '#E2E8F0',
+                  color: star <= Math.round(produit.note || 4.5) ? T.accent : T.border,
                 }}
               />
             ))}
-            <Typography sx={{ color: '#94A3B8', ml: 0.4, fontSize: '0.75rem' }}>
+            <Typography sx={{ color: T.textMuted, ml: 0.4, fontSize: '0.75rem' }}>
               ({produit.nb_avis || 0})
             </Typography>
           </Box>
 
+          {/* Prix */}
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mt: 'auto', mb: 1.5 }}>
             {produit.est_en_promotion && produit.prix_promotion && !isRupture ? (
               <>
-                <Typography sx={{ fontWeight: 700, color: '#0F172A', fontSize: '1.05rem' }}>
+                <Typography sx={{ fontWeight: 700, color: T.textPrimary, fontSize: '1.05rem' }}>
                   {formatPrice(produit.prix_promotion)}
                 </Typography>
-                <Typography sx={{ color: '#94A3B8', textDecoration: 'line-through', fontSize: '0.85rem' }}>
+                <Typography sx={{ color: T.textMuted, textDecoration: 'line-through', fontSize: '0.85rem' }}>
                   {formatPrice(produit.prix)}
                 </Typography>
               </>
@@ -344,7 +374,7 @@ const Boutique = () => {
               <Typography
                 sx={{
                   fontWeight: 700,
-                  color: isRupture ? '#94A3B8' : '#0F172A',
+                  color: isRupture ? T.textMuted : T.textPrimary,
                   fontSize: '1.05rem',
                 }}
               >
@@ -353,6 +383,7 @@ const Boutique = () => {
             )}
           </Box>
 
+          {/* Actions */}
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               fullWidth
@@ -360,14 +391,19 @@ const Boutique = () => {
               variant="outlined"
               onClick={() => handleDetails(produit.id)}
               sx={{
-                borderRadius: 2,
+                borderRadius: 1.5,
                 textTransform: 'none',
                 fontWeight: 500,
                 fontSize: '0.8rem',
-                borderColor: '#E2E8F0',
-                color: '#475569',
+                borderColor: T.border,
+                color: T.textSecondary,
                 py: 0.9,
-                '&:hover': { borderColor: '#CBD5E1', bgcolor: '#F8FAFC' },
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  borderColor: T.textPrimary,
+                  color: T.textPrimary,
+                  bgcolor: 'transparent',
+                },
               }}
             >
               Voir
@@ -376,24 +412,26 @@ const Boutique = () => {
               fullWidth
               size="small"
               variant="contained"
+              className="add-btn"
               disabled={isRupture}
               onClick={() => ajouterAuPanier(produit)}
               sx={{
-                borderRadius: 2,
+                borderRadius: 1.5,
                 textTransform: 'none',
                 fontWeight: 600,
                 fontSize: '0.75rem',
-                bgcolor: isRupture ? '#E2E8F0' : '#0F172A',
-                color: isRupture ? '#94A3B8' : '#fff',
+                bgcolor: isRupture ? T.border : T.dark,
+                color: isRupture ? T.textMuted : '#fff',
                 py: 0.9,
                 boxShadow: 'none',
+                transition: 'all 0.25s ease',
                 '&:hover': {
-                  bgcolor: isRupture ? '#E2E8F0' : '#1E293B',
+                  bgcolor: isRupture ? T.border : T.darkSoft,
                   boxShadow: 'none',
                 },
                 '&.Mui-disabled': {
-                  bgcolor: '#E2E8F0',
-                  color: '#94A3B8',
+                  bgcolor: T.border,
+                  color: T.textMuted,
                 },
               }}
             >
@@ -408,13 +446,13 @@ const Boutique = () => {
   // ─── LOADING ────────────────────────────────────────────────
   if (loading && produits.length === 0) {
     return (
-      <Box sx={{ bgcolor: '#F8FAFC', minHeight: '100vh' }}>
-        <Box sx={{ height: { xs: 260, md: 380 }, bgcolor: '#E2E8F0' }} />
+      <Box sx={{ bgcolor: T.bg, minHeight: '100vh' }}>
+        <Box sx={{ height: { xs: 260, md: 380 }, bgcolor: T.border }} />
         <Container maxWidth="lg" sx={{ py: 6 }}>
           <Grid container spacing={3}>
             {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
-              <Grid item xs={6} sm={4} md={3} key={item}>
-                <Skeleton variant="rectangular" sx={{ aspectRatio: '3/4', borderRadius: 2.5, mb: 1.5 }} />
+              <Grid size={{ xs: 6, sm: 4, md: 3 }} key={item}>
+                <Skeleton variant="rectangular" sx={{ aspectRatio: '3/4', borderRadius: 2, mb: 1.5 }} />
                 <Skeleton width="40%" height={14} sx={{ mb: 0.5 }} />
                 <Skeleton width="80%" height={18} sx={{ mb: 0.5 }} />
                 <Skeleton width="30%" height={16} />
@@ -428,7 +466,7 @@ const Boutique = () => {
 
   if (error && produits.length === 0) {
     return (
-      <Box sx={{ bgcolor: '#F8FAFC', minHeight: '100vh', py: 10 }}>
+      <Box sx={{ bgcolor: T.bg, minHeight: '100vh', py: 10 }}>
         <Container maxWidth="sm">
           <Alert
             severity="error"
@@ -443,32 +481,106 @@ const Boutique = () => {
   }
 
   return (
-    <Box sx={{ bgcolor: '#F8FAFC', minHeight: '100vh' }}>
-      {/* HERO */}
-      <Box sx={{ position: 'relative', height: { xs: 280, md: 400 }, display: 'flex', alignItems: 'flex-end', overflow: 'hidden', bgcolor: '#E2E8F0' }}>
-        <Box component="img" src={heroImage} alt="Boutique" sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%' }} />
-        <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,23,42,0.65) 0%, rgba(15,23,42,0.25) 50%, rgba(15,23,42,0.1) 100%)' }} />
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, pb: { xs: 4, md: 6 } }}>
-          <Typography sx={{ color: 'rgba(255,255,255,0.75)', letterSpacing: 3, fontWeight: 500, fontSize: '0.75rem', textTransform: 'uppercase', mb: 1.5 }}>Madame Tibetia</Typography>
-          <Typography sx={{ fontWeight: 500, color: '#fff', fontFamily: '"Playfair Display", serif', fontSize: { xs: '2.4rem', md: '3.4rem' }, lineHeight: 1.1, mb: 1.5, letterSpacing: -0.5 }}>Boutique</Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: { xs: '0.95rem', md: '1.1rem' }, maxWidth: 420, lineHeight: 1.5 }}>Pièces sélectionnées pour sublimer votre élégance au quotidien</Typography>
+    <Box sx={{ bgcolor: T.bg, minHeight: '100vh' }}>
+      {/* ─── HERO ─────────────────────────────────────── */}
+      <Box
+        sx={{
+          position: 'relative',
+          height: { xs: 300, md: 440 },
+          display: 'flex',
+          alignItems: 'flex-end',
+          overflow: 'hidden',
+          bgcolor: T.dark,
+        }}
+      >
+        <Box
+          component="img"
+          src={heroImage}
+          alt="Boutique"
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center 30%',
+            opacity: 0.85,
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            background: `linear-gradient(to top, ${alpha(T.dark, 0.85)} 0%, ${alpha(T.dark, 0.4)} 50%, ${alpha(T.dark, 0.15)} 100%)`,
+          }}
+        />
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, pb: { xs: 5, md: 7 } }}>
+          <Typography
+            sx={{
+              color: T.accent,
+              letterSpacing: 4,
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              textTransform: 'uppercase',
+              mb: 1.5,
+            }}
+          >
+            Madame Tibetia
+          </Typography>
+          <Typography
+            sx={{
+              fontWeight: 500,
+              color: '#fff',
+              fontFamily: '"Playfair Display", serif',
+              fontSize: { xs: '2.5rem', md: '3.8rem' },
+              lineHeight: 1.05,
+              mb: 1.5,
+              letterSpacing: -0.8,
+            }}
+          >
+            Boutique
+          </Typography>
+          <Typography
+            sx={{
+              color: alpha('#FFFFFF', 0.85),
+              fontSize: { xs: '0.95rem', md: '1.1rem' },
+              maxWidth: 460,
+              lineHeight: 1.6,
+              fontWeight: 300,
+            }}
+          >
+            Pièces sélectionnées pour sublimer votre élégance au quotidien
+          </Typography>
         </Container>
       </Box>
 
-      {/* CATÉGORIES */}
-      <Box sx={{ bgcolor: '#fff', borderBottom: '1px solid #E2E8F0' }}>
+      {/* ─── CATÉGORIES ───────────────────────────────── */}
+      <Box sx={{ bgcolor: T.surface, borderBottom: `1px solid ${T.border}` }}>
         <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', py: 2, '&::-webkit-scrollbar': { display: 'none' } }}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              overflowX: 'auto',
+              py: 2.5,
+              '&::-webkit-scrollbar': { display: 'none' },
+            }}
+          >
             <Chip
               label="Tout"
               onClick={() => { setSelectedCategorie('all'); setPage(1); }}
               sx={{
-                borderRadius: 2,
+                borderRadius: 1,
                 fontWeight: selectedCategorie === 'all' ? 600 : 500,
-                bgcolor: selectedCategorie === 'all' ? '#0F172A' : '#F1F5F9',
-                color: selectedCategorie === 'all' ? '#fff' : '#475569',
-                px: 1,
-                '&:hover': { bgcolor: selectedCategorie === 'all' ? '#1E293B' : '#E2E8F0' },
+                bgcolor: selectedCategorie === 'all' ? T.dark : '#F5F5F5',
+                color: selectedCategorie === 'all' ? '#fff' : T.textSecondary,
+                px: 1.5,
+                py: 1.8,
+                transition: 'all 0.25s ease',
+                '&:hover': {
+                  bgcolor: selectedCategorie === 'all' ? T.darkSoft : alpha(T.accent, 0.15),
+                  color: selectedCategorie === 'all' ? '#fff' : T.textPrimary,
+                },
               }}
             />
             {CATEGORIES.map((cat) => (
@@ -477,13 +589,18 @@ const Boutique = () => {
                 label={cat.label}
                 onClick={() => { setSelectedCategorie(cat.id); setPage(1); }}
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: 1,
                   fontWeight: selectedCategorie === cat.id ? 600 : 500,
-                  bgcolor: selectedCategorie === cat.id ? '#0F172A' : '#F1F5F9',
-                  color: selectedCategorie === cat.id ? '#fff' : '#475569',
-                  px: 1,
+                  bgcolor: selectedCategorie === cat.id ? T.dark : '#F5F5F5',
+                  color: selectedCategorie === cat.id ? '#fff' : T.textSecondary,
+                  px: 1.5,
+                  py: 1.8,
                   whiteSpace: 'nowrap',
-                  '&:hover': { bgcolor: selectedCategorie === cat.id ? '#1E293B' : '#E2E8F0' },
+                  transition: 'all 0.25s ease',
+                  '&:hover': {
+                    bgcolor: selectedCategorie === cat.id ? T.darkSoft : alpha(T.accent, 0.15),
+                    color: selectedCategorie === cat.id ? '#fff' : T.textPrimary,
+                  },
                 }}
               />
             ))}
@@ -491,10 +608,28 @@ const Boutique = () => {
         </Container>
       </Box>
 
-      {/* TOOLBAR */}
-      <Box sx={{ bgcolor: '#fff', borderBottom: '1px solid #E2E8F0', position: 'sticky', top: 0, zIndex: 40 }}>
+      {/* ─── TOOLBAR ──────────────────────────────────── */}
+      <Box
+        sx={{
+          bgcolor: alpha(T.surface, 0.95),
+          backdropFilter: 'blur(10px)',
+          borderBottom: `1px solid ${T.border}`,
+          position: 'sticky',
+          top: 0,
+          zIndex: 40,
+        }}
+      >
         <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, gap: 2, flexWrap: 'wrap' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              py: 2,
+              gap: 2,
+              flexWrap: 'wrap',
+            }}
+          >
             <TextField
               placeholder="Rechercher une pièce..."
               value={searchTerm}
@@ -502,23 +637,27 @@ const Boutique = () => {
               size="small"
               sx={{
                 flex: 1,
-                maxWidth: { xs: '100%', md: 340 },
+                maxWidth: { xs: '100%', md: 360 },
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  bgcolor: '#F8FAFC',
+                  borderRadius: 1.5,
+                  bgcolor: '#F8F8F8',
                   fontSize: '0.875rem',
-                  '& fieldset': { borderColor: '#E2E8F0' },
-                  '&:hover fieldset': { borderColor: '#CBD5E1' },
-                  '&.Mui-focused fieldset': { borderColor: '#0F172A' },
+                  '& fieldset': { borderColor: T.border },
+                  '&:hover fieldset': { borderColor: alpha(T.accent, 0.5) },
+                  '&.Mui-focused fieldset': { borderColor: T.accent },
                 },
               }}
               slotProps={{
                 input: {
-                  startAdornment: <InputAdornment position="start"><Search sx={{ color: '#94A3B8', fontSize: 20 }} /></InputAdornment>,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search sx={{ color: T.textMuted, fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
                   endAdornment: searchTerm ? (
                     <InputAdornment position="end">
                       <IconButton size="small" onClick={() => setSearchTerm('')}>
-                        <Close sx={{ fontSize: 16, color: '#94A3B8' }} />
+                        <Close sx={{ fontSize: 16, color: T.textMuted }} />
                       </IconButton>
                     </InputAdornment>
                   ) : null,
@@ -527,41 +666,57 @@ const Boutique = () => {
             />
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-              {/* ✅ BOUTON MES COMMANDES */}
               <Button
                 variant="outlined"
                 startIcon={<Receipt sx={{ fontSize: 18 }} />}
                 onClick={() => navigate('/panier')}
                 sx={{
-                  borderRadius: 2,
-                  borderColor: '#CBD5E1',
-                  color: '#0F172A',
+                  borderRadius: 1.5,
+                  borderColor: T.border,
+                  color: T.textPrimary,
                   textTransform: 'none',
                   fontWeight: 600,
                   fontSize: '0.85rem',
                   px: 2,
                   py: 0.8,
                   whiteSpace: 'nowrap',
-                  '&:hover': { borderColor: '#0F172A', bgcolor: '#F8FAFC' },
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    borderColor: T.accent,
+                    color: T.accent,
+                    bgcolor: T.accentSoft,
+                  },
                 }}
               >
                 Mes commandes
               </Button>
 
-              <Typography sx={{ color: '#64748B', fontSize: '0.875rem', display: { xs: 'none', sm: 'block' } }}>
+              <Typography
+                sx={{
+                  color: T.textMuted,
+                  fontSize: '0.875rem',
+                  display: { xs: 'none', sm: 'block' },
+                }}
+              >
                 {filteredProduits.length} pièce{filteredProduits.length > 1 ? 's' : ''}
               </Typography>
 
-              <FormControl size="small" sx={{ minWidth: 150 }}>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
                 <Select
                   value={sortBy}
                   onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
                   displayEmpty
                   sx={{
-                    borderRadius: 2,
+                    borderRadius: 1.5,
                     fontSize: '0.875rem',
-                    bgcolor: '#F8FAFC',
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E2E8F0' },
+                    bgcolor: '#F8F8F8',
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: T.border },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: alpha(T.accent, 0.5),
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: T.accent,
+                    },
                   }}
                 >
                   <MenuItem value="popular">Popularité</MenuItem>
@@ -574,27 +729,40 @@ const Boutique = () => {
         </Container>
       </Box>
 
-      {/* PRODUITS */}
+      {/* ─── PRODUITS ─────────────────────────────────── */}
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
         {filteredProduits.length === 0 ? (
           <Box sx={{ py: 12, textAlign: 'center' }}>
-            <ShoppingBag sx={{ fontSize: 48, color: '#CBD5E1', mb: 2 }} />
-            <Typography sx={{ fontSize: '1.5rem', fontWeight: 600, color: '#0F172A', mb: 1 }}>
+            <ShoppingBag sx={{ fontSize: 48, color: T.border, mb: 2 }} />
+            <Typography
+              sx={{
+                fontSize: '1.5rem',
+                fontWeight: 500,
+                color: T.textPrimary,
+                mb: 1,
+                fontFamily: '"Playfair Display", serif',
+              }}
+            >
               Aucune pièce trouvée
             </Typography>
-            <Typography sx={{ color: '#64748B', mb: 3, fontSize: '0.95rem' }}>
+            <Typography sx={{ color: T.textSecondary, mb: 3, fontSize: '0.95rem' }}>
               {searchTerm ? 'Essayez un autre mot-clé' : 'Aucun produit dans cette catégorie'}
             </Typography>
             <Button
               variant="outlined"
               onClick={() => { setSearchTerm(''); setSelectedCategorie('all'); setPage(1); }}
               sx={{
-                borderRadius: 2,
-                borderColor: '#CBD5E1',
-                color: '#0F172A',
+                borderRadius: 1.5,
+                borderColor: T.textPrimary,
+                color: T.textPrimary,
                 textTransform: 'none',
                 px: 3,
                 fontWeight: 500,
+                '&:hover': {
+                  borderColor: T.accent,
+                  color: T.accent,
+                  bgcolor: T.accentSoft,
+                },
               }}
             >
               Réinitialiser les filtres
@@ -604,11 +772,12 @@ const Boutique = () => {
           <>
             <Grid container spacing={{ xs: 2, md: 3 }}>
               {filteredProduits.map((produit) => (
-                <Grid item xs={6} sm={4} md={3} key={produit.id}>
+                <Grid size={{ xs: 6, sm: 4, md: 3 }} key={produit.id}>
                   {renderProductCard(produit)}
                 </Grid>
               ))}
             </Grid>
+
             {totalPages > 1 && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
                 <Pagination
@@ -617,12 +786,18 @@ const Boutique = () => {
                   onChange={(e, value) => setPage(value)}
                   sx={{
                     '& .MuiPaginationItem-root': {
-                      borderRadius: 2,
+                      borderRadius: 1.5,
                       fontWeight: 500,
+                      color: T.textSecondary,
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: T.accentSoft,
+                        color: T.accent,
+                      },
                       '&.Mui-selected': {
-                        bgcolor: '#0F172A',
+                        bgcolor: T.dark,
                         color: '#fff',
-                        '&:hover': { bgcolor: '#1E293B' },
+                        '&:hover': { bgcolor: T.darkSoft },
                       },
                     },
                   }}
@@ -633,13 +808,48 @@ const Boutique = () => {
         )}
       </Container>
 
-      {/* CTA */}
-      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: '#0F172A', textAlign: 'center' }}>
+      {/* ─── CTA ──────────────────────────────────────── */}
+      <Box
+        sx={{
+          py: { xs: 9, md: 12 },
+          bgcolor: T.dark,
+          textAlign: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 80,
+            height: 2,
+            bgcolor: T.accent,
+          },
+        }}
+      >
         <Container maxWidth="sm">
-          <Typography sx={{ fontFamily: '"Playfair Display", serif', color: '#fff', fontSize: { xs: '1.8rem', md: '2.3rem' }, fontWeight: 500, mb: 1.5, letterSpacing: -0.3 }}>
+          <Typography
+            sx={{
+              fontFamily: '"Playfair Display", serif',
+              color: '#fff',
+              fontSize: { xs: '1.9rem', md: '2.5rem' },
+              fontWeight: 500,
+              mb: 2,
+              letterSpacing: -0.5,
+            }}
+          >
             L'élégance commence ici
           </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.65)', mb: 4, fontSize: '1rem' }}>
+          <Typography
+            sx={{
+              color: alpha('#FFFFFF', 0.65),
+              mb: 4,
+              fontSize: '1rem',
+              fontWeight: 300,
+              lineHeight: 1.7,
+            }}
+          >
             Découvrez également nos forfaits relooking et formations en ligne
           </Typography>
           <Button
@@ -648,15 +858,21 @@ const Boutique = () => {
             variant="contained"
             endIcon={<ArrowForward sx={{ fontSize: 18 }} />}
             sx={{
-              bgcolor: '#fff',
-              color: '#0F172A',
-              borderRadius: 2,
+              bgcolor: T.accent,
+              color: T.dark,
+              borderRadius: 1.5,
               px: 4,
               py: 1.5,
               textTransform: 'none',
               fontWeight: 600,
               fontSize: '0.9rem',
-              '&:hover': { bgcolor: '#F1F5F9' },
+              boxShadow: 'none',
+              transition: 'all 0.25s ease',
+              '&:hover': {
+                bgcolor: T.accentHover,
+                boxShadow: `0 12px 28px -8px ${alpha(T.accent, 0.5)}`,
+                transform: 'translateY(-2px)',
+              },
             }}
           >
             Voir les forfaits
@@ -664,14 +880,18 @@ const Boutique = () => {
         </Container>
       </Box>
 
-      {/* SNACKBAR */}
+      {/* ─── SNACKBAR ─────────────────────────────────── */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ borderRadius: 2 }}>
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ borderRadius: 1.5 }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

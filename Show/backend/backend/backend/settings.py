@@ -22,7 +22,6 @@ ALLOWED_HOSTS = [
 ]
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -30,18 +29,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    # ✅ Third party apps
     'rest_framework',
-    'rest_framework_simplejwt',  # ✅ AJOUTER CECI
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',   # ⬅️ AJOUT
     'corsheaders',
-    
-    # ✅ Local apps
     'api',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',   # ⬅️ EN PREMIER
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -152,7 +148,7 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
-    'x-client-token',        # ✅ AJOUT
+    'x-client-token',        
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -195,18 +191,57 @@ CSRF_TRUSTED_ORIGINS = [
     'https://7z6hftkf-5174.uks1.devtunnels.ms',
     'https://7z6hftkf-8000.uks1.devtunnels.ms',
 ]
+# ═══════════════════════════════════════════
+# ALLOWED HOSTS
+# ═══════════════════════════════════════════
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    '7z6hftkf-8000.uks1.devtunnels.ms',
+    '7z6hftkf-5174.uks1.devtunnels.ms',
+]
 
-# ===== CSRF COOKIE =====
-# ✅ Important pour React/SPA
-CSRF_COOKIE_HTTPONLY = False  # Permet à React de lire le cookie
-CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_USE_SESSIONS = False
-CSRF_COOKIE_SECURE = False  # False en développement, True en production
-
-# ✅ CORS
-CORS_ALLOW_ALL_ORIGINS = True
+# ═══════════════════════════════════════════
+# CORS
+# ═══════════════════════════════════════════
+CORS_ALLOW_ALL_ORIGINS = True   # DEV uniquement
 CORS_ALLOW_CREDENTIALS = True
 
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-client-token',
+]
+
+CORS_ALLOW_METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
+
+CORS_EXPOSE_HEADERS = ['content-type', 'authorization']
+
+# ═══════════════════════════════════════════
+# CSRF / SESSIONS
+# ═══════════════════════════════════════════
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://7z6hftkf-5174.uks1.devtunnels.ms',
+    'https://7z6hftkf-8000.uks1.devtunnels.ms',
+]
+
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = False
+
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False
 # ===== SESSION =====
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True

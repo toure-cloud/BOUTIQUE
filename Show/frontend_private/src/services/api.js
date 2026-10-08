@@ -1,7 +1,10 @@
 // src/services/api.js
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// ⚠️ Ne PAS mettre /api dans VITE_API_URL
+// On le met ici pour que ça marche pour tous les endpoints
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+const API_URL = `${API_BASE.replace(/\/$/, '')}/api`;   // enlève slash final puis ajoute /api
 
 const api = axios.create({
   baseURL: API_URL,
@@ -10,7 +13,7 @@ const api = axios.create({
   },
 });
 
-// Intercepteur pour ajouter le token
+// ─── Intercepteur : ajoute le token ──────────────────────
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
@@ -22,23 +25,22 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Intercepteur pour gérer les erreurs d'authentification
+// ─── Intercepteur : gère le 401 + refresh ────────────────
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
-    // Si erreur 401 et pas déjà retenté
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+
       try {
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
           const response = await axios.post(`${API_URL}/token/refresh/`, {
-            refresh: refreshToken
+            refresh: refreshToken,
           });
-          
+
           if (response.data.access) {
             localStorage.setItem('access_token', response.data.access);
             originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
@@ -46,14 +48,13 @@ api.interceptors.response.use(
           }
         }
       } catch (refreshError) {
-        // Si le refresh échoue, déconnecter l'utilisateur
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         window.location.href = '/login';
       }
     }
-    
+
     return Promise.reject(error);
   }
 );

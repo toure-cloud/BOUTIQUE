@@ -116,146 +116,157 @@ const InscriptionsSection = ({
   onViewAll,
   onViewItem,
   type, // 'evenement' ou 'formation'
-}) => (
-  <Box sx={{ mb: 4 }}>
-    {/* En-tête de section */}
-    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-        <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(iconColor, 0.12), color: iconColor, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {icon}
-        </Box>
-        <Typography sx={{ fontWeight: 700, color: T.primary, fontSize: "1.05rem" }}>
-          {title}
-        </Typography>
-        {!loading && (
-          <Chip label={data.length} size="small" sx={{ bgcolor: T.primary, color: "#fff", fontWeight: 600, height: 22, fontSize: "0.7rem" }} />
-        )}
-      </Box>
-      <Button
-        size="small"
-        endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
-        onClick={onViewAll}
-        sx={{ textTransform: "none", color: T.accent, fontWeight: 600, fontSize: "0.85rem" }}
-      >
-        Voir tout
-      </Button>
-    </Box>
+}) => {
+  // 🛡️ GARDE : toujours un tableau, quelle que soit la forme reçue
+  const list = Array.isArray(data) ? data : (data?.results ?? []);
 
-    {/* Liste */}
-    <Card
-      elevation={0}
-      sx={{
-        borderRadius: 3,
-        border: `1px solid ${T.border}`,
-        bgcolor: T.surface,
-        overflow: "hidden",
-      }}
-    >
-      {loading ? (
-        <Box sx={{ p: 3 }}>
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rectangular" height={60} sx={{ mb: 1, borderRadius: 2 }} />
-          ))}
-        </Box>
-      ) : data.length === 0 ? (
-        <Box sx={{ p: 5, textAlign: "center" }}>
-          <PersonAdd sx={{ fontSize: 40, color: "#CBD5E1", mb: 1.5 }} />
-          <Typography sx={{ color: T.muted, fontSize: "0.9rem" }}>
-            Aucune inscription pour le moment
+  return (
+    <Box sx={{ mb: 4 }}>
+      {/* En-tête de section */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(iconColor, 0.12), color: iconColor, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {icon}
+          </Box>
+          <Typography sx={{ fontWeight: 700, color: T.primary, fontSize: "1.05rem" }}>
+            {title}
           </Typography>
+          {!loading && (
+            <Chip
+              label={list.length}
+              size="small"
+              sx={{ bgcolor: T.primary, color: "#fff", fontWeight: 600, height: 22, fontSize: "0.7rem" }}
+            />
+          )}
         </Box>
-      ) : (
-        <Stack divider={<Divider sx={{ borderColor: T.border }} />}>
-          {data.map((item, index) => {
-            const client = item.client_details || {};
-            const secondaire = type === "evenement" ? item.evenement_details : item.formation_details;
-            const config = getStatutConfig(item.statut);
+        <Button
+          size="small"
+          endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
+          onClick={onViewAll}
+          sx={{ textTransform: "none", color: T.accent, fontWeight: 600, fontSize: "0.85rem" }}
+        >
+          Voir tout
+        </Button>
+      </Box>
 
-            return (
-              <Box
-                key={item.id || index}
-                sx={{
-                  p: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                  transition: "background-color 0.2s",
-                  "&:hover": { bgcolor: alpha(T.accent, 0.03) },
-                }}
-              >
-                {/* Avatar */}
-                <Avatar
+      {/* Liste */}
+      <Card
+        elevation={0}
+        sx={{
+          borderRadius: 3,
+          border: `1px solid ${T.border}`,
+          bgcolor: T.surface,
+          overflow: "hidden",
+        }}
+      >
+        {loading ? (
+          <Box sx={{ p: 3 }}>
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} variant="rectangular" height={60} sx={{ mb: 1, borderRadius: 2 }} />
+            ))}
+          </Box>
+        ) : list.length === 0 ? (
+          <Box sx={{ p: 5, textAlign: "center" }}>
+            <PersonAdd sx={{ fontSize: 40, color: "#CBD5E1", mb: 1.5 }} />
+            <Typography sx={{ color: T.muted, fontSize: "0.9rem" }}>
+              Aucune inscription pour le moment
+            </Typography>
+          </Box>
+        ) : (
+          <Stack divider={<Divider sx={{ borderColor: T.border }} />}>
+            {list.map((item, index) => {
+              const client = item.client_details || {};
+              const secondaire = type === "evenement" ? item.evenement_details : item.formation_details;
+              const config = getStatutConfig(item.statut);
+
+              return (
+                <Box
+                  key={item.id || index}
                   sx={{
-                    width: 42,
-                    height: 42,
-                    bgcolor: alpha(iconColor, 0.12),
-                    color: iconColor,
-                    fontWeight: 600,
-                    fontSize: "0.9rem",
-                    flexShrink: 0,
+                    p: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                    transition: "background-color 0.2s",
+                    "&:hover": { bgcolor: alpha(T.accent, 0.03) },
                   }}
                 >
-                  {client.prenom?.[0]}{client.nom?.[0]}
-                </Avatar>
+                  {/* Avatar */}
+                  <Avatar
+                    sx={{
+                      width: 42,
+                      height: 42,
+                      bgcolor: alpha(iconColor, 0.12),
+                      color: iconColor,
+                      fontWeight: 600,
+                      fontSize: "0.9rem",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {client.prenom?.[0]}{client.nom?.[0]}
+                  </Avatar>
 
-                {/* Infos principales */}
-                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontWeight: 600, color: T.primary, fontSize: "0.9rem", mb: 0.3 }}>
-                    {client.prenom || "Prénom"} {client.nom || "Nom"}
-                  </Typography>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                    <Typography sx={{ color: T.muted, fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 0.4 }}>
-                      <Email sx={{ fontSize: 12 }} /> {client.email || "Email"}
+                  {/* Infos principales */}
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontWeight: 600, color: T.primary, fontSize: "0.9rem", mb: 0.3 }}>
+                      {client.prenom || "Prénom"} {client.nom || "Nom"}
                     </Typography>
-                    <Typography sx={{ color: T.muted, fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 0.4 }}>
-                      <Phone sx={{ fontSize: 12 }} /> {client.telephone || "Téléphone"}
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                      <Typography sx={{ color: T.muted, fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 0.4 }}>
+                        <Email sx={{ fontSize: 12 }} /> {client.email || "Email"}
+                      </Typography>
+                      <Typography sx={{ color: T.muted, fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 0.4 }}>
+                        <Phone sx={{ fontSize: 12 }} /> {client.telephone || "Téléphone"}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ color: T.secondary, fontSize: "0.8rem", mt: 0.5, fontStyle: "italic" }}>
+                      {type === "evenement" ? "📅" : "🎓"}{" "}
+                      {type === "evenement"
+                        ? secondaire?.titre || "Événement inconnu"
+                        : secondaire?.titre || "Formation inconnue"}
                     </Typography>
                   </Box>
-                  <Typography sx={{ color: T.secondary, fontSize: "0.8rem", mt: 0.5, fontStyle: "italic" }}>
-                    {type === "evenement" ? "📅" : "🎓"}{" "}
-                    {type === "evenement"
-                      ? secondaire?.titre || "Événement inconnu"
-                      : secondaire?.titre || "Formation inconnue"}
-                  </Typography>
-                </Box>
 
-                {/* Statut + Date */}
-                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 0.5, flexShrink: 0 }}>
-                  <Chip
-                    label={config.label}
-                    size="small"
-                    sx={{
-                      bgcolor: config.bgcolor,
-                      color: config.color,
-                      fontWeight: 600,
-                      fontSize: "0.7rem",
-                      height: 24,
-                    }}
-                  />
-                  <Typography sx={{ color: T.muted, fontSize: "0.7rem", display: "flex", alignItems: "center", gap: 0.3 }}>
-                    <CalendarToday sx={{ fontSize: 11 }} />
-                    {new Date(item.date_inscription).toLocaleDateString("fr-FR")}
-                  </Typography>
-                </Box>
+                  {/* Statut + Date */}
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 0.5, flexShrink: 0 }}>
+                    <Chip
+                      label={config.label}
+                      size="small"
+                      sx={{
+                        bgcolor: config.bgcolor,
+                        color: config.color,
+                        fontWeight: 600,
+                        fontSize: "0.7rem",
+                        height: 24,
+                      }}
+                    />
+                    <Typography sx={{ color: T.muted, fontSize: "0.7rem", display: "flex", alignItems: "center", gap: 0.3 }}>
+                      <CalendarToday sx={{ fontSize: 11 }} />
+                      {item.date_inscription
+                        ? new Date(item.date_inscription).toLocaleDateString("fr-FR")
+                        : "—"}
+                    </Typography>
+                  </Box>
 
-                {/* Action */}
-                <Tooltip title="Voir les détails">
-                  <IconButton
-                    size="small"
-                    onClick={() => onViewItem(item)}
-                    sx={{ color: T.muted, "&:hover": { color: T.accent, bgcolor: alpha(T.accent, 0.08) } }}
-                  >
-                    <Visibility fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            );
-          })}
-        </Stack>
-      )}
-    </Card>
-  </Box>
-);
+                  {/* Action */}
+                  <Tooltip title="Voir les détails">
+                    <IconButton
+                      size="small"
+                      onClick={() => onViewItem(item)}
+                      sx={{ color: T.muted, "&:hover": { color: T.accent, bgcolor: alpha(T.accent, 0.08) } }}
+                    >
+                      <Visibility fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              );
+            })}
+          </Stack>
+        )}
+      </Card>
+    </Box>
+  );
+};
 
 // ─── DASHBOARD ──────────────────────────────────────────────
 const Dashboard = () => {
@@ -284,14 +295,23 @@ const Dashboard = () => {
     }
   }, [isAdmin]);
 
+  // 🛠️ Helper : extrait toujours un tableau
+  const toArray = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (payload && Array.isArray(payload.results)) return payload.results;
+    return [];
+  };
+
   const fetchInscriptions = async () => {
     // Inscriptions événements
     setLoadingEvenements(true);
     try {
       const data = await adminService.getParticipantsEvenements({ page: 1, page_size: 5 });
-      setInscriptionsEvenements(data.results || data || []);
+      logger.debug?.("📦 participants:", data);
+      setInscriptionsEvenements(toArray(data));
     } catch (err) {
       logger.error("❌ Erreur inscriptions événements:", err);
+      setInscriptionsEvenements([]);
     } finally {
       setLoadingEvenements(false);
     }
@@ -300,9 +320,11 @@ const Dashboard = () => {
     setLoadingFormations(true);
     try {
       const data = await adminService.getInscriptionsFormations({ page: 1, page_size: 5 });
-      setInscriptionsFormations(data.results || data || []);
+      logger.debug?.("📦 inscriptions formations:", data);
+      setInscriptionsFormations(toArray(data));
     } catch (err) {
       logger.error("❌ Erreur inscriptions formations:", err);
+      setInscriptionsFormations([]);
     } finally {
       setLoadingFormations(false);
     }
@@ -427,7 +449,7 @@ const Dashboard = () => {
             data={inscriptionsEvenements}
             type="evenement"
             onViewAll={() => navigate("/admin/participants-evenements")}
-            onViewItem={(item) => navigate(`/admin/participants-evenements`)}
+            onViewItem={() => navigate(`/admin/participants-evenements`)}
           />
         </Grid>
 
@@ -441,7 +463,7 @@ const Dashboard = () => {
             data={inscriptionsFormations}
             type="formation"
             onViewAll={() => navigate("/admin/inscriptions-formations")}
-            onViewItem={(item) => navigate(`/admin/inscriptions-formations`)}
+            onViewItem={() => navigate(`/admin/inscriptions-formations`)}
           />
         </Grid>
       </Grid>

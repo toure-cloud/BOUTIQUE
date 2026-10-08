@@ -1,5 +1,3 @@
-# api/views.py
-
 # =============================================
 # ✅ IMPORTS (nettoyés, sans doublons)
 # =============================================
@@ -12,7 +10,8 @@ import string
 import traceback
 from datetime import datetime, timedelta
 from io import BytesIO
-
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from .models import ImageProduit   # ⬅️ Vérifie qu'il est importé
 import qrcode
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
@@ -606,8 +605,9 @@ class EvenementViewSet(PublicViewSet):
 
 
 class ProduitViewSet(PublicViewSet):
-    queryset = Produit.objects.filter(est_disponible=True)
+    queryset = Produit.objects.filter(est_disponible=True).prefetch_related('images_secondaires')
     serializer_class = ProduitSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
@@ -625,6 +625,51 @@ class ProduitViewSet(PublicViewSet):
                 Q(nom__icontains=search) | Q(description__icontains=search)
             )
         return queryset
+
+    def create(self, request, *args, **kwargs):
+        """
+        ⚠️ Override nécessaire pour enregistrer les images secondaires.
+        Le create() par défaut de DRF ne gère pas request.FILES.getlist().
+        """
+        # 1. Récupérer les images secondaires AVANT la création
+        secondary_images = request.FILES.getlist('images_secondaires')
+
+        # 2. Créer le produit normalement
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        produit = serializer.save()
+
+        # 3. Enregistrer les images secondaires
+        for index, img in enumerate(secondary_images):
+            ImageProduit.objects.create(
+                produit=produit,
+                image=img,
+                ordre=index,
+            )
+
+        # 4. Ré-sérialiser pour renvoyer les images dans la réponse
+        output_serializer = self.get_serializer(produit)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Idem pour update : enregistrer les nouvelles images secondaires.
+        Les anciennes sont conservées (pas de suppression auto).
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        secondary_images = request.FILES.getlist('images_secondaires')
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        produit = serializer.save()
+
+        # Ajouter les nouvelles images (sans supprimer les anciennes)
+        for img in secondary_images:
+            ImageProduit.objects.create(produit=produit, image=img)
+
+        output_serializer = self.get_serializer(produit)
+        return Response(output_serializer.data)
 
 
 class ForfaitViewSet(PublicViewSet):
