@@ -7,13 +7,12 @@ import {
   TableContainer, TableHead, TableRow, Chip, IconButton, CircularProgress,
   Alert, TextField, InputAdornment, Avatar, Tooltip, Pagination, Snackbar,
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
-  Stack, alpha, Divider, Grid,
+  Stack, alpha, Grid,
 } from "@mui/material";
 import {
   Search, Visibility, Refresh, School, CheckCircle, Cancel, Clear,
   Dashboard as DashboardIcon, Email, Phone, QrCode, Delete,
-  Close, Person, CalendarToday, AttachMoney, Lock, Info,
-  Badge, AccessTime, Notes as NotesIcon,
+  Close, Person, CalendarToday, Badge, Info,
 } from "@mui/icons-material";
 import { adminService } from "../../../services/adminService";
 
@@ -40,11 +39,11 @@ const InscriptionsFormations = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
 
-  // ✅ États pour le modal de détails
+  // États modal détails
   const [selectedInscription, setSelectedInscription] = useState(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
-  // ✅ États pour le modal de confirmation (actions)
+  // États modal action
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [actionType, setActionType] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -90,43 +89,63 @@ const InscriptionsFormations = () => {
     setPage(1);
   }, [searchTerm, inscriptions]);
 
-  // ✅ Ouvrir le modal de détails
   const handleViewDetails = (inscription) => {
     setSelectedInscription(inscription);
     setDetailDialogOpen(true);
   };
 
-  // ✅ Ouvrir le modal d'action (valider / refuser / générer code / supprimer)
   const handleAction = (inscription, type) => {
     setSelectedInscription(inscription);
     setActionType(type);
     setActionDialogOpen(true);
   };
 
-  // ✅ Confirmer l'action
+  // ✅ CORRECTION : utiliser les actions custom du backend
   const handleActionConfirm = async () => {
     setProcessing(true);
     try {
       const ins = selectedInscription;
+
       if (actionType === "valider") {
-        await adminService.updateInscription(ins.id, { statut: "PAYEE" });
-        setSnackbar({ open: true, message: `✅ Inscription validée pour ${ins.client_details?.prenom || ""} ${ins.client_details?.nom || ""}`, severity: "success" });
+        const response = await adminService.validerPaiementInscription(ins.id);
+        logger.log("🟢 Valider:", response);
+        setSnackbar({
+          open: true,
+          message: `✅ Inscription validée pour ${ins.client_details?.prenom || ""} ${ins.client_details?.nom || ""}`,
+          severity: "success",
+        });
       } else if (actionType === "generer_code") {
-        const code = "ACCES-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-        await adminService.genererCodeAcces(ins.id, { code });
-        setSnackbar({ open: true, message: `✅ Code d'accès généré : ${code}`, severity: "success" });
+        const response = await adminService.genererCodeAcces(ins.id);
+        logger.log("🟢 Code généré:", response);
+        setSnackbar({
+          open: true,
+          message: `✅ Code d'accès généré : ${response.code || "OK"}`,
+          severity: "success",
+        });
       } else if (actionType === "refuser") {
-        await adminService.updateInscription(ins.id, { statut: "ANNULEE" });
-        setSnackbar({ open: true, message: `❌ Inscription refusée pour ${ins.client_details?.prenom || ""} ${ins.client_details?.nom || ""}`, severity: "warning" });
+        const response = await adminService.refuserInscription(ins.id);
+        logger.log("🟢 Refuser:", response);
+        setSnackbar({
+          open: true,
+          message: `❌ Inscription refusée pour ${ins.client_details?.prenom || ""} ${ins.client_details?.nom || ""}`,
+          severity: "warning",
+        });
       } else if (actionType === "supprimer") {
         await adminService.deleteInscription(ins.id);
         setSnackbar({ open: true, message: `🗑️ Inscription supprimée`, severity: "success" });
       }
+
       setActionDialogOpen(false);
-      fetchInscriptions();
+      setSelectedInscription(null);
+      await fetchInscriptions();
     } catch (err) {
-      logger.error("❌ Erreur:", err);
-      setSnackbar({ open: true, message: "❌ Erreur lors de l'action", severity: "error" });
+      logger.error("🔴 Erreur:", err.response?.data || err);
+      const msg =
+        err.response?.data?.error ||
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        "❌ Erreur lors de l'action";
+      setSnackbar({ open: true, message: msg, severity: "error" });
     } finally {
       setProcessing(false);
     }
@@ -198,8 +217,18 @@ const InscriptionsFormations = () => {
             sx={{ flex: 1, minWidth: 260, "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: T.bg } }}
             slotProps={{
               input: {
-                startAdornment: <InputAdornment position="start"><Search sx={{ color: T.muted, fontSize: 20 }} /></InputAdornment>,
-                endAdornment: searchTerm ? <InputAdornment position="end"><IconButton size="small" onClick={() => setSearchTerm("")}><Clear sx={{ fontSize: 18, color: T.muted }} /></IconButton></InputAdornment> : null,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: T.muted, fontSize: 20 }} />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm ? (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setSearchTerm("")}>
+                      <Clear sx={{ fontSize: 18, color: T.muted }} />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
               },
             }}
           />
@@ -285,20 +314,30 @@ const InscriptionsFormations = () => {
                           <Stack direction="row" spacing={0.5} justifyContent="center">
                             {inscription.statut === "EN_ATTENTE" && (
                               <>
-                                <Tooltip title="Valider"><IconButton size="small" onClick={() => handleAction(inscription, "valider")} sx={{ color: T.success }}><CheckCircle fontSize="small" /></IconButton></Tooltip>
-                                <Tooltip title="Refuser"><IconButton size="small" onClick={() => handleAction(inscription, "refuser")} sx={{ color: T.danger }}><Cancel fontSize="small" /></IconButton></Tooltip>
+                                <Tooltip title="Valider">
+                                  <IconButton size="small" onClick={() => handleAction(inscription, "valider")} sx={{ color: T.success }}>
+                                    <CheckCircle fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Refuser">
+                                  <IconButton size="small" onClick={() => handleAction(inscription, "refuser")} sx={{ color: T.danger }}>
+                                    <Cancel fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
                               </>
                             )}
                             {inscription.statut === "PAYEE" && !inscription.code_acces && (
-                              <Tooltip title="Générer le code d'accès"><IconButton size="small" onClick={() => handleAction(inscription, "generer_code")} sx={{ color: T.accent }}><QrCode fontSize="small" /></IconButton></Tooltip>
+                              <Tooltip title="Générer le code d'accès">
+                                <IconButton size="small" onClick={() => handleAction(inscription, "generer_code")} sx={{ color: T.accent }}>
+                                  <QrCode fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
                             )}
-                            {/* ✅ Bouton "Voir plus" */}
                             <Tooltip title="Voir tous les détails">
                               <IconButton size="small" onClick={() => handleViewDetails(inscription)} sx={{ color: "#6366F1" }}>
                                 <Visibility fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                            {/* ✅ Bouton "Supprimer" */}
                             <Tooltip title="Supprimer l'inscription">
                               <IconButton size="small" onClick={() => handleAction(inscription, "supprimer")} sx={{ color: T.danger }}>
                                 <Delete fontSize="small" />
@@ -324,8 +363,14 @@ const InscriptionsFormations = () => {
           )}
         </Paper>
 
-        {/* ===== MODAL DÉTAILS COMPLETS ===== */}
-        <Dialog open={detailDialogOpen} onClose={() => setDetailDialogOpen(false)} maxWidth="md" fullWidth SlotProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}>
+        {/* ===== MODAL DÉTAILS ===== */}
+        <Dialog
+          open={detailDialogOpen}
+          onClose={() => setDetailDialogOpen(false)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}
+        >
           {selectedInscription && (() => {
             const client = selectedInscription.client_details || {};
             const formation = selectedInscription.formation_details || {};
@@ -343,19 +388,18 @@ const InscriptionsFormations = () => {
                 </DialogTitle>
 
                 <DialogContent sx={{ p: 3 }}>
-                  {/* Statut global */}
                   <Box sx={{ textAlign: "center", mb: 3 }}>
                     <Chip label={statutCfg.label} sx={{ bgcolor: alpha(statutCfg.color, 0.12), color: statutCfg.color, fontWeight: 700, fontSize: "0.85rem", height: 32, px: 2 }} />
                   </Box>
 
-                  {/* SECTION CLIENT */}
+                  {/* CLIENT */}
                   <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${T.border}`, mb: 3 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                       <Person sx={{ color: T.accent, fontSize: 20 }} />
                       <Typography sx={{ fontWeight: 700, color: T.primary, fontSize: "1rem" }}>Informations Client</Typography>
                     </Box>
                     <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                           <Avatar sx={{ bgcolor: alpha(T.accent, 0.1), color: T.accent, width: 44, height: 44, fontWeight: 700 }}>
                             {client.prenom?.[0]}{client.nom?.[0]}
@@ -368,74 +412,77 @@ const InscriptionsFormations = () => {
                           </Box>
                         </Box>
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Typography sx={{ color: T.muted, fontSize: "0.75rem", fontWeight: 600, mb: 0.3 }}>EMAIL</Typography>
                         <Typography sx={{ color: T.primary, fontSize: "0.85rem" }}>{client.email || "—"}</Typography>
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Typography sx={{ color: T.muted, fontSize: "0.75rem", fontWeight: 600, mb: 0.3 }}>TÉLÉPHONE</Typography>
                         <Typography sx={{ color: T.primary, fontSize: "0.85rem" }}>{client.telephone || "—"}</Typography>
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Typography sx={{ color: T.muted, fontSize: "0.75rem", fontWeight: 600, mb: 0.3 }}>ADRESSE</Typography>
                         <Typography sx={{ color: T.primary, fontSize: "0.85rem" }}>{client.adresse || "—"}</Typography>
                       </Grid>
                     </Grid>
                   </Paper>
 
-                  {/* SECTION FORMATION */}
+                  {/* FORMATION */}
                   <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${T.border}`, mb: 3 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                       <School sx={{ color: T.success, fontSize: 20 }} />
                       <Typography sx={{ fontWeight: 700, color: T.primary, fontSize: "1rem" }}>Formation</Typography>
                     </Box>
                     <Grid container spacing={2}>
-                      <Grid item xs={12}>
+                      <Grid size={{ xs: 12 }}>
                         <Typography sx={{ color: T.muted, fontSize: "0.75rem", fontWeight: 600, mb: 0.3 }}>TITRE</Typography>
                         <Typography sx={{ color: T.primary, fontSize: "0.95rem", fontWeight: 600 }}>{formation.titre || "—"}</Typography>
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Typography sx={{ color: T.muted, fontSize: "0.75rem", fontWeight: 600, mb: 0.3 }}>PRIX</Typography>
                         <Typography sx={{ color: T.primary, fontSize: "0.9rem", fontWeight: 700 }}>{formation.prix || 0} CFA</Typography>
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Typography sx={{ color: T.muted, fontSize: "0.75rem", fontWeight: 600, mb: 0.3 }}>DURÉE</Typography>
                         <Typography sx={{ color: T.primary, fontSize: "0.9rem" }}>{formation.duree || "—"}</Typography>
                       </Grid>
                     </Grid>
                   </Paper>
 
-                  {/* SECTION INSCRIPTION */}
+                  {/* INSCRIPTION */}
                   <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, border: `1px solid ${T.border}` }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                       <Badge sx={{ color: T.warning, fontSize: 20 }} />
                       <Typography sx={{ fontWeight: 700, color: T.primary, fontSize: "1rem" }}>Détails de l'inscription</Typography>
                     </Box>
                     <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Typography sx={{ color: T.muted, fontSize: "0.75rem", fontWeight: 600, mb: 0.3 }}>MONTANT PAYÉ</Typography>
                         <Typography sx={{ color: T.success, fontSize: "1rem", fontWeight: 700 }}>{selectedInscription.montant || 0} CFA</Typography>
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Typography sx={{ color: T.muted, fontSize: "0.75rem", fontWeight: 600, mb: 0.3 }}>DATE D'INSCRIPTION</Typography>
                         <Typography sx={{ color: T.primary, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: 0.5 }}>
                           <CalendarToday sx={{ fontSize: 14 }} /> {formatDate(selectedInscription.date_inscription)}
                         </Typography>
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Typography sx={{ color: T.muted, fontSize: "0.75rem", fontWeight: 600, mb: 0.3 }}>RÉFÉRENCE PAIEMENT</Typography>
                         <Typography sx={{ color: T.primary, fontSize: "0.85rem" }}>{selectedInscription.reference_paiement || "—"}</Typography>
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <Typography sx={{ color: T.muted, fontSize: "0.75rem", fontWeight: 600, mb: 0.3 }}>CODE D'ACCÈS</Typography>
                         {selectedInscription.code_acces ? (
-                          <Chip label={`🔑 ${selectedInscription.code_acces}`} sx={{ bgcolor: alpha(T.success, 0.12), color: T.success, fontWeight: 700, fontSize: "0.78rem" }} />
+                          <Chip
+                            label={`🔑 ${selectedInscription.code_acces?.code || selectedInscription.code_acces}`}
+                            sx={{ bgcolor: alpha(T.success, 0.12), color: T.success, fontWeight: 700, fontSize: "0.78rem" }}
+                          />
                         ) : (
                           <Typography sx={{ color: T.muted, fontSize: "0.85rem" }}>Non généré</Typography>
                         )}
                       </Grid>
                       {selectedInscription.notes && (
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                           <Typography sx={{ color: T.muted, fontSize: "0.75rem", fontWeight: 600, mb: 0.3 }}>NOTES</Typography>
                           <Paper elevation={0} sx={{ p: 1.5, bgcolor: T.bg, borderRadius: 1.5 }}>
                             <Typography sx={{ color: T.secondary, fontSize: "0.85rem", fontStyle: "italic" }}>{selectedInscription.notes}</Typography>
@@ -466,8 +513,12 @@ const InscriptionsFormations = () => {
           })()}
         </Dialog>
 
-        {/* ===== MODAL DE CONFIRMATION D'ACTION ===== */}
-        <Dialog open={actionDialogOpen} onClose={() => setActionDialogOpen(false)} SlotProps={{ sx: { borderRadius: 2.5 } }}>
+        {/* ===== MODAL CONFIRMATION ACTION ===== */}
+        <Dialog
+          open={actionDialogOpen}
+          onClose={() => setActionDialogOpen(false)}
+          PaperProps={{ sx: { borderRadius: 2.5 } }}
+        >
           <DialogTitle sx={{ fontWeight: 600, color: T.primary }}>
             {actionType === "valider" && "✅ Valider l'inscription"}
             {actionType === "refuser" && "❌ Refuser l'inscription"}

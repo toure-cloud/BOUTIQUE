@@ -1,22 +1,22 @@
 # =============================================
-# ✅ IMPORTS (nettoyés, sans doublons)
+# ✅ IMPORTS
 # =============================================
 import base64
 import json
-import random
+import logging
 import re
 import secrets
 import string
 import traceback
 from datetime import datetime, timedelta
 from io import BytesIO
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from .models import ImageProduit   # ⬅️ Vérifie qu'il est importé
+
 import qrcode
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
+from django.db import transaction
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -25,6 +25,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -33,96 +34,77 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import (
-    AdminLog,
-    Actualite,
-    AvisProduit,
-    Client,
-    Coach,
-    CodeAccesFormation,
-    Commande,
-    ContactMessage,
-    Evenement,
-    FAQ,
-    Forfait,
-    FormationEnLigne,
-    InscriptionFormation,
-    InscriptionRelooking,
-    LigneCommande,
-    LignePanier,
-    MoyenPaiement,
-    Notification,
-    Panier,
-    ParticipationEvenement,
-    Produit,
-    Promotion,
-    RendezVous,
-    RubriqueAtelier,
-    RubriqueRelookingFemme,
-    RubriqueRelookingHomme,
-    SiteSettings,
-    TransactionPaiement,
-    Wishlist,
+    AdminLog, Actualite, AvisProduit, Client, Coach, CodeAccesFormation,
+    Commande, ContactMessage, Evenement, FAQ, Forfait, FormationEnLigne,
+    ImageProduit, InscriptionFormation, InscriptionRelooking,
+    LigneCommande, LignePanier, MoyenPaiement, Notification, Panier,
+    ParticipationEvenement, Produit, Promotion, RendezVous,
+    RubriqueAtelier, RubriqueRelookingFemme, RubriqueRelookingHomme,
+    SiteSettings, TransactionPaiement, Wishlist,
 )
 from .serializers import (
-    ActualiteSerializer,
-    AdminLogSerializer,
-    AvisProduitSerializer,
-    ClientLoginSerializer,
-    ClientRegisterSerializer,
-    ClientSerializer,
-    CoachSerializer,
-    CodeAccesFormationSerializer,
-    CommandeSerializer,
-    ContactMessageSerializer,
-    EvenementSerializer,
-    FAQSerializer,
-    ForfaitSerializer,
-    FormationEnLigneSerializer,
-    InscriptionFormationSerializer,
-    InscriptionRelookingSerializer,
-    LignePanierSerializer,
-    MoyenPaiementSerializer,
-    NotificationSerializer,
-    PanierSerializer,
-    ParticipationEvenementSerializer,
-    ProduitSerializer,
-    PromotionSerializer,
-    RendezVousSerializer,
-    RubriqueAtelierSerializer,
-    RubriqueRelookingFemmeSerializer,
-    RubriqueRelookingHommeSerializer,
-    SiteSettingsSerializer,
-    TransactionPaiementSerializer,
-    WishlistSerializer,
+    ActualiteSerializer, AdminLogSerializer, AvisProduitSerializer,
+    ClientLoginSerializer, ClientRegisterSerializer, ClientSerializer,
+    CoachSerializer, CodeAccesFormationSerializer, CommandeSerializer,
+    ContactMessageSerializer, EvenementSerializer, FAQSerializer,
+    ForfaitSerializer, FormationEnLigneSerializer,
+    InscriptionFormationSerializer, InscriptionRelookingSerializer,
+    LignePanierSerializer, MoyenPaiementSerializer, NotificationSerializer,
+    PanierSerializer, ParticipationEvenementSerializer, ProduitSerializer,
+    PromotionSerializer, RendezVousSerializer, RubriqueAtelierSerializer,
+    RubriqueRelookingFemmeSerializer, RubriqueRelookingHommeSerializer,
+    SiteSettingsSerializer, TransactionPaiementSerializer, WishlistSerializer,
 )
 from .utils import envoyer_sms_confirmation
 
+logger = logging.getLogger(__name__)
+
 
 # =============================================
-# ✅ HELPERS D'AUTHENTIFICATION CLIENT
+# ✅ HELPERS GÉNÉRAUX
 # =============================================
-# Ton modèle Client n'a pas de FK vers User, donc on utilise un système
-# de token simple stocké sur le client. À adapter si tu ajoutes un FK.
+
+def generate_unique_code(model_class, field='code', length=10, max_attempts=10):
+    """Génère un code unique cryptographiquement sûr."""
+    alphabet = string.ascii_uppercase + string.digits
+    for _ in range(max_attempts):
+        code = ''.join(secrets.choice(alphabet) for _ in range(length))
+        if not model_class.objects.filter(**{field: code}).exists():
+            return code
+    raise RuntimeError(f"Impossible de générer un {field} unique après {max_attempts} essais")
+
+
+def generate_reference(prefix='TXN'):
+    """Génère une référence de transaction unique."""
+    date_part = timezone.now().strftime('%Y%m%d%H%M%S')
+    random_part = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
+    return f"{prefix}-{date_part}-{random_part}"
+
 
 def get_client_from_request(request):
     """
-    Récupère le Client authentifié à partir du header X-Client-Token.
-    Retourne None si absent ou invalide.
+    Récupère le Client authentifié via X-Client-Token.
+    Cache le résultat sur la requête pour éviter les requêtes SQL multiples.
     """
+    if hasattr(request, '_cached_client'):
+        return request._cached_client
+
     token = request.headers.get('X-Client-Token') or request.META.get('HTTP_X_CLIENT_TOKEN')
     if not token:
+        request._cached_client = None
         return None
+
     try:
-        return Client.objects.get(api_token=token, api_token_active=True)
+        client = Client.objects.get(api_token=token, api_token_active=True)
     except Client.DoesNotExist:
-        return None
+        client = None
+
+    request._cached_client = client
+    return client
 
 
 def require_client(request, client_id):
-    """
-    Vérifie que le client authentifié correspond au client_id demandé.
-    Retourne (client, error_response).
-    """
+    """Vérifie que le client authentifié correspond au client_id demandé."""
     client = get_client_from_request(request)
     if client is None:
         return None, Response(
@@ -137,18 +119,45 @@ def require_client(request, client_id):
     return client, None
 
 
+def get_or_update_client(email, nom=None, prenom=None, telephone=None):
+    """
+    Récupère ou crée un client. Met à jour les infos manquantes si le client existe.
+    """
+    email = email.strip().lower()
+    client, created = Client.objects.get_or_create(
+        email=email,
+        defaults={
+            'nom': (nom or 'Client').strip(),
+            'prenom': (prenom or 'Inconnu').strip(),
+            'telephone': telephone or '',
+        },
+    )
+
+    if not created:
+        changed_fields = []
+        if not client.nom and nom:
+            client.nom = nom.strip()
+            changed_fields.append('nom')
+        if not client.prenom and prenom:
+            client.prenom = prenom.strip()
+            changed_fields.append('prenom')
+        if not client.telephone and telephone:
+            client.telephone = telephone
+            changed_fields.append('telephone')
+        if changed_fields:
+            client.save(update_fields=changed_fields)
+
+    return client, created
+
+
 # =============================================
-# ✅ VUES JWT POUR L'AUTHENTIFICATION ADMIN/STAFF
+# ✅ JWT ADMIN
 # =============================================
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CustomTokenObtainView(APIView):
-    """
-    Vue pour obtenir un token JWT (admin/staff).
-    CSRF exempté car l'auth est basée sur JWT (pas de session).
-    """
     permission_classes = [AllowAny]
-    authentication_classes = []  # Pas d'auth requise pour se connecter
+    authentication_classes = []
 
     def post(self, request):
         try:
@@ -167,7 +176,6 @@ class CustomTokenObtainView(APIView):
                 )
 
             user = authenticate(username=username, password=password)
-
             if user is None:
                 return Response(
                     {'error': 'Identifiants incorrects'},
@@ -194,18 +202,16 @@ class CustomTokenObtainView(APIView):
                 {'error': 'Format JSON invalide'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except Exception as e:
+        except Exception:
+            logger.exception("Erreur CustomTokenObtainView")
             return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
+                {'error': 'Erreur serveur'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CustomTokenRefreshView(APIView):
-    """
-    Rafraîchit un token JWT.
-    """
     permission_classes = [AllowAny]
     authentication_classes = []
 
@@ -231,18 +237,12 @@ class CustomTokenRefreshView(APIView):
                     {'error': 'Token invalide ou expiré'},
                     status=status.HTTP_401_UNAUTHORIZED,
                 )
-
-        except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        except Exception:
+            logger.exception("Erreur CustomTokenRefreshView")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
 
 class MeView(APIView):
-    """
-    Récupère l'utilisateur admin/staff connecté (via JWT).
-    """
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -260,7 +260,7 @@ class MeView(APIView):
 
 
 # =============================================
-# ✅ VUES PUBLIQUES : OTP & INSCRIPTION
+# ✅ OTP / REGISTER
 # =============================================
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -270,7 +270,6 @@ class RequestOTPView(APIView):
 
     def post(self, request):
         email = request.data.get('email')
-        # TODO: logique de génération et envoi du code OTP
         return Response({'success': True, 'message': 'Code envoyé', 'email': email})
 
 
@@ -280,9 +279,6 @@ class VerifyOTPView(APIView):
     authentication_classes = []
 
     def post(self, request):
-        email = request.data.get('email')
-        code = request.data.get('otp')
-        # TODO: logique de vérification du code
         return Response({'success': True, 'message': 'Code vérifié'})
 
 
@@ -292,12 +288,11 @@ class RegisterView(APIView):
     authentication_classes = []
 
     def post(self, request):
-        # TODO: logique d'inscription admin
         return Response({'success': True, 'message': 'Utilisateur créé'})
 
 
 # =============================================
-# ✅ VUES CLIENT (AUTH + PANIER)
+# ✅ CLIENT AUTH
 # =============================================
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -309,16 +304,11 @@ class ClientRegisterView(APIView):
         serializer = ClientRegisterSerializer(data=request.data)
         if serializer.is_valid():
             client = serializer.save()
-            # Génère un token API pour ce client
             client.api_token = secrets.token_urlsafe(48)
             client.api_token_active = True
             client.save(update_fields=['api_token', 'api_token_active'])
             return Response(
-                {
-                    'success': True,
-                    'client_id': client.id,
-                    'api_token': client.api_token,
-                },
+                {'success': True, 'client_id': client.id, 'api_token': client.api_token},
                 status=status.HTTP_201_CREATED,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -340,18 +330,11 @@ class ClientLoginView(APIView):
         try:
             client = Client.objects.get(email=email)
         except Client.DoesNotExist:
-            return Response(
-                {'error': 'Client non trouvé'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({'error': 'Client non trouvé'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not client.check_password(password):
-            return Response(
-                {'error': 'Mot de passe incorrect'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({'error': 'Mot de passe incorrect'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # (Re)génère un token API à chaque login
         client.api_token = secrets.token_urlsafe(48)
         client.api_token_active = True
         client.save(update_fields=['api_token', 'api_token_active'])
@@ -363,12 +346,12 @@ class ClientLoginView(APIView):
         })
 
 
+# =============================================
+# ✅ PANIER
+# =============================================
+
 @method_decorator(csrf_exempt, name='dispatch')
 class PanierView(APIView):
-    """
-    Panier du client connecté.
-    ✅ Sécurisé : seul le client authentifié peut accéder à son propre panier.
-    """
     authentication_classes = []
     permission_classes = [AllowAny]
 
@@ -380,7 +363,6 @@ class PanierView(APIView):
         client, error = require_client(request, client_id)
         if error:
             return error
-
         panier = self._get_panier(client)
         serializer = PanierSerializer(panier, context={'request': request})
         return Response(serializer.data)
@@ -392,6 +374,7 @@ class PanierView(APIView):
 
         panier = self._get_panier(client)
         produit_id = request.data.get('produit_id')
+
         try:
             quantite = int(request.data.get('quantite', 1))
         except (TypeError, ValueError):
@@ -404,6 +387,12 @@ class PanierView(APIView):
             produit = Produit.objects.get(id=produit_id)
         except Produit.DoesNotExist:
             return Response({'error': 'Produit non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+
+        if produit.quantite_stock < quantite:
+            return Response(
+                {'error': f'Stock insuffisant ({produit.quantite_stock} disponible(s))'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         ligne, created = LignePanier.objects.get_or_create(
             panier=panier,
@@ -435,10 +424,6 @@ class PanierView(APIView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CommandeDepuisPanierView(APIView):
-    """
-    Transforme le panier du client connecté en commande.
-    ✅ Sécurisé : seul le client authentifié peut commander pour lui-même.
-    """
     authentication_classes = []
     permission_classes = [AllowAny]
 
@@ -448,63 +433,67 @@ class CommandeDepuisPanierView(APIView):
             return error
 
         try:
-            panier = Panier.objects.filter(client=client, est_valide=False).first()
-            if not panier or not panier.lignes.exists():
-                return Response({'error': 'Panier vide'}, status=status.HTTP_400_BAD_REQUEST)
-
-            total = sum(ligne.sous_total for ligne in panier.lignes.all())
-
-            commande = Commande.objects.create(
-                client=client,
-                statut='EN_ATTENTE',
-                total=total,
-                adresse_livraison=request.data.get('adresse', ''),
-                ville=request.data.get('ville', ''),
-                code_postal=request.data.get('codePostal', ''),
-                telephone=request.data.get('telephone', client.telephone or ''),
-                notes=request.data.get('notes', ''),
-            )
-
-            for ligne in panier.lignes.all():
-                LigneCommande.objects.create(
-                    commande=commande,
-                    produit=ligne.produit,
-                    quantite=ligne.quantite,
-                    prix_unitaire=ligne.prix_unitaire,
+            with transaction.atomic():
+                panier = (
+                    Panier.objects
+                    .select_for_update()
+                    .filter(client=client, est_valide=False)
+                    .first()
                 )
-                produit = ligne.produit
-                produit.quantite_stock = max(0, produit.quantite_stock - ligne.quantite)
-                produit.save(update_fields=['quantite_stock'])
+                if not panier or not panier.lignes.exists():
+                    return Response({'error': 'Panier vide'}, status=status.HTTP_400_BAD_REQUEST)
 
-            panier.est_valide = True
-            panier.save(update_fields=['est_valide'])
+                total = sum(ligne.sous_total for ligne in panier.lignes.all())
 
-            # Envoi SMS (best effort)
+                commande = Commande.objects.create(
+                    client=client,
+                    statut='EN_ATTENTE',
+                    total=total,
+                    adresse_livraison=request.data.get('adresse', ''),
+                    ville=request.data.get('ville', ''),
+                    code_postal=request.data.get('codePostal', ''),
+                    telephone=request.data.get('telephone', client.telephone or ''),
+                    notes=request.data.get('notes', ''),
+                )
+
+                for ligne in panier.lignes.select_related('produit'):
+                    LigneCommande.objects.create(
+                        commande=commande,
+                        produit=ligne.produit,
+                        quantite=ligne.quantite,
+                        prix_unitaire=ligne.prix_unitaire,
+                    )
+                    produit = ligne.produit
+                    produit.quantite_stock = max(0, produit.quantite_stock - ligne.quantite)
+                    produit.save(update_fields=['quantite_stock'])
+
+                panier.est_valide = True
+                panier.save(update_fields=['est_valide'])
+
             try:
                 for ligne in panier.lignes.all():
                     envoyer_sms_confirmation(client, commande, ligne.produit, ligne.quantite, total)
-                    break  # un seul SMS pour la commande
-            except Exception as e:
-                print(f"❌ Erreur SMS: {e}")
+                    break
+            except Exception:
+                logger.exception("Erreur SMS commande panier")
 
             return Response(
                 {'success': True, 'commande_id': commande.id, 'total': total},
                 status=status.HTTP_201_CREATED,
             )
-
-        except Exception as e:
-            traceback.print_exc()
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur CommandeDepuisPanierView")
+            return Response(
+                {'error': "Erreur lors de la création de la commande"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 # =============================================
-# ✅ BASES VIEWSETS (permissions)
+# ✅ BASES VIEWSETS
 # =============================================
 
 class PublicViewSet(viewsets.ModelViewSet):
-    """
-    Lecture publique, écriture admin uniquement.
-    """
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
@@ -512,9 +501,6 @@ class PublicViewSet(viewsets.ModelViewSet):
 
 
 class AdminOnlyViewSet(viewsets.ModelViewSet):
-    """
-    Réservé aux admins (lecture + écriture).
-    """
     def get_permissions(self):
         return [IsAdminUser()]
 
@@ -599,9 +585,9 @@ class EvenementViewSet(PublicViewSet):
                 self.perform_create(serializer)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur EvenementViewSet.create")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
 
 class ProduitViewSet(PublicViewSet):
@@ -627,35 +613,18 @@ class ProduitViewSet(PublicViewSet):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        """
-        ⚠️ Override nécessaire pour enregistrer les images secondaires.
-        Le create() par défaut de DRF ne gère pas request.FILES.getlist().
-        """
-        # 1. Récupérer les images secondaires AVANT la création
         secondary_images = request.FILES.getlist('images_secondaires')
-
-        # 2. Créer le produit normalement
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         produit = serializer.save()
 
-        # 3. Enregistrer les images secondaires
         for index, img in enumerate(secondary_images):
-            ImageProduit.objects.create(
-                produit=produit,
-                image=img,
-                ordre=index,
-            )
+            ImageProduit.objects.create(produit=produit, image=img, ordre=index)
 
-        # 4. Ré-sérialiser pour renvoyer les images dans la réponse
         output_serializer = self.get_serializer(produit)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
-        """
-        Idem pour update : enregistrer les nouvelles images secondaires.
-        Les anciennes sont conservées (pas de suppression auto).
-        """
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         secondary_images = request.FILES.getlist('images_secondaires')
@@ -664,7 +633,6 @@ class ProduitViewSet(PublicViewSet):
         serializer.is_valid(raise_exception=True)
         produit = serializer.save()
 
-        # Ajouter les nouvelles images (sans supprimer les anciennes)
         for img in secondary_images:
             ImageProduit.objects.create(produit=produit, image=img)
 
@@ -720,13 +688,14 @@ class MoyenPaiementViewSet(PublicViewSet):
 
 
 # =============================================
-# ✅ PAIEMENTS
+# ✅ PAIEMENTS (VERSION SÉCURISÉE)
 # =============================================
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PaiementViewSet(viewsets.ModelViewSet):
     """
-    CREATE / GENERER_QR / CARTE : public
+    CREATE / GENERER_QR / CARTE : public (crée une transaction EN_ATTENTE)
+    CONFIRMER_PAIEMENT : webhook (validation réelle)
     LIST / RETRIEVE / UPDATE / DELETE : admin
     """
     queryset = TransactionPaiement.objects.all().order_by('-date_creation')
@@ -758,12 +727,9 @@ class PaiementViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            reference = (
-                f"QR-{datetime.now().strftime('%Y%m%d')}-"
-                f"{''.join(random.choices(string.ascii_uppercase + string.digits, k=8))}"
-            )
+            reference = generate_reference('QR')
+            expiration = timezone.now() + timedelta(minutes=10)  # 10 min au lieu de 60s
 
-            expiration = timezone.now() + timedelta(seconds=60)
             qr_data = {
                 'reference': reference,
                 'montant': float(montant),
@@ -787,7 +753,9 @@ class PaiementViewSet(viewsets.ModelViewSet):
             img.save(buffer, format="PNG")
             qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
-            transaction = TransactionPaiement.objects.create(
+            # ⚠️ On crée la transaction en EN_ATTENTE uniquement
+            # La validation viendra d'un webhook prestataire
+            transaction_obj = TransactionPaiement.objects.create(
                 reference=reference,
                 montant=montant,
                 moyen_paiement=moyen_paiement,
@@ -805,29 +773,34 @@ class PaiementViewSet(viewsets.ModelViewSet):
                 'qr_code': qr_base64,
                 'reference': reference,
                 'expiration': expiration.isoformat(),
-                'transaction_id': transaction.id,
+                'transaction_id': transaction_obj.id,
                 'montant': float(montant),
                 'moyen_paiement': moyen_paiement.nom,
             })
-
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur generer_qr")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
     @action(detail=True, methods=['get'])
     def statut(self, request, pk=None):
         try:
-            transaction = self.get_object()
+            transaction_obj = self.get_object()
             return Response({
-                'statut': transaction.statut,
-                'reference': transaction.reference,
-                'montant': transaction.montant,
-                'date_validation': transaction.date_validation,
+                'statut': transaction_obj.statut,
+                'reference': transaction_obj.reference,
+                'montant': transaction_obj.montant,
+                'date_validation': transaction_obj.date_validation,
             })
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur statut")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
     @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def carte(self, request):
+        """
+        ⚠️ SIMULATION - En production, intégrer un PSP (Stripe/Paystack/CinetPay).
+        Crée une transaction EN_ATTENTE. La validation nécessite un webhook.
+        """
         try:
             data = request.data
             inscription_id = data.get('inscription')
@@ -840,15 +813,14 @@ class PaiementViewSet(viewsets.ModelViewSet):
             if len(numero_carte) < 16:
                 return Response({'error': 'Numéro de carte invalide'}, status=status.HTTP_400_BAD_REQUEST)
 
-            transaction = TransactionPaiement.objects.create(
+            reference = generate_reference('CRD')
+
+            # ⚠️ On crée en EN_ATTENTE - la validation viendra du PSP
+            transaction_obj = TransactionPaiement.objects.create(
                 inscription=inscription,
                 montant=inscription.montant,
-                statut='REUSSI',
-                reference=(
-                    f"CRD-{datetime.now().strftime('%Y%m%d')}-"
-                    f"{''.join(random.choices(string.ascii_uppercase + string.digits, k=6))}"
-                ),
-                date_validation=timezone.now(),
+                statut='EN_ATTENTE',
+                reference=reference,
                 details={
                     'type': 'CARTE_BANCAIRE',
                     'titulaire': data.get('titulaire', ''),
@@ -856,19 +828,16 @@ class PaiementViewSet(viewsets.ModelViewSet):
                 },
             )
 
-            inscription.statut = 'PAYEE'
-            inscription.reference_paiement = transaction.reference
-            inscription.save(update_fields=['statut', 'reference_paiement'])
-
             return Response({
                 'success': True,
-                'message': 'Paiement effectué avec succès',
-                'reference': transaction.reference,
-                'data': TransactionPaiementSerializer(transaction).data,
+                'message': "Paiement en cours de traitement",
+                'reference': reference,
+                'transaction_id': transaction_obj.id,
+                'data': TransactionPaiementSerializer(transaction_obj).data,
             })
-
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur paiement carte")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
 
 # =============================================
@@ -877,10 +846,6 @@ class PaiementViewSet(viewsets.ModelViewSet):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class InscriptionFormationViewSet(viewsets.ModelViewSet):
-    """
-    CREATE : public
-    Le reste : admin
-    """
     queryset = InscriptionFormation.objects.all()
     serializer_class = InscriptionFormationSerializer
 
@@ -907,21 +872,24 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
             data = request.data.copy()
             formation_id = data.get('formation')
             if not formation_id:
-                return Response({'error': 'La formation est requise'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': 'La formation est requise'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             formation = get_object_or_404(FormationEnLigne, id=formation_id)
-
             email = data.get('email')
             if not email:
-                return Response({'error': "L'email est requis"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': "L'email est requis"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-            client, _ = Client.objects.get_or_create(
+            client, _ = get_or_update_client(
                 email=email,
-                defaults={
-                    'nom': data.get('nom', 'Client'),
-                    'prenom': data.get('prenom', 'Inconnu'),
-                    'telephone': data.get('telephone', ''),
-                },
+                nom=data.get('nom'),
+                prenom=data.get('prenom'),
+                telephone=data.get('telephone'),
             )
 
             if InscriptionFormation.objects.filter(formation=formation, client=client).exists():
@@ -948,10 +916,12 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
                 },
                 status=status.HTTP_201_CREATED,
             )
-
-        except Exception as e:
-            traceback.print_exc()
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur InscriptionFormation.create")
+            return Response(
+                {'error': "Une erreur est survenue"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     def update(self, request, *args, **kwargs):
         try:
@@ -976,9 +946,9 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
                 self.perform_update(serializer)
                 return Response(serializer.data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur InscriptionFormation.update")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
@@ -1001,7 +971,7 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
                     'data': CodeAccesFormationSerializer(inscription.code_acces).data,
                 })
 
-            code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            code = generate_unique_code(CodeAccesFormation, 'code', 10)
             code_acces = CodeAccesFormation.objects.create(
                 formation=inscription.formation,
                 client=inscription.client,
@@ -1019,9 +989,9 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
                 'code': code,
                 'data': CodeAccesFormationSerializer(code_acces).data,
             })
-
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur generer_code")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
     @action(detail=True, methods=['post'], permission_classes=[AllowAny])
     def verifier_code(self, request, pk=None):
@@ -1047,13 +1017,19 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
             if code_acces.date_expiration < timezone.now():
                 code_acces.statut = 'EXPIRE'
                 code_acces.save(update_fields=['statut'])
-                return Response({'error': "Code d'accès expiré"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': "Code d'accès expiré"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             inscription = InscriptionFormation.objects.filter(
                 code_acces=code_acces, statut='PAYEE'
             ).first()
             if not inscription:
-                return Response({'error': 'Aucune inscription trouvée'}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {'error': 'Aucune inscription trouvée'},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
             return Response({
                 'success': True,
@@ -1072,43 +1048,45 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
                 },
                 'code_acces': code_acces.code,
             })
-
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur verifier_code")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
     @action(detail=True, methods=['post'])
     def valider_paiement(self, request, pk=None):
+        """Validation manuelle par un admin (payé en espèces, etc.)."""
         try:
-            inscription = self.get_object()
-            if inscription.statut == 'PAYEE':
-                return Response(
-                    {'success': False, 'message': 'Le paiement est déjà validé'},
-                    status=status.HTTP_400_BAD_REQUEST,
+            with transaction.atomic():
+                inscription = self.get_object()
+                if inscription.statut == 'PAYEE':
+                    return Response(
+                        {'success': False, 'message': 'Le paiement est déjà validé'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                inscription.statut = 'PAYEE'
+                inscription.save(update_fields=['statut'])
+
+                TransactionPaiement.objects.create(
+                    inscription=inscription,
+                    montant=inscription.montant,
+                    statut='REUSSI',
+                    reference=generate_reference('PAY'),
+                    date_validation=timezone.now(),
+                    details={
+                        'type': 'validation_manuelle',
+                        'valide_par': request.user.username if request.user.is_authenticated else 'admin',
+                    },
                 )
-
-            inscription.statut = 'PAYEE'
-            inscription.save(update_fields=['statut'])
-
-            TransactionPaiement.objects.create(
-                inscription=inscription,
-                montant=inscription.montant,
-                statut='REUSSI',
-                reference=f"PAY-{timezone.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}",
-                date_validation=timezone.now(),
-                details={
-                    'type': 'validation_manuelle',
-                    'valide_par': request.user.username if request.user.is_authenticated else 'admin',
-                },
-            )
 
             return Response({
                 'success': True,
                 'message': 'Paiement validé avec succès',
                 'data': self.get_serializer(inscription).data,
             })
-
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur valider_paiement")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
     @action(detail=True, methods=['post'])
     def refuser(self, request, pk=None):
@@ -1126,16 +1104,21 @@ class InscriptionFormationViewSet(viewsets.ModelViewSet):
                 'message': 'Inscription refusée avec succès',
                 'data': self.get_serializer(inscription).data,
             })
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur refuser")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
 
 # =============================================
-# ✅ TRANSACTIONS PAIEMENT
+# ✅ TRANSACTIONS PAIEMENT (SÉCURISÉ)
 # =============================================
 
 @method_decorator(csrf_exempt, name='dispatch')
 class TransactionPaiementViewSet(viewsets.ModelViewSet):
+    """
+    ⚠️ SÉCURISÉ : la création ne valide JAMAIS le paiement directement.
+    Seul un webhook prestataire peut passer le statut à REUSSI.
+    """
     queryset = TransactionPaiement.objects.all()
     serializer_class = TransactionPaiementSerializer
 
@@ -1149,51 +1132,40 @@ class TransactionPaiementViewSet(viewsets.ModelViewSet):
             data = request.data.copy()
             inscription_id = data.get('inscription')
             if not inscription_id:
-                return Response({'error': "L'inscription est requise"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': "L'inscription est requise"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             inscription = get_object_or_404(InscriptionFormation, id=inscription_id)
 
-            transaction = TransactionPaiement.objects.create(
+            # ✅ Création en EN_ATTENTE, aucune validation directe
+            transaction_obj = TransactionPaiement.objects.create(
                 inscription=inscription,
                 moyen_paiement_id=data.get('moyen_paiement'),
                 montant=inscription.montant,
                 statut='EN_ATTENTE',
-                reference=f"TXN-{timezone.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}",
+                reference=generate_reference('TXN'),
                 details=data.get('details', {}),
             )
 
-            inscription.statut = 'PAYEE'
-            inscription.reference_paiement = transaction.reference
-            inscription.save(update_fields=['statut', 'reference_paiement'])
-
-            if inscription.formation:
-                code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-                CodeAccesFormation.objects.create(
-                    formation=inscription.formation,
-                    client=inscription.client,
-                    code=code,
-                    date_expiration=timezone.now() + timedelta(days=30),
-                    montant_paye=inscription.montant,
-                    reference_paiement=transaction.reference,
-                )
-
-            serializer = self.get_serializer(transaction)
+            serializer = self.get_serializer(transaction_obj)
             return Response(
                 {
                     'success': True,
-                    'message': 'Paiement effectué avec succès',
+                    'message': 'Transaction créée. En attente de confirmation de paiement.',
                     'data': serializer.data,
-                    'reference': transaction.reference,
+                    'reference': transaction_obj.reference,
                 },
                 status=status.HTTP_201_CREATED,
             )
-
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur TransactionPaiement.create")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
 
 # =============================================
-# ✅ PARTICIPATION ÉVÉNEMENT
+# ✅ PARTICIPATION ÉVÉNEMENT (ATOMIQUE)
 # =============================================
 
 def valider_telephone(telephone):
@@ -1265,34 +1237,17 @@ class ParticipationEvenementViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            try:
-                evenement = Evenement.objects.get(id=evenement_id)
-            except (Evenement.DoesNotExist, ValueError, TypeError):
-                return Response(
-                    {'evenement': ["Événement non trouvé."]},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-
-            if evenement.places_restantes <= 0:
-                return Response(
-                    {'error': "Cet événement est complet."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
+            # ✅ Validations préalables
             erreurs = {}
-
             email, err = valider_email_format(data.get('email'))
             if err:
                 erreurs['email'] = [err]
-
             nom, err = valider_nom_prenom(data.get('nom'), "Le nom")
             if err:
                 erreurs['nom'] = [err]
-
             prenom, err = valider_nom_prenom(data.get('prenom'), "Le prénom")
             if err:
                 erreurs['prenom'] = [err]
-
             telephone, err = valider_telephone(data.get('telephone'))
             if err:
                 erreurs['telephone'] = [err]
@@ -1305,33 +1260,42 @@ class ParticipationEvenementViewSet(viewsets.ModelViewSet):
                 nombre_places = int(data.get('nombre_places', 1))
                 if nombre_places < 1:
                     erreurs['nombre_places'] = ["Minimum 1 place."]
-                elif nombre_places > evenement.places_restantes:
-                    erreurs['nombre_places'] = [
-                        f"Seulement {evenement.places_restantes} place(s) restante(s)."
-                    ]
+                elif nombre_places > 20:
+                    erreurs['nombre_places'] = ["Maximum 20 places."]
             except (ValueError, TypeError):
                 erreurs['nombre_places'] = ["Nombre de places invalide."]
 
             if erreurs:
                 return Response(erreurs, status=status.HTTP_400_BAD_REQUEST)
 
-            client, _ = Client.objects.get_or_create(
-                email=email,
-                defaults={'nom': nom, 'prenom': prenom, 'telephone': telephone},
-            )
+            # ✅ Transaction atomique avec verrou
+            with transaction.atomic():
+                evenement = Evenement.objects.select_for_update().get(id=evenement_id)
 
-            if ParticipationEvenement.objects.filter(evenement=evenement, client=client).exists():
-                return Response(
-                    {'error': "Vous êtes déjà inscrit à cet événement."},
-                    status=status.HTTP_400_BAD_REQUEST,
+                if evenement.places_restantes < nombre_places:
+                    return Response(
+                        {'error': f"Seulement {evenement.places_restantes} place(s) restante(s)."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                client, _ = get_or_update_client(
+                    email=email, nom=nom, prenom=prenom, telephone=telephone,
                 )
 
-            participation = ParticipationEvenement.objects.create(
-                evenement=evenement, client=client, statut='INSCRIT', notes=notes,
-            )
+                if ParticipationEvenement.objects.filter(
+                    evenement=evenement, client=client
+                ).exists():
+                    return Response(
+                        {'error': "Vous êtes déjà inscrit à cet événement."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
-            evenement.places_restantes = max(0, evenement.places_restantes - nombre_places)
-            evenement.save(update_fields=['places_restantes'])
+                participation = ParticipationEvenement.objects.create(
+                    evenement=evenement, client=client, statut='INSCRIT', notes=notes,
+                )
+
+                evenement.places_restantes -= nombre_places
+                evenement.save(update_fields=['places_restantes'])
 
             serializer = self.get_serializer(participation)
             return Response(
@@ -1343,9 +1307,13 @@ class ParticipationEvenementViewSet(viewsets.ModelViewSet):
                 },
                 status=status.HTTP_201_CREATED,
             )
-
-        except Exception as e:
-            traceback.print_exc()
+        except Evenement.DoesNotExist:
+            return Response(
+                {'evenement': ["Événement non trouvé."]},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception:
+            logger.exception("Erreur ParticipationEvenement.create")
             return Response(
                 {'error': "Une erreur interne est survenue. Veuillez réessayer."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1412,15 +1380,10 @@ class SiteSettingsViewSet(AdminOnlyViewSet):
 
 
 # =============================================
-# ✅ COMMANDES (sécurisé)
+# ✅ COMMANDES
 # =============================================
 
 class CommandeViewSet(viewsets.ModelViewSet):
-    """
-    CREATE : public (invité ou client)
-    LIST : filtrée par X-Client-Token si non-staff
-    RETRIEVE / UPDATE / DELETE : admin
-    """
     queryset = Commande.objects.all().order_by('-date_commande')
     serializer_class = CommandeSerializer
 
@@ -1437,13 +1400,10 @@ class CommandeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset().select_related('client').prefetch_related('lignes__produit')
 
-        # Admin → tout (avec filtres optionnels)
         if self.request.user.is_authenticated and self.request.user.is_staff:
             client_id = self.request.query_params.get('client')
             if client_id:
                 queryset = queryset.filter(client_id=client_id)
-
-        # Client authentifié via X-Client-Token → seulement SES commandes
         else:
             client = get_client_from_request(self.request)
             if client is None:
@@ -1462,34 +1422,18 @@ class CommandeViewSet(viewsets.ModelViewSet):
                 Q(client__prenom__icontains=search) |
                 Q(adresse_livraison__icontains=search)
             )
-
         return queryset
 
     def create(self, request, *args, **kwargs):
         try:
             data = request.data.copy()
-
             email = data.get('email')
             if not email:
                 return Response({'error': "L'email est requis"}, status=status.HTTP_400_BAD_REQUEST)
 
-            client, _ = Client.objects.get_or_create(
-                email=email,
-                defaults={
-                    'nom': data.get('nom', 'Client'),
-                    'prenom': data.get('prenom', 'Inconnu'),
-                    'telephone': data.get('telephone', ''),
-                },
-            )
-
             produit_id = data.get('produit_id')
             if not produit_id:
                 return Response({'error': "Le produit est requis"}, status=status.HTTP_400_BAD_REQUEST)
-
-            try:
-                produit = Produit.objects.get(id=produit_id)
-            except Produit.DoesNotExist:
-                return Response({'error': 'Produit non trouvé'}, status=status.HTTP_404_NOT_FOUND)
 
             try:
                 quantite = int(data.get('quantite', 1))
@@ -1499,38 +1443,54 @@ class CommandeViewSet(viewsets.ModelViewSet):
             if quantite <= 0:
                 return Response({'error': 'Quantité invalide'}, status=status.HTTP_400_BAD_REQUEST)
 
-            prix_unitaire = (
-                produit.prix_promotion
-                if produit.est_en_promotion and produit.prix_promotion
-                else produit.prix
-            )
-            total = float(prix_unitaire) * quantite
+            with transaction.atomic():
+                produit = Produit.objects.select_for_update().get(id=produit_id)
 
-            commande = Commande.objects.create(
-                client=client,
-                statut='EN_ATTENTE',
-                total=total,
-                adresse_livraison=data.get('adresse', ''),
-                ville=data.get('ville', ''),
-                code_postal=data.get('codePostal', ''),
-                telephone=client.telephone or '',
-                notes=data.get('notes', ''),
-            )
+                if produit.quantite_stock < quantite:
+                    return Response(
+                        {'error': f'Stock insuffisant ({produit.quantite_stock} disponible(s))'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
-            LigneCommande.objects.create(
-                commande=commande,
-                produit=produit,
-                quantite=quantite,
-                prix_unitaire=prix_unitaire,
-            )
+                client, _ = get_or_update_client(
+                    email=email,
+                    nom=data.get('nom'),
+                    prenom=data.get('prenom'),
+                    telephone=data.get('telephone'),
+                )
 
-            produit.quantite_stock = max(0, produit.quantite_stock - quantite)
-            produit.save(update_fields=['quantite_stock'])
+                prix_unitaire = (
+                    produit.prix_promotion
+                    if produit.est_en_promotion and produit.prix_promotion
+                    else produit.prix
+                )
+                total = float(prix_unitaire) * quantite
+
+                commande = Commande.objects.create(
+                    client=client,
+                    statut='EN_ATTENTE',
+                    total=total,
+                    adresse_livraison=data.get('adresse', ''),
+                    ville=data.get('ville', ''),
+                    code_postal=data.get('codePostal', ''),
+                    telephone=client.telephone or '',
+                    notes=data.get('notes', ''),
+                )
+
+                LigneCommande.objects.create(
+                    commande=commande,
+                    produit=produit,
+                    quantite=quantite,
+                    prix_unitaire=prix_unitaire,
+                )
+
+                produit.quantite_stock = max(0, produit.quantite_stock - quantite)
+                produit.save(update_fields=['quantite_stock'])
 
             try:
                 envoyer_sms_confirmation(client, commande, produit, quantite, total)
-            except Exception as e:
-                print(f"❌ Erreur lors de l'envoi du SMS: {e}")
+            except Exception:
+                logger.exception("Erreur SMS commande")
 
             serializer = self.get_serializer(commande)
             return Response(
@@ -1542,10 +1502,11 @@ class CommandeViewSet(viewsets.ModelViewSet):
                 },
                 status=status.HTTP_201_CREATED,
             )
-
-        except Exception as e:
-            traceback.print_exc()
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Produit.DoesNotExist:
+            return Response({'error': 'Produit non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception:
+            logger.exception("Erreur CommandeViewSet.create")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
 
 # =============================================
@@ -1568,17 +1529,13 @@ class DashboardStatsView(APIView):
                 'formations': FormationEnLigne.objects.count(),
                 'inscriptions': InscriptionFormation.objects.count(),
                 'pending_payments': TransactionPaiement.objects.filter(statut='EN_ATTENTE').count(),
-                'revenue': 0,
+                'revenue': float(
+                    TransactionPaiement.objects.filter(statut='REUSSI')
+                    .aggregate(total=Sum('montant'))['total'] or 0
+                ),
             }
 
-            total_revenue = (
-                TransactionPaiement.objects.filter(statut='REUSSI')
-                .aggregate(total=Sum('montant'))['total'] or 0
-            )
-            stats['revenue'] = float(total_revenue)
-
             recent_activities = []
-
             for ins in (
                 InscriptionFormation.objects.select_related('client', 'formation')
                 .order_by('-date_inscription')[:5]
@@ -1618,12 +1575,8 @@ class DashboardStatsView(APIView):
                 'new_inscriptions': InscriptionFormation.objects.filter(
                     date_inscription__gte=first_day_of_month
                 ).count(),
-                'new_events': Evenement.objects.filter(
-                    created_at__gte=first_day_of_month
-                ).count(),
-                'new_products': Produit.objects.filter(
-                    created_at__gte=first_day_of_month
-                ).count(),
+                'new_events': Evenement.objects.filter(created_at__gte=first_day_of_month).count(),
+                'new_products': Produit.objects.filter(created_at__gte=first_day_of_month).count(),
                 'revenue_month': float(
                     TransactionPaiement.objects.filter(
                         statut='REUSSI', date_validation__gte=first_day_of_month
@@ -1744,10 +1697,9 @@ class DashboardStatsView(APIView):
                 'evenement_stats': evenement_stats,
                 'commandes_stats': commandes_stats,
             })
-
-        except Exception as e:
-            traceback.print_exc()
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Erreur DashboardStatsView")
+            return Response({'error': 'Erreur serveur'}, status=500)
 
 
 # =============================================
@@ -1780,3 +1732,17 @@ class AdminInscriptionRelookingViewSet(AdminOnlyViewSet):
         if type_relooking:
             queryset = queryset.filter(type=type_relooking)
         return queryset
+    
+    
+    
+    
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def moyens_paiement_publics(request):
+    moyens = MoyenPaiement.objects.filter(actif=True).order_by('ordre', 'nom')
+    serializer = MoyenPaiementSerializer(moyens, many=True)
+    return Response(serializer.data)
+    

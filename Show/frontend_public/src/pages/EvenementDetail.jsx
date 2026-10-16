@@ -24,7 +24,6 @@ import {
   Share,
   CheckCircle,
   AccessTime,
-  Event,
   NavigateNext,
   Verified,
   Payment,
@@ -40,10 +39,11 @@ const EvenementDetail = () => {
   const [evenement, setEvenement] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistering] = useState(false);
 
   useEffect(() => {
     fetchEvenement();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchEvenement = async () => {
@@ -59,28 +59,34 @@ const EvenementDetail = () => {
     }
   };
 
+  // ✅ FIX : helper qui retourne toujours une chaîne valide
   const formatDate = (dateString) => {
     if (!dateString) return "Date à confirmer";
     const date = new Date(dateString);
-    return isNaN(date)
-      ? "Date à confirmer"
-      : date.toLocaleDateString("fr-FR", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        });
+    if (isNaN(date.getTime())) return "Date à confirmer";
+    return date.toLocaleDateString("fr-FR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  // ✅ FIX : version courte sécurisée pour split
+  const formatDateShort = (dateString) => {
+    const full = formatDate(dateString);
+    const parts = full.split(" ");
+    return parts.length >= 3 ? parts.slice(0, 3).join(" ") : full;
   };
 
   const formatTime = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    return isNaN(date)
-      ? ""
-      : date.toLocaleTimeString("fr-FR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+    if (isNaN(date.getTime())) return "";
+    return date.toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const formatPrice = (price) => {
@@ -109,12 +115,13 @@ const EvenementDetail = () => {
         <Skeleton variant="rectangular" height={480} sx={{ bgcolor: "#E2E8F0" }} />
         <Container maxWidth="lg" sx={{ py: 6 }}>
           <Grid container spacing={4}>
-            <Grid item xs={12} md={8}>
+            {/* ✅ FIX : Grid v2 syntax (size au lieu de item/xs/md) */}
+            <Grid size={{ xs: 12, md: 8 }}>
               <Skeleton width="40%" height={20} sx={{ mb: 2 }} />
               <Skeleton width="80%" height={48} sx={{ mb: 3 }} />
               <Skeleton width="100%" height={120} />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Skeleton variant="rectangular" height={280} sx={{ borderRadius: 3 }} />
             </Grid>
           </Grid>
@@ -162,22 +169,24 @@ const EvenementDetail = () => {
           overflow: "hidden",
         }}
       >
+        {/* ✅ FIX : <img> natif au lieu de Box component="img" pour un onError fiable */}
         <Box
           component="img"
           src={imageUrl}
           alt={evenement.titre}
           onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = heroImage;
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = heroImage;
           }}
           sx={{
             width: "100%",
             height: "100%",
             objectFit: "cover",
+            display: "block",
           }}
         />
 
-        {/* Gradient overlay plus léger */}
+        {/* Gradient overlay */}
         <Box
           sx={{
             position: "absolute",
@@ -202,7 +211,10 @@ const EvenementDetail = () => {
             separator={<NavigateNext sx={{ fontSize: 14, color: "rgba(255,255,255,0.6)" }} />}
             sx={{ mb: 2 }}
           >
-            <Link to="/" style={{ textDecoration: "none", color: "rgba(255,255,255,0.7)", fontSize: "0.8rem" }}>
+            <Link
+              to="/"
+              style={{ textDecoration: "none", color: "rgba(255,255,255,0.7)", fontSize: "0.8rem" }}
+            >
               Accueil
             </Link>
             <Link
@@ -268,7 +280,7 @@ const EvenementDetail = () => {
       <Container maxWidth="lg" sx={{ mt: { xs: -3, md: -5 }, position: "relative", zIndex: 2 }}>
         <Grid container spacing={4}>
           {/* Colonne gauche */}
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             {/* Infos rapides */}
             <Paper
               elevation={0}
@@ -282,7 +294,7 @@ const EvenementDetail = () => {
               }}
             >
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
                     <Box
                       sx={{
@@ -294,6 +306,7 @@ const EvenementDetail = () => {
                         alignItems: "center",
                         justifyContent: "center",
                         color: "#2563EB",
+                        flexShrink: 0,
                       }}
                     >
                       <CalendarToday sx={{ fontSize: 20 }} />
@@ -315,7 +328,7 @@ const EvenementDetail = () => {
                   </Box>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
                     <Box
                       sx={{
@@ -327,6 +340,7 @@ const EvenementDetail = () => {
                         alignItems: "center",
                         justifyContent: "center",
                         color: "#059669",
+                        flexShrink: 0,
                       }}
                     >
                       <LocationOn sx={{ fontSize: 20 }} />
@@ -342,7 +356,7 @@ const EvenementDetail = () => {
                   </Box>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
                     <Box
                       sx={{
@@ -354,6 +368,7 @@ const EvenementDetail = () => {
                         alignItems: "center",
                         justifyContent: "center",
                         color: "#D97706",
+                        flexShrink: 0,
                       }}
                     >
                       <People sx={{ fontSize: 20 }} />
@@ -362,20 +377,16 @@ const EvenementDetail = () => {
                       <Typography sx={{ color: "#64748B", fontSize: "0.75rem", mb: 0.3 }}>
                         Places disponibles
                       </Typography>
+                      {/* ✅ FIX : suppression du <Typography> imbriqué dans <Typography> */}
                       <Typography sx={{ fontWeight: 600, fontSize: "0.95rem", color: "#0F172A" }}>
                         {evenement.places_restantes ?? 0}
-                        {evenement.capacite_max && (
-                          <Typography component="span" sx={{ color: "#64748B", fontWeight: 400 }}>
-                            {" "}
-                            / {evenement.capacite_max}
-                          </Typography>
-                        )}
+                        {evenement.capacite_max ? ` / ${evenement.capacite_max}` : ""}
                       </Typography>
                     </Box>
                   </Box>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
                     <Box
                       sx={{
@@ -387,6 +398,7 @@ const EvenementDetail = () => {
                         alignItems: "center",
                         justifyContent: "center",
                         color: "#7C3AED",
+                        flexShrink: 0,
                       }}
                     >
                       <AccessTime sx={{ fontSize: 20 }} />
@@ -500,7 +512,7 @@ const EvenementDetail = () => {
           </Grid>
 
           {/* ─── STICKY BOOKING CARD (Desktop) ─────────────────── */}
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Box sx={{ position: { md: "sticky" }, top: 100 }}>
               <Paper
                 elevation={0}
@@ -530,11 +542,9 @@ const EvenementDetail = () => {
 
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mb: 3 }}>
                   <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                    <Typography sx={{ color: "#64748B", fontSize: "0.9rem" }}>
-                      Date
-                    </Typography>
+                    <Typography sx={{ color: "#64748B", fontSize: "0.9rem" }}>Date</Typography>
                     <Typography sx={{ fontWeight: 500, fontSize: "0.9rem", color: "#0F172A" }}>
-                      {formatDate(evenement.date_debut).split(" ").slice(0, 3).join(" ")}
+                      {formatDateShort(evenement.date_debut)}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between" }}>
@@ -644,7 +654,7 @@ const EvenementDetail = () => {
               {formatPrice(evenement.prix)}
             </Typography>
             <Typography sx={{ color: "#64748B", fontSize: "0.8rem" }}>
-              {formatDate(evenement.date_debut).split(" ").slice(0, 3).join(" ")}
+              {formatDateShort(evenement.date_debut)}
             </Typography>
           </Box>
           <Button

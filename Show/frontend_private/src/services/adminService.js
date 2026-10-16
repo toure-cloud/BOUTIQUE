@@ -4,7 +4,7 @@ import api from "./api";
 
 export const adminService = {
   // =============================================
-  // DASHBOARD
+  // DASHBOARD  (route custom backend — garder si définie)
   // =============================================
   getDashboardStats: async () => {
     try {
@@ -29,9 +29,7 @@ export const adminService = {
       headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
-          const progress = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total,
-          );
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           onProgress(progress);
         }
       },
@@ -49,9 +47,7 @@ export const adminService = {
       headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
-          const progress = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total,
-          );
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           onProgress(progress);
         }
       },
@@ -87,9 +83,7 @@ export const adminService = {
       headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
-          const progress = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total,
-          );
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           onProgress(progress);
         }
       },
@@ -113,20 +107,19 @@ export const adminService = {
   },
 
   // =============================================
-  // PARTICIPATIONS ÉVÉNEMENTS (ADMIN)
+  // PARTICIPATIONS ÉVÉNEMENTS
   // =============================================
-
-
-getParticipantsEvenements: async (params = {}) => {
-  const response = await api.get("/admin/participations/", { params });
-  return response.data;
-},
+  // ⚠️ Corrigé : /admin/participations/ → /participations/
+  getParticipantsEvenements: async (params = {}) => {
+    const response = await api.get("/participations/", { params });
+    return response.data;
+  },
 
   getParticipantsByEvenement: async (evenementId) => {
     try {
-      const response = await api.get(
-        `/admin/participations/?evenement=${evenementId}`,
-      );
+      const response = await api.get("/participations/", {
+        params: { evenement: evenementId },
+      });
       return response.data;
     } catch (error) {
       logger.error("❌ Erreur getParticipantsByEvenement:", error);
@@ -136,7 +129,7 @@ getParticipantsEvenements: async (params = {}) => {
 
   deleteParticipation: async (id) => {
     try {
-      const response = await api.delete(`/admin/participations/${id}/`);
+      const response = await api.delete(`/participations/${id}/`);
       return response.data;
     } catch (error) {
       logger.error("❌ Erreur deleteParticipation:", error);
@@ -146,31 +139,39 @@ getParticipantsEvenements: async (params = {}) => {
 
   updateParticipation: async (id, data) => {
     try {
-      const response = await api.put(`/admin/participations/${id}/`, data);
+      const response = await api.put(`/participations/${id}/`, data);
       return response.data;
     } catch (error) {
       logger.error("❌ Erreur updateParticipation:", error);
       throw error;
     }
   },
+
+  // =============================================
+  // INSCRIPTIONS FORMATIONS — DELETE
+  // =============================================
   deleteInscription: async (id) => {
-  try {
-    const response = await api.delete(`/admin/inscriptions-formation/${id}/`);
-    return response.data;
-  } catch (error) {
-    logger.error("❌ Erreur deleteInscription:", error);
-    throw error;
-  }
-},
-deleteCommande: async (id) => {
-  try {
-    const response = await api.delete(`/admin/commandes/${id}/`);
-    return response.data;
-  } catch (error) {
-    logger.error(`❌ Erreur deleteCommande(${id}):`, error);
-    throw error;
-  }
-},
+    try {
+      const response = await api.delete(`/inscriptions-formation/${id}/`);
+      return response.data;
+    } catch (error) {
+      logger.error("❌ Erreur deleteInscription:", error);
+      throw error;
+    }
+  },
+
+  // =============================================
+  // COMMANDES — DELETE
+  // =============================================
+  deleteCommande: async (id) => {
+    try {
+      const response = await api.delete(`/commandes/${id}/`);
+      return response.data;
+    } catch (error) {
+      logger.error(`❌ Erreur deleteCommande(${id}):`, error);
+      throw error;
+    }
+  },
 
   // =============================================
   // FORMATIONS
@@ -185,9 +186,7 @@ deleteCommande: async (id) => {
       headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
-          const progress = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total,
-          );
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           onProgress(progress);
         }
       },
@@ -215,9 +214,7 @@ deleteCommande: async (id) => {
   // =============================================
   getInscriptionsFormations: async (params = {}) => {
     try {
-      const response = await api.get("/admin/inscriptions-formation/", {
-        params,
-      });
+      const response = await api.get("/inscriptions-formation/", { params });
       return response.data;
     } catch (error) {
       logger.error("❌ Erreur getInscriptionsFormations:", error);
@@ -225,32 +222,36 @@ deleteCommande: async (id) => {
     }
   },
 
-  updateInscription: async (id, data) => {
+  // ✅ VALIDER PAIEMENT (action custom backend)
+  validerPaiementInscription: async (id) => {
     try {
-      // ✅ Envoyer seulement le statut
-      const payload = {
-        statut: data.statut,
-      };
-      const response = await api.patch(
-        `/admin/inscriptions-formation/${id}/`,
-        payload,
-      );
+      const response = await api.post(`/inscriptions-formation/${id}/valider_paiement/`);
       return response.data;
     } catch (error) {
-      logger.error("❌ Erreur updateInscription:", error);
+      logger.error("❌ Erreur validerPaiementInscription:", error);
+      logger.error("📋 Réponse:", error.response?.data);
       throw error;
     }
   },
 
-  // src/services/adminService.js
-
-  // ✅ Générer un code d'accès
-  genererCodeAcces: async (inscriptionId, data) => {
+  // ✅ REFUSER (action custom backend)
+  refuserInscription: async (id) => {
     try {
-      // ✅ Vérifier que l'URL est correcte
+      const response = await api.post(`/inscriptions-formation/${id}/refuser/`);
+      return response.data;
+    } catch (error) {
+      logger.error("❌ Erreur refuserInscription:", error);
+      logger.error("📋 Réponse:", error.response?.data);
+      throw error;
+    }
+  },
+
+  // ✅ GÉNÉRER CODE (action custom backend)
+  genererCodeAcces: async (inscriptionId, data = {}) => {
+    try {
       const response = await api.post(
-        `/admin/inscriptions-formation/${inscriptionId}/generer_code/`,
-        data,
+        `/inscriptions-formation/${inscriptionId}/generer_code/`,
+        data
       );
       return response.data;
     } catch (error) {
@@ -260,12 +261,34 @@ deleteCommande: async (id) => {
     }
   },
 
+  // 🔄 PATCH générique (fallback : notes, etc.)
+  updateInscription: async (id, data) => {
+    try {
+      const response = await api.patch(`/inscriptions-formation/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      logger.error("❌ Erreur updateInscription:", error);
+      logger.error("📋 Réponse:", error.response?.data);
+      throw error;
+    }
+  },
+
+  deleteInscription: async (id) => {
+    try {
+      const response = await api.delete(`/inscriptions-formation/${id}/`);
+      return response.data;
+    } catch (error) {
+      logger.error("❌ Erreur deleteInscription:", error);
+      throw error;
+    }
+  },
+
   // =============================================
   // PAIEMENTS
   // =============================================
   getPaiements: async (params = {}) => {
     try {
-      const response = await api.get("/admin/paiements/", { params });
+      const response = await api.get("/paiements/", { params });
       return response.data;
     } catch (error) {
       logger.error("❌ Erreur getPaiements:", error);
@@ -275,7 +298,7 @@ deleteCommande: async (id) => {
 
   validerPaiement: async (id) => {
     try {
-      const response = await api.post(`/admin/paiements/${id}/valider/`);
+      const response = await api.post(`/paiements/${id}/valider/`);
       return response.data;
     } catch (error) {
       logger.error("❌ Erreur validerPaiement:", error);
@@ -285,7 +308,7 @@ deleteCommande: async (id) => {
 
   annulerPaiement: async (id) => {
     try {
-      const response = await api.post(`/admin/paiements/${id}/annuler/`);
+      const response = await api.post(`/paiements/${id}/annuler/`);
       return response.data;
     } catch (error) {
       logger.error("❌ Erreur annulerPaiement:", error);
@@ -295,7 +318,7 @@ deleteCommande: async (id) => {
 
   rembourserPaiement: async (id) => {
     try {
-      const response = await api.post(`/admin/paiements/${id}/rembourser/`);
+      const response = await api.post(`/paiements/${id}/rembourser/`);
       return response.data;
     } catch (error) {
       logger.error("❌ Erreur rembourserPaiement:", error);
@@ -307,27 +330,27 @@ deleteCommande: async (id) => {
   // CLIENTS / UTILISATEURS
   // =============================================
   getClients: async (params = {}) => {
-    const response = await api.get("/admin/clients/", { params });
+    const response = await api.get("/clients/", { params });
     return response.data;
   },
 
   getClient: async (id) => {
-    const response = await api.get(`/admin/clients/${id}/`);
+    const response = await api.get(`/clients/${id}/`);
     return response.data;
   },
 
   createClient: async (data) => {
-    const response = await api.post("/admin/clients/", data);
+    const response = await api.post("/clients/", data);
     return response.data;
   },
 
   updateClient: async (id, data) => {
-    const response = await api.put(`/admin/clients/${id}/`, data);
+    const response = await api.put(`/clients/${id}/`, data);
     return response.data;
   },
 
   deleteClient: async (id) => {
-    const response = await api.delete(`/admin/clients/${id}/`);
+    const response = await api.delete(`/clients/${id}/`);
     return response.data;
   },
 
@@ -335,18 +358,18 @@ deleteCommande: async (id) => {
   // COMMANDES
   // =============================================
   getCommandes: async (params = {}) => {
-  try {
-    const response = await api.get('/admin/commandes/', { params });
-    return response.data;
-  } catch (error) {
-    logger.error('❌ Erreur getCommandes:', error);
-    throw error;
-  }
-},
+    try {
+      const response = await api.get("/commandes/", { params });
+      return response.data;
+    } catch (error) {
+      logger.error("❌ Erreur getCommandes:", error);
+      throw error;
+    }
+  },
 
   getCommande: async (id) => {
     try {
-      const response = await api.get(`/admin/commandes/${id}/`);
+      const response = await api.get(`/commandes/${id}/`);
       return response.data;
     } catch (error) {
       logger.error(`❌ Erreur getCommande(${id}):`, error);
@@ -354,39 +377,42 @@ deleteCommande: async (id) => {
     }
   },
 
-
-  getInscriptionsRelooking: async (params = {}) => {
-    const response = await api.get('/admin/inscriptions-relooking/', { params });
-    return response.data;
+  getCommandeDetails: async (commandeId) => {
+    try {
+      const response = await api.get(`/commandes/${commandeId}/`);
+      return response.data;
+    } catch (error) {
+      logger.error("Erreur récupération détails commande:", error);
+      throw error;
+    }
   },
 
-  getInscriptionRelookingById: async (id) => {
-    const response = await api.get(`/admin/inscriptions-relooking/${id}/`);
-    return response.data;
-  },
-
-  updateInscriptionRelooking: async (id, data) => {
-    const response = await api.patch(`/admin/inscriptions-relooking/${id}/`, data);
-    return response.data;
-  },
-
-getCommandeDetails: async (commandeId) => {
-  try {
-    const response = await api.get(`/commandes/${commandeId}/`);
-    return response.data;
-  } catch (error) {
-    logger.error("Erreur récupération détails commande:", error);
-    throw error;
-  }
-},
   updateCommande: async (id, data) => {
     try {
-      const response = await api.patch(`/admin/commandes/${id}/`, data);
+      const response = await api.patch(`/commandes/${id}/`, data);
       return response.data;
     } catch (error) {
       logger.error(`❌ Erreur updateCommande(${id}):`, error);
       throw error;
     }
+  },
+
+  // =============================================
+  // INSCRIPTIONS RELOOKING
+  // =============================================
+  getInscriptionsRelooking: async (params = {}) => {
+    const response = await api.get("/inscriptions-relooking/", { params });
+    return response.data;
+  },
+
+  getInscriptionRelookingById: async (id) => {
+    const response = await api.get(`/inscriptions-relooking/${id}/`);
+    return response.data;
+  },
+
+  updateInscriptionRelooking: async (id, data) => {
+    const response = await api.patch(`/inscriptions-relooking/${id}/`, data);
+    return response.data;
   },
 
   // =============================================
@@ -485,12 +511,12 @@ getCommandeDetails: async (commandeId) => {
   // PARAMÈTRES / CONFIGURATION
   // =============================================
   getSiteSettings: async () => {
-    const response = await api.get("/admin/site-settings/");
+    const response = await api.get("/site-settings/");
     return response.data;
   },
 
   updateSiteSettings: async (data) => {
-    const response = await api.put("/admin/site-settings/", data);
+    const response = await api.put("/site-settings/", data);
     return response.data;
   },
 
@@ -505,7 +531,7 @@ getCommandeDetails: async (commandeId) => {
   },
 
   // =============================================
-  // LOGS
+  // LOGS (route custom — à garder si backend la définit ainsi)
   // =============================================
   getLogs: async (params = {}) => {
     const response = await api.get("/admin/admin-logs/", { params });

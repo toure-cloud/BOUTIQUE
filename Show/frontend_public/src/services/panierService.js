@@ -1,4 +1,3 @@
-// frontend_public/src/services/panierService.js
 import api from './api';
 
 export const panierService = {

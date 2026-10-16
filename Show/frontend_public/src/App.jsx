@@ -30,7 +30,7 @@ import CommandeSuccess from './pages/CommandeSuccess';
 import Commande from './pages/Commande';
 import Login from './pages/Login';
 import EvenementInscription from "./pages/EvenementInscription";
-
+import { Navigate } from 'react-router-dom';
 const theme = createTheme({
   // ... votre thème ...
 });
@@ -71,6 +71,7 @@ function App() {
                 <Route path="/commande" element={<Commande />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/masterclasses" element={<Navigate to="/elegance-times" replace />} />
                 <Route path="/evenements/:id/inscription" element={<EvenementInscription />} />
                 <Route path="/relooking/femme/:id" element={<RelookingFemmeDetail />} />
                 <Route path="/relooking/atelier/:id" element={<RelookingAtelierDetail />} />

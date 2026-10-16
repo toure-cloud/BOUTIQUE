@@ -1,5 +1,6 @@
 # api/serializers.py
 import re
+from django.utils import timezone
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.core.validators import validate_email
@@ -20,17 +21,17 @@ from .models import (
 # =============================================
 
 class PhoneValidationMixin:
-    """Mixin pour valider un numéro de téléphone ivoirien."""
-    
+    """Mixin pour valider un numéro de téléphone."""
+
     def validate_telephone(self, value):
         """Valide et normalise un numéro de téléphone."""
         if not value:
             raise serializers.ValidationError(
                 "Le numéro de téléphone est obligatoire."
             )
-        
+
         chiffres = re.sub(r'\D', '', str(value))
-        
+
         if len(chiffres) < 8:
             raise serializers.ValidationError(
                 "Le numéro doit contenir au moins 8 chiffres."
@@ -39,23 +40,25 @@ class PhoneValidationMixin:
             raise serializers.ValidationError(
                 "Le numéro ne doit pas dépasser 15 chiffres."
             )
-        if not re.match(r'^0\d{9}$', chiffres):
+
+        # ✅ Accepte : 0XXXXXXXXX (CI), +225XXXXXXXXXX, formats internationaux
+        if not re.match(r'^(?:\+?\d{1,3})?0?\d{8,14}$', chiffres):
             raise serializers.ValidationError(
-                "Format attendu : 10 chiffres commençant par 0 (ex: 0709871479)."
+                "Format de téléphone invalide."
             )
-        
-        return chiffres  # normalisé
+
+        return chiffres
 
 
 class NameValidationMixin:
     """Mixin pour valider nom/prénom."""
-    
+
     def _validate_name(self, value, label):
         if not value or not str(value).strip():
             raise serializers.ValidationError(f"{label} est obligatoire.")
-        
+
         value = str(value).strip()
-        
+
         if len(value) < 2:
             raise serializers.ValidationError(
                 f"{label} doit contenir au moins 2 caractères."
@@ -68,33 +71,33 @@ class NameValidationMixin:
             raise serializers.ValidationError(
                 f"{label} ne doit contenir que des lettres."
             )
-        
+
         return value
-    
+
     def validate_nom(self, value):
         return self._validate_name(value, "Le nom")
-    
+
     def validate_prenom(self, value):
         return self._validate_name(value, "Le prénom")
 
 
 class EmailValidationMixin:
     """Mixin pour valider un email."""
-    
+
     def validate_email(self, value):
         if not value:
             raise serializers.ValidationError("L'email est obligatoire.")
-        
+
         value = str(value).strip().lower()
-        
+
         if len(value) > 254:
             raise serializers.ValidationError("L'email est trop long.")
-        
+
         try:
             validate_email(value)
         except DjangoValidationError:
             raise serializers.ValidationError("Format d'email invalide.")
-        
+
         return value
 
 
@@ -110,7 +113,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ClientSerializer(NameValidationMixin, PhoneValidationMixin, EmailValidationMixin, serializers.ModelSerializer):
-    """Serializer pour afficher un client"""
+    """Serializer pour afficher un client. Password JAMAIS exposé."""
     user_data = UserSerializer(source='user', read_only=True)
     full_name = serializers.SerializerMethodField()
 
@@ -119,6 +122,7 @@ class ClientSerializer(NameValidationMixin, PhoneValidationMixin, EmailValidatio
         fields = [
             'id', 'user', 'user_data', 'nom', 'prenom', 'full_name',
             'email', 'telephone', 'adresse', 'created_at', 'updated_at'
+            # ✅ 'password' volontairement retiré
         ]
         read_only_fields = ['id', 'user', 'created_at', 'updated_at']
 
@@ -256,16 +260,13 @@ class RendezVousSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['id']
 
-    def validate(self, data):
-        """Vérifie la cohérence des dates."""
-        date_debut = data.get('date_debut') or getattr(self.instance, 'date_debut', None)
-        date_fin = data.get('date_fin') or getattr(self.instance, 'date_fin', None)
-
-        if date_debut and date_fin and date_fin <= date_debut:
+    def validate_date_rendez_vous(self, value):
+        """Vérifie que le rendez-vous n'est pas dans le passé."""
+        if value and value < timezone.now():
             raise serializers.ValidationError(
-                {'date_fin': "La date de fin doit être postérieure à la date de début."}
+                "Le rendez-vous ne peut pas être dans le passé."
             )
-        return data
+        return value
 
 
 # =============================================
@@ -332,14 +333,10 @@ class EvenementSerializer(serializers.ModelSerializer):
 class ParticipationEvenementSerializer(
     NameValidationMixin, PhoneValidationMixin, EmailValidationMixin, serializers.ModelSerializer
 ):
-    """
-    Serializer de participation à un événement.
-    Valide toutes les données avant création en base.
-    """
+    """Serializer de participation à un événement."""
     client_details = ClientSerializer(source='client', read_only=True)
     evenement_details = EvenementSerializer(source='evenement', read_only=True)
 
-    # Champs écriture seule (pour la création publique)
     nom = serializers.CharField(write_only=True, required=False)
     prenom = serializers.CharField(write_only=True, required=False)
     email = serializers.EmailField(write_only=True, required=False)
@@ -352,7 +349,6 @@ class ParticipationEvenementSerializer(
         fields = [
             'id', 'evenement', 'evenement_details', 'client', 'client_details',
             'date_inscription', 'statut', 'notes',
-            # Champs écriture seule
             'nom', 'prenom', 'email', 'telephone', 'nombre_places', 'message',
         ]
         read_only_fields = ['id', 'client', 'date_inscription', 'statut']
@@ -495,8 +491,8 @@ class AvisProduitSerializer(serializers.ModelSerializer):
         return obj.date_creation.strftime('%d/%m/%Y')
 
     def validate_note(self, value):
-        if value < 0 or value > 5:
-            raise serializers.ValidationError("La note doit être entre 0 et 5.")
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("La note doit être entre 1 et 5.")
         return value
 
     def validate_commentaire(self, value):
@@ -551,10 +547,7 @@ class PanierSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'client', 'date_creation']
 
     def get_total(self, obj):
-        total = 0
-        for ligne in obj.lignes.all():
-            total += ligne.sous_total
-        return total
+        return sum(ligne.sous_total for ligne in obj.lignes.all())
 
     def get_total_articles(self, obj):
         return sum(ligne.quantite for ligne in obj.lignes.all())
@@ -756,16 +749,12 @@ class CodeAccesFormationSerializer(serializers.ModelSerializer):
 class InscriptionFormationSerializer(
     NameValidationMixin, PhoneValidationMixin, EmailValidationMixin, serializers.ModelSerializer
 ):
-    """
-    Inscription à une formation en ligne.
-    Accepte soit un client existant, soit les infos pour créer un nouveau client.
-    """
+    """Inscription à une formation en ligne."""
     client_name = serializers.CharField(source='client.full_name', read_only=True)
     formation_titre = serializers.CharField(source='formation.titre', read_only=True)
     client_details = ClientSerializer(source='client', read_only=True)
     formation_details = FormationEnLigneSerializer(source='formation', read_only=True)
 
-    # Champs écriture seule (création publique)
     nom = serializers.CharField(write_only=True, required=False)
     prenom = serializers.CharField(write_only=True, required=False)
     email = serializers.EmailField(write_only=True, required=False)
@@ -778,7 +767,6 @@ class InscriptionFormationSerializer(
             'client', 'client_name', 'client_details',
             'code_acces', 'statut', 'date_inscription', 'montant',
             'reference_paiement', 'notes',
-            # Champs écriture seule
             'nom', 'prenom', 'email', 'telephone',
         ]
         read_only_fields = [
@@ -1098,6 +1086,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
 # =============================================
 # ✅ INSCRIPTION RELOOKING
 # =============================================
+
 class InscriptionRelookingSerializer(
     NameValidationMixin,
     PhoneValidationMixin,
@@ -1113,17 +1102,14 @@ class InscriptionRelookingSerializer(
         """
         Validation globale.
         ⚠️ En PATCH (partial=True), on ne valide QUE les champs envoyés.
-        On utilise `self.instance` pour récupérer les valeurs existantes
-        quand un champ n'est pas fourni.
+        On utilise `self.instance` pour récupérer les valeurs existantes.
         """
-        # Liste des champs obligatoires à vérifier
         required_fields = ['nom', 'prenom', 'email', 'telephone']
 
         for field in required_fields:
             if field not in self.fields:
                 continue
 
-            # Valeur envoyée OU valeur actuelle si PATCH
             value_from_data = data.get(field)
             value_from_instance = (
                 getattr(self.instance, field, None) if self.instance else None

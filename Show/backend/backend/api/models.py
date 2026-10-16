@@ -2,6 +2,7 @@
 import re
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.auth.hashers import is_password_usable
 from django.core.validators import (
     MinValueValidator, MaxValueValidator, RegexValidator,
     MinLengthValidator, MaxLengthValidator,
@@ -16,8 +17,8 @@ from django.db.models import Q, F
 # =============================================
 
 phone_validator = RegexValidator(
-    regex=r'^\d{8,15}$',
-    message="Le téléphone doit contenir entre 8 et 15 chiffres (sans espaces ni caractères spéciaux).",
+    regex=r'^0\d{9}$',
+    message="Le téléphone doit contenir 10 chiffres commençant par 0.",
 )
 
 name_validator = RegexValidator(
@@ -85,13 +86,13 @@ class Client(models.Model):
     api_token_active = models.BooleanField(default=False)
 
     def set_password(self, raw_password):
-        """Hache et enregistre le mot de passe"""
+        """Hache et enregistre le mot de passe."""
         from django.contrib.auth.hashers import make_password
         self.password = make_password(raw_password)
         self.save(update_fields=['password'])
 
     def check_password(self, raw_password):
-        """Vérifie si le mot de passe est correct"""
+        """Vérifie si le mot de passe est correct."""
         from django.contrib.auth.hashers import check_password
         return check_password(raw_password, self.password)
 
@@ -101,6 +102,16 @@ class Client(models.Model):
             self.email = self.email.strip().lower()
         if self.telephone:
             self.telephone = valider_telephone_chiffres(self.telephone)
+
+        # ✅ Empêche l'écrasement du hash password via API
+        if self.pk:
+            old = Client.objects.filter(pk=self.pk).values('password').first()
+            if old and old['password']:
+                # Si le password a changé ET n'est pas un hash valide → refus
+                if self.password != old['password'] and not is_password_usable(self.password):
+                    raise ValidationError({
+                        'password': "Utilisez set_password() pour modifier le mot de passe."
+                    })
 
     def save(self, *args, **kwargs):
         if self.email:
@@ -119,6 +130,7 @@ class Client(models.Model):
         indexes = [
             models.Index(fields=['email']),
             models.Index(fields=['telephone']),
+            models.Index(fields=['api_token']),
         ]
 
 
@@ -246,6 +258,13 @@ class Evenement(models.Model):
             raise ValidationError({
                 'places_restantes': "Les places restantes ne peuvent pas dépasser les places totales."
             })
+
+        # ✅ Recalcule automatique si places_total modifié
+        if self.pk:
+            old = Evenement.objects.filter(pk=self.pk).values('places_total').first()
+            if old and old['places_total'] != self.places_total:
+                delta = self.places_total - old['places_total']
+                self.places_restantes = max(0, (self.places_restantes or 0) + delta)
 
     def save(self, *args, **kwargs):
         # ✅ Initialiser places_restantes uniquement à la création
@@ -1274,6 +1293,8 @@ class SiteSettings(models.Model):
     def save(self, *args, **kwargs):
         """Singleton : empêche la création de plusieurs instances."""
         self.pk = 1
+        # ✅ Validation des champs avant sauvegarde
+        self.full_clean()
         super().save(*args, **kwargs)
 
     def __str__(self):

@@ -4,11 +4,11 @@ import { useNavigate } from "react-router-dom";
 import {
   Container, Paper, Typography, Box, Grid, TextField, Button, MenuItem,
   Alert, CircularProgress, Divider, IconButton, InputAdornment,
-  FormControlLabel, Switch, LinearProgress, Stack, alpha,
+  FormControlLabel, Switch, LinearProgress, Stack,
 } from "@mui/material";
 import {
   ArrowBack, CloudUpload, Delete, Save, Cancel, CheckCircle,
-  VideoLibrary, Description, AttachMoney, CalendarToday,
+  VideoLibrary, AttachMoney, CalendarToday,
   Link as LinkIcon, PlayArrow, Replay, Schedule,
 } from "@mui/icons-material";
 import { adminService } from "../../../services/adminService";
@@ -267,7 +267,7 @@ const NouvelleFormation = () => {
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
               {/* Image */}
-              <Grid item xs={12} md={5}>
+              <Grid size={{ xs: 12, md: 5 }}>
                 <Typography sx={{ fontWeight: 600, color: T.primary, fontSize: "0.9rem", mb: 1.2 }}>
                   Image de couverture <span style={{ color: T.danger }}>*</span>
                 </Typography>
@@ -349,7 +349,7 @@ const NouvelleFormation = () => {
               </Grid>
 
               {/* Statut + Date + Ordre */}
-              <Grid item xs={12} md={7}>
+              <Grid size={{ xs: 12, md: 7 }}>
                 <Stack spacing={2.5}>
                   <TextField
                     fullWidth
@@ -382,15 +382,17 @@ const NouvelleFormation = () => {
                       error={!!error?.date_live}
                       helperText={error?.date_live}
                       size="small"
-                      SlotProps={{ shrink: true }}
-                      sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <CalendarToday sx={{ color: T.muted, fontSize: 18 }} />
-                          </InputAdornment>
-                        ),
+                      slotProps={{
+                        inputLabel: { shrink: true },
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <CalendarToday sx={{ color: T.muted, fontSize: 18 }} />
+                            </InputAdornment>
+                          ),
+                        },
                       }}
+                      sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
                     />
                   )}
 
@@ -408,7 +410,7 @@ const NouvelleFormation = () => {
               </Grid>
 
               {/* Titre */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Titre de la formation *"
@@ -418,19 +420,21 @@ const NouvelleFormation = () => {
                   error={!!error?.titre}
                   helperText={error?.titre}
                   size="small"
-                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                  SlotProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <VideoLibrary sx={{ color: T.muted, fontSize: 18 }} />
-                      </InputAdornment>
-                    ),
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <VideoLibrary sx={{ color: T.muted, fontSize: 18 }} />
+                        </InputAdornment>
+                      ),
+                    },
                   }}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
                 />
               </Grid>
 
               {/* Description */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Description courte *"
@@ -447,7 +451,7 @@ const NouvelleFormation = () => {
               </Grid>
 
               {/* Description détaillée */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Description détaillée"
@@ -463,7 +467,7 @@ const NouvelleFormation = () => {
               </Grid>
 
               {/* Prix & Durée */}
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   label="Prix (CFA) *"
@@ -474,18 +478,20 @@ const NouvelleFormation = () => {
                   error={!!error?.prix}
                   helperText={error?.prix}
                   size="small"
-                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                  SlotProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <AttachMoney sx={{ color: T.muted, fontSize: 18 }} />
-                      </InputAdornment>
-                    ),
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <AttachMoney sx={{ color: T.muted, fontSize: 18 }} />
+                        </InputAdornment>
+                      ),
+                    },
                   }}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   label="Durée *"
@@ -496,19 +502,21 @@ const NouvelleFormation = () => {
                   helperText={error?.duree}
                   placeholder="ex: 2h30, 1 jour..."
                   size="small"
-                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Schedule sx={{ color: T.muted, fontSize: 18 }} />
-                      </InputAdornment>
-                    ),
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Schedule sx={{ color: T.muted, fontSize: 18 }} />
+                        </InputAdornment>
+                      ),
+                    },
                   }}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
                 />
               </Grid>
 
               {/* URL Vidéo */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="URL de la vidéo (Vimeo / YouTube)"
@@ -517,20 +525,22 @@ const NouvelleFormation = () => {
                   onChange={handleChange}
                   placeholder="https://vimeo.com/... ou https://youtube.com/..."
                   size="small"
-                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                  SlotProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LinkIcon sx={{ color: T.muted, fontSize: 18 }} />
-                      </InputAdornment>
-                    ),
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LinkIcon sx={{ color: T.muted, fontSize: 18 }} />
+                        </InputAdornment>
+                      ),
+                    },
                   }}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
                 />
               </Grid>
 
-              
+              {/* URL Replay */}
               {(formData.statut === "REPLAY" || formData.statut === "TERMINE") && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     label="URL du replay *"
@@ -541,20 +551,22 @@ const NouvelleFormation = () => {
                     helperText={error?.replay_url}
                     placeholder="https://vimeo.com/... ou https://youtube.com/..."
                     size="small"
-                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Replay sx={{ color: T.muted, fontSize: 18 }} />
-                        </InputAdornment>
-                      ),
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Replay sx={{ color: T.muted, fontSize: 18 }} />
+                          </InputAdornment>
+                        ),
+                      },
                     }}
+                    sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
                   />
                 </Grid>
               )}
 
               {/* Actif */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <FormControlLabel
                   control={
                     <Switch
@@ -574,7 +586,7 @@ const NouvelleFormation = () => {
 
               {/* Progress */}
               {submitting && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                     <LinearProgress
                       variant="determinate"
@@ -589,7 +601,7 @@ const NouvelleFormation = () => {
               )}
 
               {/* Boutons */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Divider sx={{ my: 1 }} />
                 <Box sx={{ display: "flex", gap: 1.5, justifyContent: "flex-end", mt: 2 }}>
                   <Button

@@ -43,6 +43,7 @@ from .views import (
     TransactionPaiementViewSet,
     VerifyOTPView,
     WishlistViewSet,
+    moyens_paiement_publics,
 )
 
 router = DefaultRouter()
@@ -122,7 +123,7 @@ urlpatterns = [
         InscriptionFormationViewSet.as_view({'post': 'verifier_code'}),
         name='verifier-code',
     ),
-
+path('moyens-paiement-publics/', moyens_paiement_publics, name='moyens-paiement-publics'),
     # Router DRF
     path('', include(router.urls)),
 ]

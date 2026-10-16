@@ -1,6 +1,6 @@
 // src/pages/Login.jsx
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Container, Paper, Typography, TextField, Button, Alert,
@@ -8,24 +8,26 @@ import {
 } from '@mui/material';
 import {
   Visibility, VisibilityOff, Email, Lock, Login as LoginIcon,
+  ArrowForward,
 } from '@mui/icons-material';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PALETTE PROFESSIONNELLE
+// PALETTE SOMBRE PREMIUM — Madame Tibetia
 // ═══════════════════════════════════════════════════════════════════════════════
 const T = {
-  bg:        '#F8FAFC',
-  surface:   '#FFFFFF',
-  primary:   '#1E293B',
-  secondary: '#334155',
-  accent:    '#6366F1',
-  accentH:   '#4F46E5',
-  success:   '#10B981',
-  warning:   '#F59E0B',
-  danger:    '#EF4444',
-  border:    '#E2E8F0',
-  muted:     '#94A3B8',
-  gradient:  'linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #A855F7 100%)',
+  bg:          '#0B0F19',
+  surface:     '#111827',
+  surfaceElev: '#1F2937',
+  primary:     '#F9FAFB',
+  secondary:   '#D1D5DB',
+  muted:       '#9CA3AF',
+  accent:      '#8B5CF6',
+  accentH:     '#A78BFA',
+  accentSoft:  'rgba(139, 92, 246, 0.15)',
+  border:      'rgba(255, 255, 255, 0.08)',
+  danger:      '#F87171',
+  gradient:    'linear-gradient(135deg, #7C3AED 0%, #A855F7 50%, #C026D3 100%)',
+  gradientSoft:'linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(192, 38, 211, 0.15) 100%)',
 };
 
 const Login = () => {
@@ -51,7 +53,7 @@ const Login = () => {
 
     try {
       const result = await login(username, password);
-      
+
       if (result.success) {
         if (result.user?.is_staff || result.user?.is_superuser) {
           navigate('/dashboard');
@@ -70,63 +72,132 @@ const Login = () => {
 
   return (
     <Box
-      className="min-h-screen flex items-center py-6"
-      style={{
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: { xs: 5, md: 8 },
+        px: 2,
         backgroundColor: T.bg,
         backgroundImage: `
-          radial-gradient(circle at 30% 20%, ${alpha(T.accent, 0.04)} 0%, transparent 50%),
-          radial-gradient(circle at 70% 80%, ${alpha('#A855F7', 0.04)} 0%, transparent 50%)
+          radial-gradient(ellipse 90% 60% at 15% 20%, ${alpha('#7C3AED', 0.18)} 0%, transparent 55%),
+          radial-gradient(ellipse 70% 50% at 85% 80%, ${alpha('#C026D3', 0.12)} 0%, transparent 50%),
+          radial-gradient(circle at 50% 50%, ${alpha('#8B5CF6', 0.06)} 0%, transparent 70%)
         `,
       }}
     >
-      <Container maxWidth="sm">
-        <Fade in timeout={500}>
+      <Container maxWidth="sm" disableGutters>
+        <Fade in timeout={700}>
           <Paper
             elevation={0}
-            className="p-7 md:p-10 rounded-2xl relative overflow-hidden"
-            style={{ border: `1px solid ${T.border}` }}
+            sx={{
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: '28px',
+              border: `1px solid ${T.border}`,
+              backgroundColor: T.surface,
+              boxShadow: `
+                0 25px 50px -12px ${alpha('#000', 0.5)},
+                0 0 0 1px ${alpha('#fff', 0.03)}
+              `,
+              px: { xs: 3.5, sm: 5.5 },
+              py: { xs: 5, sm: 6 },
+            }}
           >
-            {/* Bannière décorative */}
-            <Box className="h-1 -mx-10 -mt-10 mb-0" style={{ background: T.gradient }} />
+            {/* Accent line top */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 3,
+                background: T.gradient,
+              }}
+            />
 
-            {/* Logo / Marque */}
-            <Box className="text-center mb-8 mt-4">
+            {/* Header */}
+            <Box sx={{ textAlign: 'center', mb: 5 }}>
               <Box
-                className="w-14 h-14 rounded-xl mx-auto mb-4 flex items-center justify-center"
-                style={{
+                sx={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: '22px',
+                  mx: 'auto',
+                  mb: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   background: T.gradient,
-                  boxShadow: `0 6px 20px ${alpha(T.accent, 0.3)}`,
+                  boxShadow: `0 12px 32px ${alpha('#7C3AED', 0.45)}`,
                 }}
               >
-                <LoginIcon className="text-white text-2xl" />
+                <LoginIcon sx={{ color: '#fff', fontSize: 34 }} />
               </Box>
-              <Typography variant="h4" className="font-extrabold text-gray-800">
+
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  color: T.primary,
+                  letterSpacing: '-0.04em',
+                  fontSize: { xs: '1.85rem', sm: '2.15rem' },
+                  lineHeight: 1.15,
+                }}
+              >
                 Connexion
               </Typography>
-              <Typography variant="body2" className="text-gray-400 mt-1.5">
-                Connectez-vous à votre espace Madame Tibetia
+              <Typography
+                sx={{
+                  mt: 1.5,
+                  color: T.muted,
+                  fontSize: '0.975rem',
+                  fontWeight: 400,
+                }}
+              >
+                Accédez à votre espace Madame Tibetia
               </Typography>
             </Box>
 
-            {/* Alerte erreur */}
+            {/* Error */}
             {error && (
               <Alert
                 severity="error"
                 onClose={() => setError(null)}
-                className="mb-6 rounded-xl"
+                sx={{
+                  mb: 3.5,
+                  borderRadius: '16px',
+                  border: `1px solid ${alpha(T.danger, 0.3)}`,
+                  bgcolor: alpha(T.danger, 0.1),
+                  color: T.danger,
+                  '& .MuiAlert-icon': { color: T.danger },
+                }}
               >
                 {error}
               </Alert>
             )}
 
             <Box component="form" onSubmit={handleSubmit} noValidate>
-              {/* Identifiant */}
-              <Box className="mb-5">
+              {/* Username / Email */}
+              <Box sx={{ mb: 3 }}>
+                <Typography
+                  component="label"
+                  sx={{
+                    display: 'block',
+                    mb: 1.25,
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    color: T.secondary,
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  Nom d'utilisateur ou Email
+                </Typography>
                 <TextField
                   fullWidth
                   required
                   autoFocus
-                  label="Nom d'utilisateur ou Email"
+                  placeholder="ex. : marie@email.com"
                   variant="outlined"
                   value={username}
                   onChange={(e) => {
@@ -136,27 +207,64 @@ const Login = () => {
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Email className="text-gray-400" />
+                        <Email sx={{ color: T.muted, fontSize: 20 }} />
                       </InputAdornment>
                     ),
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: '12px',
-                      '&.Mui-focused fieldset': { borderColor: T.accent },
-                      '& fieldset': { borderColor: T.border },
+                      borderRadius: '16px',
+                      bgcolor: alpha('#000', 0.25),
+                      color: T.primary,
+                      transition: 'all 0.2s ease',
+                      '& fieldset': {
+                        borderColor: T.border,
+                        borderWidth: '1.5px',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: alpha(T.accent, 0.45),
+                      },
+                      '&.Mui-focused': {
+                        bgcolor: alpha('#000', 0.35),
+                        boxShadow: `0 0 0 3px ${alpha(T.accent, 0.2)}`,
+                        '& fieldset': {
+                          borderColor: T.accent,
+                          borderWidth: '1.5px',
+                        },
+                      },
+                    },
+                    '& .MuiInputBase-input': {
+                      py: 1.7,
+                      fontSize: '0.95rem',
+                      '&::placeholder': {
+                        color: T.muted,
+                        opacity: 0.7,
+                      },
                     },
                   }}
                 />
               </Box>
 
-              {/* Mot de passe */}
-              <Box className="mb-6">
+              {/* Password */}
+              <Box sx={{ mb: 4 }}>
+                <Typography
+                  component="label"
+                  sx={{
+                    display: 'block',
+                    mb: 1.25,
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    color: T.secondary,
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  Mot de passe
+                </Typography>
                 <TextField
                   fullWidth
                   required
-                  label="Mot de passe"
                   type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
                   variant="outlined"
                   value={password}
                   onChange={(e) => {
@@ -166,7 +274,7 @@ const Login = () => {
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Lock className="text-gray-400" />
+                        <Lock sx={{ color: T.muted, fontSize: 20 }} />
                       </InputAdornment>
                     ),
                     endAdornment: (
@@ -176,23 +284,60 @@ const Login = () => {
                           edge="end"
                           size="small"
                           aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                          sx={{
+                            color: T.muted,
+                            mr: 0.5,
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              color: T.accentH,
+                              bgcolor: alpha(T.accent, 0.15),
+                            },
+                          }}
                         >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                          {showPassword ? (
+                            <VisibilityOff fontSize="small" />
+                          ) : (
+                            <Visibility fontSize="small" />
+                          )}
                         </IconButton>
                       </InputAdornment>
                     ),
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: '12px',
-                      '&.Mui-focused fieldset': { borderColor: T.accent },
-                      '& fieldset': { borderColor: T.border },
+                      borderRadius: '16px',
+                      bgcolor: alpha('#000', 0.25),
+                      color: T.primary,
+                      transition: 'all 0.2s ease',
+                      '& fieldset': {
+                        borderColor: T.border,
+                        borderWidth: '1.5px',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: alpha(T.accent, 0.45),
+                      },
+                      '&.Mui-focused': {
+                        bgcolor: alpha('#000', 0.35),
+                        boxShadow: `0 0 0 3px ${alpha(T.accent, 0.2)}`,
+                        '& fieldset': {
+                          borderColor: T.accent,
+                          borderWidth: '1.5px',
+                        },
+                      },
+                    },
+                    '& .MuiInputBase-input': {
+                      py: 1.7,
+                      fontSize: '0.95rem',
+                      '&::placeholder': {
+                        color: T.muted,
+                        opacity: 0.7,
+                      },
                     },
                   }}
                 />
               </Box>
 
-              {/* Bouton de connexion */}
+              {/* Submit button */}
               <Button
                 fullWidth
                 type="submit"
@@ -200,41 +345,37 @@ const Login = () => {
                 disabled={loading}
                 endIcon={
                   loading ? (
-                    <CircularProgress size={18} color="inherit" />
+                    <CircularProgress size={18} color="inherit" thickness={5} />
                   ) : (
-                    <LoginIcon className="text-lg" />
+                    <ArrowForward sx={{ fontSize: 18 }} />
                   )
                 }
-                className="rounded-xl py-3.5 font-bold text-sm normal-case"
-                style={{
-                  background: T.gradient,
-                  boxShadow: `0 4px 14px ${alpha(T.accent, 0.35)}`,
-                }}
                 sx={{
+                  py: 1.85,
+                  borderRadius: '16px',
+                  fontWeight: 700,
+                  fontSize: '0.975rem',
+                  textTransform: 'none',
+                  letterSpacing: '0.02em',
+                  background: T.gradient,
+                  boxShadow: `0 8px 24px ${alpha('#7C3AED', 0.4)}`,
+                  transition: 'all 0.25s ease',
                   '&:hover': {
-                    boxShadow: `0 6px 20px ${alpha(T.accent, 0.45)}`,
+                    boxShadow: `0 12px 32px ${alpha('#7C3AED', 0.55)}`,
+                    transform: 'translateY(-2px)',
                   },
-                  '&:disabled': {
-                    background: T.muted,
+                  '&:active': {
+                    transform: 'translateY(0)',
+                  },
+                  '&.Mui-disabled': {
+                    background: alpha('#fff', 0.12),
                     boxShadow: 'none',
+                    color: alpha('#fff', 0.4),
                   },
                 }}
               >
                 {loading ? 'Connexion en cours…' : 'Se connecter'}
               </Button>
-            </Box>
-
-            {/* Lien inscription */}
-            <Box className="mt-6 text-center">
-              <Typography variant="body2" className="text-gray-400">
-                Pas encore de compte ?{' '}
-                <Link
-                  to="/register"
-                  className="text-indigo-500 font-bold no-underline hover:text-indigo-600 transition-colors"
-                >
-                  S'inscrire
-                </Link>
-              </Typography>
             </Box>
           </Paper>
         </Fade>

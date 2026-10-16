@@ -11,7 +11,6 @@ import {
 import {
   Add, Search, Edit, Delete, Visibility, Refresh, School, PlayArrow,
   Replay, Schedule, CheckCircle, Clear, AccessTime, Dashboard as DashboardIcon,
-  FilterList,
 } from "@mui/icons-material";
 import { adminService } from "../../../services/adminService";
 
@@ -235,19 +234,21 @@ const FormationsList = () => {
               minWidth: 240,
               "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: T.bg },
             }}
-            SlotProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search sx={{ color: T.muted, fontSize: 20 }} />
-                </InputAdornment>
-              ),
-              endAdornment: searchTerm ? (
-                <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setSearchTerm("")}>
-                    <Clear sx={{ fontSize: 18, color: T.muted }} />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: T.muted, fontSize: 20 }} />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm ? (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setSearchTerm("")}>
+                      <Clear sx={{ fontSize: 18, color: T.muted }} />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              },
             }}
           />
 
@@ -420,11 +421,15 @@ const FormationsList = () => {
         </Paper>
 
         {/* Dialog suppression */}
-        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} SlotProps={{ sx: { borderRadius: 2.5 } }}>
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          PaperProps={{ sx: { borderRadius: 2.5 } }}
+        >
           <DialogTitle sx={{ fontWeight: 600, color: T.primary }}>Confirmer la suppression</DialogTitle>
           <DialogContent>
             <DialogContentText sx={{ color: T.secondary }}>
-              Supprimer la formation <strong>"{formationToDelete?.titre}"</strong> ?  
+              Supprimer la formation <strong>"{formationToDelete?.titre}"</strong> ?
               Cette action est irréversible.
             </DialogContentText>
           </DialogContent>
