@@ -19,6 +19,9 @@ import {
   Tabs,
   Tab,
   TextField,
+  Fade,
+  Grow,
+  alpha,
 } from '@mui/material';
 import {
   Facebook,
@@ -35,9 +38,28 @@ import {
   ArrowBack,
   Bookmark,
   BookmarkBorder,
+  AccessTime,
 } from '@mui/icons-material';
 
-// ─── Helpers ────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// PALETTE PREMIUM (cohérente avec Boutique)
+// ─────────────────────────────────────────────────────────────
+const T = {
+  bg: '#F8F7F4',
+  surface: '#FFFFFF',
+  dark: '#1A1A1A',
+  darkSoft: '#2C2C2C',
+  textPrimary: '#1A1A1A',
+  textSecondary: '#5C5C5C',
+  textMuted: '#8A8A8A',
+  border: '#EAEAEA',
+  accent: '#C9A84C',
+  accentSoft: 'rgba(201, 168, 76, 0.12)',
+  accentHover: '#B8943A',
+  danger: '#B91C1C',
+};
+
+// ─── Helpers ────────────────────────────────────────────────
 const getInitials = (name = '') =>
   name
     .split(' ')
@@ -46,9 +68,20 @@ const getInitials = (name = '') =>
     .substring(0, 2)
     .toUpperCase();
 
-const AVATAR_COLORS = ['#C62828', '#1A1A1A', '#6D4C41', '#37474F', '#4A148C', '#004D40'];
+const AVATAR_COLORS = [
+  '#C9A84C',
+  '#1A1A1A',
+  '#6D4C41',
+  '#37474F',
+  '#4A148C',
+  '#004D40',
+];
 
-// ─── Données ────────────────────────────────────────────
+// Image de secours élégante (fallback unique et fiable)
+const FALLBACK_IMAGE =
+  'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=800&q=80';
+
+// ─── Données (images distinctes + fiables) ──────────────────
 const ARTICLES = [
   {
     id: 1,
@@ -65,7 +98,7 @@ const ARTICLES = [
     likes: 89,
     comments: 23,
     image:
-      'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=900&q=80',
     featured: true,
     tags: ['Mode', 'Tendances', 'Automne'],
   },
@@ -83,7 +116,7 @@ const ARTICLES = [
     likes: 67,
     comments: 15,
     image:
-      'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=900&q=80',
     featured: false,
     tags: ['Mariage', 'Robes', 'Conseils'],
   },
@@ -101,7 +134,7 @@ const ARTICLES = [
     likes: 156,
     comments: 42,
     image:
-      'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=900&q=80',
     featured: false,
     tags: ['Accessoires', 'Tendances', 'Bijoux'],
   },
@@ -119,7 +152,7 @@ const ARTICLES = [
     likes: 112,
     comments: 31,
     image:
-      'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=900&q=80',
     featured: false,
     tags: ['Couleurs', 'Palette', 'Élégance'],
   },
@@ -137,7 +170,7 @@ const ARTICLES = [
     likes: 78,
     comments: 19,
     image:
-      'https://images.unsplash.com/photo-1566206091556-7f2bf6f0b9ae?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1566206091556-7f2bf6f0b9ae?auto=format&fit=crop&w=900&q=80',
     featured: true,
     tags: ['Relooking', 'Garde-robe', 'Style'],
   },
@@ -154,9 +187,8 @@ const ARTICLES = [
     views: 734,
     likes: 56,
     comments: 14,
-    // ✅ Image différente de l'article 1
     image:
-      'https://images.unsplash.com/photo-1509319117193-57bab727e09d?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1509319117193-57bab727e09d?auto=format&fit=crop&w=900&q=80',
     featured: false,
     tags: ['Designers', 'Créateurs', 'Mode'],
   },
@@ -174,7 +206,7 @@ const CATEGORIES = [
   'Designers',
 ];
 
-// ─── Composant ──────────────────────────────────────────
+// ─── Composant ──────────────────────────────────────────────
 const EleganceTimesOnline = () => {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [likedArticles, setLikedArticles] = useState({});
@@ -182,7 +214,7 @@ const EleganceTimesOnline = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const articlesPerPage = 3;
 
-  // Hydratation depuis localStorage
+  // Hydratation localStorage
   useEffect(() => {
     try {
       const savedLikes = localStorage.getItem('elegance_likes');
@@ -217,7 +249,6 @@ const EleganceTimesOnline = () => {
     }));
   };
 
-  // ✅ Reset pagination au changement de catégorie
   const handleCategoryChange = (e, newValue) => {
     setSelectedCategory(newValue);
     setCurrentPage(0);
@@ -243,266 +274,337 @@ const EleganceTimesOnline = () => {
   );
 
   const featuredArticle = useMemo(
-    () => ARTICLES.find((a) => a.featured),
+    () => ARTICLES.find((a) => a.featured) || ARTICLES[0],
     []
   );
 
+  // Helper image robuste
+  const handleImageError = (e) => {
+    e.currentTarget.onerror = null;
+    e.currentTarget.src = FALLBACK_IMAGE;
+  };
+
   return (
-    <Box sx={{ backgroundColor: '#FAFAF8', minHeight: '100vh' }}>
-      {/* ─── HEADER ─────────────────────────────────── */}
+    <Box sx={{ backgroundColor: T.bg, minHeight: '100vh' }}>
+      {/* ─── HERO PREMIUM ──────────────────────────────── */}
       <Box
         sx={{
-          backgroundColor: '#1A1A1A',
+          backgroundColor: T.dark,
           color: '#FFF',
-          py: { xs: 4, md: 6 },
+          py: { xs: 6, md: 9 },
           textAlign: 'center',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
+        {/* Cercles décoratifs subtils */}
         <Box
           sx={{
             position: 'absolute',
-            top: -100,
-            right: -100,
-            width: 300,
-            height: 300,
+            top: -120,
+            right: -80,
+            width: 340,
+            height: 340,
             borderRadius: '50%',
-            background: 'rgba(255,255,255,0.03)',
+            background: alpha('#FFFFFF', 0.03),
           }}
         />
         <Box
           sx={{
             position: 'absolute',
-            bottom: -150,
-            left: -150,
-            width: 400,
-            height: 400,
+            bottom: -160,
+            left: -100,
+            width: 420,
+            height: 420,
             borderRadius: '50%',
-            background: 'rgba(255,255,255,0.02)',
+            background: alpha('#FFFFFF', 0.02),
           }}
         />
+
+        {/* Ligne dorée haute */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 70,
+            height: 3,
+            bgcolor: T.accent,
+          }}
+        />
+
         <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-          <Typography
-            variant="h1"
-            sx={{
-              fontFamily: '"Playfair Display", serif',
-              fontWeight: 300,
-              fontSize: { xs: '2.5rem', md: '4rem' },
-              letterSpacing: '4px',
-              mb: 1,
-            }}
-          >
-            Elegance Times
-          </Typography>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 300,
-              letterSpacing: '8px',
-              color: 'rgba(255,255,255,0.6)',
-              fontSize: { xs: '0.8rem', md: '1rem' },
-            }}
-          >
-            L'EXCELLENCE DE LA MODE
-          </Typography>
-          <Divider
-            sx={{
-              width: 80,
-              mx: 'auto',
-              my: 3,
-              borderColor: 'rgba(255,255,255,0.2)',
-            }}
-          />
-          <Typography
-            sx={{
-              maxWidth: 600,
-              mx: 'auto',
-              color: 'rgba(255,255,255,0.7)',
-              fontSize: '1.05rem',
-              fontWeight: 300,
-            }}
-          >
-            Découvrez l'actualité de la mode, les tendances, les conseils et
-            l'élégance au quotidien
-          </Typography>
+          <Fade in timeout={700}>
+            <Box>
+              <Typography
+                sx={{
+                  fontFamily: '"Playfair Display", serif',
+                  fontWeight: 300,
+                  fontSize: { xs: '2.6rem', md: '4.2rem' },
+                  letterSpacing: '3px',
+                  mb: 1.5,
+                  lineHeight: 1.05,
+                }}
+              >
+                Elegance Times
+              </Typography>
+              <Typography
+                sx={{
+                  fontWeight: 400,
+                  letterSpacing: '6px',
+                  color: alpha('#FFFFFF', 0.55),
+                  fontSize: { xs: '0.75rem', md: '0.9rem' },
+                  textTransform: 'uppercase',
+                  mb: 3,
+                }}
+              >
+                L'excellence de la mode
+              </Typography>
+              <Divider
+                sx={{
+                  width: 60,
+                  mx: 'auto',
+                  mb: 3.5,
+                  borderColor: alpha(T.accent, 0.6),
+                  borderWidth: 1.5,
+                }}
+              />
+              <Typography
+                sx={{
+                  maxWidth: 520,
+                  mx: 'auto',
+                  color: alpha('#FFFFFF', 0.72),
+                  fontSize: { xs: '0.98rem', md: '1.1rem' },
+                  fontWeight: 300,
+                  lineHeight: 1.7,
+                }}
+              >
+                Découvrez l'actualité de la mode, les tendances, les conseils et
+                l'élégance au quotidien
+              </Typography>
+            </Box>
+          </Fade>
         </Container>
       </Box>
 
-      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
-        <Grid container spacing={4}>
-          {/* ─── MAIN CONTENT ─────────────────────────── */}
+      <Container maxWidth="lg" sx={{ py: { xs: 5, md: 7 } }}>
+        <Grid container spacing={4.5}>
+          {/* ─── CONTENU PRINCIPAL ─────────────────────── */}
           <Grid size={{ xs: 12, md: 8 }}>
             {/* Article en vedette */}
             {featuredArticle && (
-              <Card
-                sx={{
-                  mb: 4,
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                  position: 'relative',
-                  backgroundColor: '#FFF',
-                }}
-              >
-                <Box sx={{ position: 'relative' }}>
-                  <CardMedia
-                    component="img"
-                    image={featuredArticle.image}
-                    alt={featuredArticle.title}
-                    sx={{
-                      height: { xs: 250, md: 400 },
-                      objectFit: 'cover',
-                    }}
-                  />
-                  <Chip
-                    label="À la une"
-                    sx={{
-                      position: 'absolute',
-                      top: 16,
-                      left: 16,
-                      backgroundColor: '#C62828',
-                      color: '#FFF',
-                      fontWeight: 600,
-                      fontSize: '0.7rem',
-                      letterSpacing: '1px',
-                    }}
-                  />
-                </Box>
-                <CardContent sx={{ p: 3 }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      mb: 1.5,
-                    }}
-                  >
-                    <Chip
-                      label={featuredArticle.category}
-                      size="small"
+              <Grow in timeout={500}>
+                <Card
+                  elevation={0}
+                  sx={{
+                    mb: 5,
+                    borderRadius: 3.5,
+                    overflow: 'hidden',
+                    border: `1px solid ${T.border}`,
+                    backgroundColor: T.surface,
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      boxShadow: `0 28px 56px -18px ${alpha(T.dark, 0.14)}`,
+                      borderColor: alpha(T.accent, 0.35),
+                    },
+                  }}
+                >
+                  <Box sx={{ position: 'relative' }}>
+                    <CardMedia
+                      component="img"
+                      image={featuredArticle.image}
+                      alt={featuredArticle.title}
+                      onError={handleImageError}
                       sx={{
-                        backgroundColor: '#1A1A1A',
-                        color: '#FFF',
-                        fontWeight: 600,
-                        fontSize: '0.7rem',
+                        height: { xs: 260, md: 420 },
+                        objectFit: 'cover',
+                        transition: 'transform 0.7s ease',
+                        '&:hover': { transform: 'scale(1.03)' },
                       }}
                     />
-                    <Typography variant="caption" sx={{ color: '#999' }}>
-                      {featuredArticle.date}
-                    </Typography>
+                    <Chip
+                      label="À la une"
+                      sx={{
+                        position: 'absolute',
+                        top: 18,
+                        left: 18,
+                        bgcolor: T.accent,
+                        color: T.dark,
+                        fontWeight: 700,
+                        fontSize: '0.68rem',
+                        letterSpacing: '0.8px',
+                        height: 28,
+                        borderRadius: 1.5,
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                      }}
+                    />
+                  </Box>
+
+                  <CardContent sx={{ p: { xs: 3, md: 4 } }}>
                     <Box
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 0.5,
+                        gap: 1.5,
+                        mb: 2,
+                        flexWrap: 'wrap',
                       }}
                     >
-                      <Visibility sx={{ fontSize: 14, color: '#999' }} />
-                      <Typography variant="caption" sx={{ color: '#999' }}>
-                        {featuredArticle.views}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontFamily: '"Playfair Display", serif',
-                      fontWeight: 700,
-                      color: '#1A1A1A',
-                      mb: 1.5,
-                      fontSize: { xs: '1.5rem', md: '2rem' },
-                    }}
-                  >
-                    {featuredArticle.title}
-                  </Typography>
-                  <Typography sx={{ color: '#666', mb: 2, lineHeight: 1.8 }}>
-                    {featuredArticle.excerpt}
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: 2,
-                    }}
-                  >
-                    <Box
-                      sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}
-                    >
-                      <Avatar
+                      <Chip
+                        label={featuredArticle.category}
+                        size="small"
                         sx={{
-                          width: 32,
-                          height: 32,
-                          bgcolor: '#1A1A1A',
-                          fontSize: '0.75rem',
+                          bgcolor: T.dark,
+                          color: '#fff',
                           fontWeight: 600,
+                          fontSize: '0.68rem',
+                          height: 26,
+                          borderRadius: 1.5,
                         }}
+                      />
+                      <Typography
+                        variant="caption"
+                        sx={{ color: T.textMuted, fontWeight: 500 }}
                       >
-                        {getInitials(featuredArticle.author)}
-                      </Avatar>
-                      <Typography variant="body2" sx={{ color: '#555' }}>
-                        {featuredArticle.author}
+                        {featuredArticle.date}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: '#999' }}>
-                        • {featuredArticle.readTime} min de lecture
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Visibility sx={{ fontSize: 14, color: T.textMuted }} />
+                        <Typography variant="caption" sx={{ color: T.textMuted }}>
+                          {featuredArticle.views.toLocaleString()}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <AccessTime sx={{ fontSize: 14, color: T.textMuted }} />
+                        <Typography variant="caption" sx={{ color: T.textMuted }}>
+                          {featuredArticle.readTime} min
+                        </Typography>
+                      </Box>
                     </Box>
-                    <Box
-                      sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+
+                    <Typography
+                      sx={{
+                        fontFamily: '"Playfair Display", serif',
+                        fontWeight: 600,
+                        color: T.textPrimary,
+                        mb: 1.75,
+                        fontSize: { xs: '1.55rem', md: '2.1rem' },
+                        lineHeight: 1.25,
+                        letterSpacing: -0.4,
+                      }}
                     >
-                      <IconButton
-                        size="small"
-                        onClick={() => handleLike(featuredArticle.id)}
-                        sx={{
-                          color: likedArticles[featuredArticle.id]
-                            ? '#C62828'
-                            : '#999',
-                        }}
-                      >
-                        {likedArticles[featuredArticle.id] ? (
-                          <Favorite />
-                        ) : (
-                          <FavoriteBorder />
-                        )}
-                      </IconButton>
-                      <Typography variant="caption" sx={{ color: '#999' }}>
-                        {featuredArticle.likes +
-                          (likedArticles[featuredArticle.id] ? 1 : 0)}
-                      </Typography>
-                      <IconButton size="small" sx={{ color: '#999' }}>
-                        <Comment fontSize="small" />
-                      </IconButton>
-                      <Typography variant="caption" sx={{ color: '#999' }}>
-                        {featuredArticle.comments}
-                      </Typography>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleBookmark(featuredArticle.id)}
-                        sx={{
-                          color: bookmarkedArticles[featuredArticle.id]
-                            ? '#1A1A1A'
-                            : '#999',
-                        }}
-                      >
-                        {bookmarkedArticles[featuredArticle.id] ? (
-                          <Bookmark />
-                        ) : (
-                          <BookmarkBorder />
-                        )}
-                      </IconButton>
-                      <IconButton size="small" sx={{ color: '#999' }}>
-                        <Share fontSize="small" />
-                      </IconButton>
+                      {featuredArticle.title}
+                    </Typography>
+
+                    <Typography
+                      sx={{
+                        color: T.textSecondary,
+                        mb: 3,
+                        lineHeight: 1.75,
+                        fontSize: '1.02rem',
+                      }}
+                    >
+                      {featuredArticle.excerpt}
+                    </Typography>
+
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 2,
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar
+                          sx={{
+                            width: 36,
+                            height: 36,
+                            bgcolor: T.dark,
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {getInitials(featuredArticle.author)}
+                        </Avatar>
+                        <Box>
+                          <Typography
+                            variant="body2"
+                            sx={{ color: T.textPrimary, fontWeight: 600 }}
+                          >
+                            {featuredArticle.author}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: T.textMuted }}>
+                            {featuredArticle.readTime} min de lecture
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleLike(featuredArticle.id)}
+                          sx={{
+                            color: likedArticles[featuredArticle.id]
+                              ? T.danger
+                              : T.textMuted,
+                            transition: 'all 0.2s',
+                            '&:hover': { transform: 'scale(1.12)' },
+                          }}
+                        >
+                          {likedArticles[featuredArticle.id] ? (
+                            <Favorite fontSize="small" />
+                          ) : (
+                            <FavoriteBorder fontSize="small" />
+                          )}
+                        </IconButton>
+                        <Typography variant="caption" sx={{ color: T.textMuted, mr: 0.5 }}>
+                          {featuredArticle.likes +
+                            (likedArticles[featuredArticle.id] ? 1 : 0)}
+                        </Typography>
+
+                        <IconButton size="small" sx={{ color: T.textMuted }}>
+                          <Comment fontSize="small" />
+                        </IconButton>
+                        <Typography variant="caption" sx={{ color: T.textMuted, mr: 0.5 }}>
+                          {featuredArticle.comments}
+                        </Typography>
+
+                        <IconButton
+                          size="small"
+                          onClick={() => handleBookmark(featuredArticle.id)}
+                          sx={{
+                            color: bookmarkedArticles[featuredArticle.id]
+                              ? T.dark
+                              : T.textMuted,
+                          }}
+                        >
+                          {bookmarkedArticles[featuredArticle.id] ? (
+                            <Bookmark fontSize="small" />
+                          ) : (
+                            <BookmarkBorder fontSize="small" />
+                          )}
+                        </IconButton>
+
+                        <IconButton size="small" sx={{ color: T.textMuted }}>
+                          <Share fontSize="small" />
+                        </IconButton>
+                      </Box>
                     </Box>
-                  </Box>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Grow>
             )}
 
-            {/* Catégories Tabs */}
-            <Box sx={{ mb: 4, borderBottom: '1px solid #E0E0E0' }}>
+            {/* Tabs catégories */}
+            <Box
+              sx={{
+                mb: 4.5,
+                borderBottom: `1px solid ${T.border}`,
+              }}
+            >
               <Tabs
                 value={selectedCategory}
                 onChange={handleCategoryChange}
@@ -513,10 +615,18 @@ const EleganceTimesOnline = () => {
                     textTransform: 'none',
                     fontWeight: 500,
                     fontSize: '0.9rem',
-                    color: '#666',
-                    '&.Mui-selected': { color: '#1A1A1A' },
+                    color: T.textMuted,
+                    minHeight: 48,
+                    '&.Mui-selected': {
+                      color: T.dark,
+                      fontWeight: 600,
+                    },
                   },
-                  '& .MuiTabs-indicator': { backgroundColor: '#1A1A1A' },
+                  '& .MuiTabs-indicator': {
+                    backgroundColor: T.accent,
+                    height: 2.5,
+                    borderRadius: 2,
+                  },
                 }}
               >
                 {CATEGORIES.map((category) => (
@@ -525,198 +635,218 @@ const EleganceTimesOnline = () => {
               </Tabs>
             </Box>
 
-            {/* Grille articles */}
+            {/* Liste articles */}
             <Grid container spacing={3}>
               {displayedArticles.length === 0 ? (
                 <Grid size={{ xs: 12 }}>
                   <Paper
                     elevation={0}
                     sx={{
-                      p: 5,
+                      p: 6,
                       textAlign: 'center',
-                      borderRadius: 2,
-                      border: '1px dashed #E0E0E0',
-                      backgroundColor: '#FFF',
+                      borderRadius: 3,
+                      border: `1px dashed ${T.border}`,
+                      backgroundColor: T.surface,
                     }}
                   >
-                    <Typography sx={{ color: '#999' }}>
+                    <Typography sx={{ color: T.textMuted, fontSize: '1rem' }}>
                       Aucun article dans cette catégorie pour le moment.
                     </Typography>
                   </Paper>
                 </Grid>
               ) : (
-                displayedArticles.map((article) => (
+                displayedArticles.map((article, index) => (
                   <Grid size={{ xs: 12 }} key={article.id}>
-                    <Card
-                      sx={{
-                        display: 'flex',
-                        flexDirection: { xs: 'column', sm: 'row' },
-                        borderRadius: 2,
-                        overflow: 'hidden',
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                        transition:
-                          'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: '0 8px 30px rgba(0,0,0,0.1)',
-                        },
-                        backgroundColor: '#FFF',
-                      }}
-                    >
-                      <CardMedia
-                        component="img"
-                        image={article.image}
-                        alt={article.title}
+                    <Grow in timeout={400 + index * 80}>
+                      <Card
+                        elevation={0}
                         sx={{
-                          width: { xs: '100%', sm: 240 },
-                          height: { xs: 200, sm: 220 },
-                          objectFit: 'cover',
-                          flexShrink: 0,
-                        }}
-                      />
-                      <CardContent
-                        sx={{
-                          flex: 1,
-                          p: 3,
                           display: 'flex',
-                          flexDirection: 'column',
+                          flexDirection: { xs: 'column', sm: 'row' },
+                          borderRadius: 3,
+                          overflow: 'hidden',
+                          border: `1px solid ${T.border}`,
+                          backgroundColor: T.surface,
+                          transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+                          '&:hover': {
+                            transform: 'translateY(-6px)',
+                            boxShadow: `0 20px 40px -14px ${alpha(T.dark, 0.12)}`,
+                            borderColor: alpha(T.accent, 0.4),
+                            '& .article-img': {
+                              transform: 'scale(1.05)',
+                            },
+                          },
                         }}
                       >
                         <Box
                           sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            mb: 1,
+                            width: { xs: '100%', sm: 260 },
+                            height: { xs: 200, sm: 210 },
+                            flexShrink: 0,
+                            overflow: 'hidden',
+                            position: 'relative',
                           }}
                         >
-                          <Chip
-                            label={article.category}
-                            size="small"
+                          <CardMedia
+                            component="img"
+                            className="article-img"
+                            image={article.image}
+                            alt={article.title}
+                            onError={handleImageError}
                             sx={{
-                              backgroundColor: '#F5F5F5',
-                              color: '#1A1A1A',
-                              fontWeight: 600,
-                              fontSize: '0.65rem',
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              transition: 'transform 0.6s ease',
                             }}
                           />
-                          <Typography variant="caption" sx={{ color: '#999' }}>
-                            {article.date}
-                          </Typography>
                         </Box>
-                        <Typography
-                          variant="h6"
+
+                        <CardContent
                           sx={{
-                            fontFamily: '"Playfair Display", serif',
-                            fontWeight: 600,
-                            color: '#1A1A1A',
-                            mb: 1,
-                            fontSize: '1.1rem',
-                          }}
-                        >
-                          {article.title}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: '#666',
-                            mb: 2,
                             flex: 1,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          {article.excerpt}
-                        </Typography>
-                        <Box
-                          sx={{
+                            p: 3,
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            flexWrap: 'wrap',
-                            gap: 1,
+                            flexDirection: 'column',
                           }}
                         >
                           <Box
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 1,
+                              gap: 1.25,
+                              mb: 1.25,
                             }}
                           >
-                            <Avatar
+                            <Chip
+                              label={article.category}
+                              size="small"
                               sx={{
-                                width: 24,
-                                height: 24,
-                                bgcolor:
-                                  AVATAR_COLORS[
-                                    article.id % AVATAR_COLORS.length
-                                  ],
-                                fontSize: '0.65rem',
+                                bgcolor: alpha(T.accent, 0.12),
+                                color: T.accentHover,
                                 fontWeight: 600,
+                                fontSize: '0.65rem',
+                                height: 24,
+                                borderRadius: 1.5,
                               }}
-                            >
-                              {getInitials(article.author)}
-                            </Avatar>
+                            />
                             <Typography
                               variant="caption"
-                              sx={{ color: '#777' }}
+                              sx={{ color: T.textMuted, fontWeight: 500 }}
                             >
-                              {article.author}
+                              {article.date}
                             </Typography>
                           </Box>
+
+                          <Typography
+                            sx={{
+                              fontFamily: '"Playfair Display", serif',
+                              fontWeight: 600,
+                              color: T.textPrimary,
+                              mb: 1.25,
+                              fontSize: '1.15rem',
+                              lineHeight: 1.35,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {article.title}
+                          </Typography>
+
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: T.textSecondary,
+                              mb: 2.5,
+                              flex: 1,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            {article.excerpt}
+                          </Typography>
+
                           <Box
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 0.5,
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: 1.5,
                             }}
                           >
-                            <IconButton
-                              size="small"
-                              onClick={() => handleLike(article.id)}
-                              sx={{
-                                color: likedArticles[article.id]
-                                  ? '#C62828'
-                                  : '#999',
-                                p: 0.5,
-                              }}
-                            >
-                              {likedArticles[article.id] ? (
-                                <Favorite sx={{ fontSize: 16 }} />
-                              ) : (
-                                <FavoriteBorder sx={{ fontSize: 16 }} />
-                              )}
-                            </IconButton>
-                            <Typography
-                              variant="caption"
-                              sx={{ color: '#999', mr: 1 }}
-                            >
-                              {article.likes +
-                                (likedArticles[article.id] ? 1 : 0)}
-                            </Typography>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleBookmark(article.id)}
-                              sx={{
-                                color: bookmarkedArticles[article.id]
-                                  ? '#1A1A1A'
-                                  : '#999',
-                                p: 0.5,
-                              }}
-                            >
-                              {bookmarkedArticles[article.id] ? (
-                                <Bookmark sx={{ fontSize: 16 }} />
-                              ) : (
-                                <BookmarkBorder sx={{ fontSize: 16 }} />
-                              )}
-                            </IconButton>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Avatar
+                                sx={{
+                                  width: 28,
+                                  height: 28,
+                                  bgcolor:
+                                    AVATAR_COLORS[article.id % AVATAR_COLORS.length],
+                                  fontSize: '0.68rem',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {getInitials(article.author)}
+                              </Avatar>
+                              <Typography
+                                variant="caption"
+                                sx={{ color: T.textSecondary, fontWeight: 500 }}
+                              >
+                                {article.author}
+                              </Typography>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleLike(article.id)}
+                                sx={{
+                                  color: likedArticles[article.id]
+                                    ? T.danger
+                                    : T.textMuted,
+                                  p: 0.6,
+                                }}
+                              >
+                                {likedArticles[article.id] ? (
+                                  <Favorite sx={{ fontSize: 17 }} />
+                                ) : (
+                                  <FavoriteBorder sx={{ fontSize: 17 }} />
+                                )}
+                              </IconButton>
+                              <Typography
+                                variant="caption"
+                                sx={{ color: T.textMuted, mr: 1 }}
+                              >
+                                {article.likes +
+                                  (likedArticles[article.id] ? 1 : 0)}
+                              </Typography>
+
+                              <IconButton
+                                size="small"
+                                onClick={() => handleBookmark(article.id)}
+                                sx={{
+                                  color: bookmarkedArticles[article.id]
+                                    ? T.dark
+                                    : T.textMuted,
+                                  p: 0.6,
+                                }}
+                              >
+                                {bookmarkedArticles[article.id] ? (
+                                  <Bookmark sx={{ fontSize: 17 }} />
+                                ) : (
+                                  <BookmarkBorder sx={{ fontSize: 17 }} />
+                                )}
+                              </IconButton>
+                            </Box>
                           </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </Grow>
                   </Grid>
                 ))
               )}
@@ -729,44 +859,71 @@ const EleganceTimesOnline = () => {
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  gap: 2,
-                  mt: 4,
+                  gap: 2.5,
+                  mt: 6,
                 }}
               >
                 <Button
                   variant="outlined"
                   onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
                   disabled={currentPage === 0}
+                  startIcon={<ArrowBack sx={{ fontSize: 17 }} />}
                   sx={{
                     borderRadius: 50,
-                    borderColor: '#DDD',
-                    color: '#1A1A1A',
+                    borderColor: T.border,
+                    color: T.dark,
                     textTransform: 'none',
-                    '&:hover': { borderColor: '#1A1A1A' },
+                    fontWeight: 600,
+                    px: 2.5,
+                    py: 1,
+                    '&:hover': {
+                      borderColor: T.accent,
+                      color: T.accent,
+                      bgcolor: T.accentSoft,
+                    },
+                    '&.Mui-disabled': {
+                      borderColor: T.border,
+                      color: T.textMuted,
+                    },
                   }}
                 >
-                  <ArrowBack sx={{ fontSize: 18, mr: 1 }} />
                   Précédent
                 </Button>
-                <Typography variant="body2" sx={{ color: '#999' }}>
+
+                <Typography
+                  variant="body2"
+                  sx={{ color: T.textMuted, fontWeight: 500, minWidth: 50, textAlign: 'center' }}
+                >
                   {currentPage + 1} / {totalPages}
                 </Typography>
+
                 <Button
                   variant="outlined"
                   onClick={() =>
                     setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
                   }
                   disabled={currentPage === totalPages - 1}
+                  endIcon={<ArrowForward sx={{ fontSize: 17 }} />}
                   sx={{
                     borderRadius: 50,
-                    borderColor: '#DDD',
-                    color: '#1A1A1A',
+                    borderColor: T.border,
+                    color: T.dark,
                     textTransform: 'none',
-                    '&:hover': { borderColor: '#1A1A1A' },
+                    fontWeight: 600,
+                    px: 2.5,
+                    py: 1,
+                    '&:hover': {
+                      borderColor: T.accent,
+                      color: T.accent,
+                      bgcolor: T.accentSoft,
+                    },
+                    '&.Mui-disabled': {
+                      borderColor: T.border,
+                      color: T.textMuted,
+                    },
                   }}
                 >
                   Suivant
-                  <ArrowForward sx={{ fontSize: 18, ml: 1 }} />
                 </Button>
               </Box>
             )}
@@ -776,42 +933,51 @@ const EleganceTimesOnline = () => {
           <Grid size={{ xs: 12, md: 4 }}>
             {/* About */}
             <Paper
+              elevation={0}
               sx={{
-                p: 3,
-                mb: 3,
-                borderRadius: 2,
+                p: 3.5,
+                mb: 3.5,
+                borderRadius: 3,
                 textAlign: 'center',
-                backgroundColor: '#FFF',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                backgroundColor: T.surface,
+                border: `1px solid ${T.border}`,
               }}
             >
               <Avatar
                 sx={{
-                  width: 80,
-                  height: 80,
+                  width: 84,
+                  height: 84,
                   mx: 'auto',
-                  mb: 2,
-                  backgroundColor: '#1A1A1A',
+                  mb: 2.25,
+                  backgroundColor: T.dark,
+                  border: `2px solid ${T.accent}`,
                 }}
               >
-                <Typography sx={{ fontSize: '2rem', fontWeight: 300 }}>
+                <Typography
+                  sx={{
+                    fontSize: '2.1rem',
+                    fontWeight: 300,
+                    fontFamily: '"Playfair Display", serif',
+                    color: T.accent,
+                  }}
+                >
                   E
                 </Typography>
               </Avatar>
               <Typography
                 sx={{
                   fontFamily: '"Playfair Display", serif',
-                  fontSize: '1.2rem',
+                  fontSize: '1.3rem',
                   fontWeight: 600,
-                  color: '#1A1A1A',
-                  mb: 1,
+                  color: T.textPrimary,
+                  mb: 1.25,
                 }}
               >
                 Elegance Times
               </Typography>
               <Typography
                 variant="body2"
-                sx={{ color: '#777', lineHeight: 1.8 }}
+                sx={{ color: T.textSecondary, lineHeight: 1.75, mb: 2.5 }}
               >
                 Votre magazine de mode et d'élégance. Découvrez les tendances,
                 les conseils et l'inspiration pour un style raffiné.
@@ -820,8 +986,7 @@ const EleganceTimesOnline = () => {
                 sx={{
                   display: 'flex',
                   justifyContent: 'center',
-                  gap: 1,
-                  mt: 2,
+                  gap: 1.25,
                 }}
               >
                 {[Facebook, Twitter, Instagram, YouTube].map((Icon, i) => (
@@ -829,9 +994,17 @@ const EleganceTimesOnline = () => {
                     key={i}
                     size="small"
                     sx={{
-                      color: '#1A1A1A',
-                      border: '1px solid #E0E0E0',
+                      color: T.dark,
+                      border: `1px solid ${T.border}`,
                       borderRadius: 2,
+                      width: 38,
+                      height: 38,
+                      transition: 'all 0.25s',
+                      '&:hover': {
+                        borderColor: T.accent,
+                        color: T.accent,
+                        bgcolor: T.accentSoft,
+                      },
                     }}
                   >
                     <Icon fontSize="small" />
@@ -842,72 +1015,79 @@ const EleganceTimesOnline = () => {
 
             {/* Articles populaires */}
             <Paper
+              elevation={0}
               sx={{
-                p: 3,
-                mb: 3,
-                borderRadius: 2,
-                backgroundColor: '#FFF',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                p: 3.5,
+                mb: 3.5,
+                borderRadius: 3,
+                backgroundColor: T.surface,
+                border: `1px solid ${T.border}`,
               }}
             >
               <Typography
                 sx={{
                   fontFamily: '"Playfair Display", serif',
-                  fontSize: '1.2rem',
+                  fontSize: '1.25rem',
                   fontWeight: 600,
-                  color: '#1A1A1A',
-                  mb: 2,
+                  color: T.textPrimary,
+                  mb: 2.5,
                 }}
               >
                 Articles populaires
               </Typography>
+
               {ARTICLES_POPULAIRES.map((article, idx) => (
-                <Box key={article.id} sx={{ mb: 2 }}>
+                <Box key={article.id}>
                   <Box
                     sx={{
                       display: 'flex',
                       gap: 2,
                       alignItems: 'flex-start',
+                      cursor: 'pointer',
+                      transition: 'opacity 0.2s',
+                      '&:hover': { opacity: 0.85 },
                     }}
                   >
                     <Box
                       component="img"
                       src={article.image}
                       alt={article.title}
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
+                      onError={handleImageError}
                       sx={{
-                        width: 70,
-                        height: 70,
-                        borderRadius: 1,
+                        width: 72,
+                        height: 72,
+                        borderRadius: 2,
                         objectFit: 'cover',
                         flexShrink: 0,
-                        backgroundColor: '#F5F5F5',
+                        backgroundColor: '#F3F2EF',
                       }}
                     />
-                    <Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography
-                        variant="body2"
                         sx={{
                           fontWeight: 600,
-                          color: '#1A1A1A',
+                          color: T.textPrimary,
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: 'vertical',
                           overflow: 'hidden',
-                          fontSize: '0.85rem',
+                          fontSize: '0.88rem',
+                          lineHeight: 1.4,
+                          mb: 0.5,
                         }}
                       >
                         {article.title}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: '#999' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: T.textMuted, fontWeight: 500 }}
+                      >
                         {article.date}
                       </Typography>
                     </Box>
                   </Box>
                   {idx < ARTICLES_POPULAIRES.length - 1 && (
-                    <Divider sx={{ mt: 2 }} />
+                    <Divider sx={{ my: 2.25, borderColor: T.border }} />
                   )}
                 </Box>
               ))}
@@ -915,42 +1095,70 @@ const EleganceTimesOnline = () => {
 
             {/* Newsletter */}
             <Paper
+              elevation={0}
               sx={{
-                p: 3,
-                borderRadius: 2,
-                backgroundColor: '#1A1A1A',
+                p: 3.5,
+                borderRadius: 3,
+                backgroundColor: T.dark,
                 color: '#FFF',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                position: 'relative',
+                overflow: 'hidden',
               }}
             >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -40,
+                  right: -40,
+                  width: 120,
+                  height: 120,
+                  borderRadius: '50%',
+                  bgcolor: alpha(T.accent, 0.08),
+                }}
+              />
               <Typography
                 sx={{
                   fontFamily: '"Playfair Display", serif',
-                  fontSize: '1.2rem',
+                  fontSize: '1.3rem',
                   fontWeight: 600,
-                  mb: 1,
+                  mb: 1.25,
+                  position: 'relative',
                 }}
               >
                 Newsletter
               </Typography>
               <Typography
                 variant="body2"
-                sx={{ color: 'rgba(255,255,255,0.7)', mb: 2 }}
+                sx={{
+                  color: alpha('#FFFFFF', 0.7),
+                  mb: 2.5,
+                  lineHeight: 1.6,
+                  position: 'relative',
+                }}
               >
                 Recevez nos articles et actualités chaque semaine.
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1.25, position: 'relative' }}>
                 <TextField
                   placeholder="Votre email"
                   size="small"
                   fullWidth
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      backgroundColor: alpha('#FFFFFF', 0.08),
                       borderRadius: 2,
-                      '& input': { color: '#FFF' },
+                      '& input': {
+                        color: '#FFF',
+                        fontSize: '0.9rem',
+                      },
                       '& fieldset': {
-                        borderColor: 'rgba(255,255,255,0.2)',
+                        borderColor: alpha('#FFFFFF', 0.15),
+                      },
+                      '&:hover fieldset': {
+                        borderColor: alpha(T.accent, 0.5),
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: T.accent,
                       },
                     },
                   }}
@@ -958,12 +1166,18 @@ const EleganceTimesOnline = () => {
                 <Button
                   variant="contained"
                   sx={{
-                    backgroundColor: '#FFF',
-                    color: '#1A1A1A',
+                    bgcolor: T.accent,
+                    color: T.dark,
                     borderRadius: 2,
                     textTransform: 'none',
-                    fontWeight: 600,
-                    '&:hover': { backgroundColor: '#F0F0F0' },
+                    fontWeight: 700,
+                    px: 2.5,
+                    minWidth: 64,
+                    boxShadow: 'none',
+                    '&:hover': {
+                      bgcolor: T.accentHover,
+                      boxShadow: 'none',
+                    },
                   }}
                 >
                   OK
@@ -974,42 +1188,43 @@ const EleganceTimesOnline = () => {
         </Grid>
       </Container>
 
-      {/* ─── FOOTER ─────────────────────────────────── */}
+      {/* ─── FOOTER ───────────────────────────────────── */}
       <Box
         sx={{
-          backgroundColor: '#1A1A1A',
-          color: 'rgba(255,255,255,0.7)',
-          py: 4,
-          mt: 4,
-          borderTop: '1px solid rgba(255,255,255,0.05)',
+          backgroundColor: T.dark,
+          color: alpha('#FFFFFF', 0.7),
+          py: 6,
+          mt: 6,
+          borderTop: `1px solid ${alpha('#FFFFFF', 0.06)}`,
         }}
       >
         <Container maxWidth="lg">
-          <Grid container spacing={3}>
+          <Grid container spacing={4}>
             <Grid size={{ xs: 12, md: 4 }}>
               <Typography
                 sx={{
                   fontFamily: '"Playfair Display", serif',
-                  fontSize: '1.5rem',
+                  fontSize: '1.6rem',
                   color: '#FFF',
                   fontWeight: 300,
-                  mb: 1,
+                  mb: 1.5,
                 }}
               >
                 Elegance Times
               </Typography>
-              <Typography variant="body2" sx={{ lineHeight: 1.8 }}>
+              <Typography variant="body2" sx={{ lineHeight: 1.8, maxWidth: 280 }}>
                 L'excellence de la mode et de l'élégance au quotidien.
               </Typography>
             </Grid>
+
             <Grid size={{ xs: 6, md: 2 }}>
               <Typography
                 variant="subtitle2"
-                sx={{ color: '#FFF', fontWeight: 600, mb: 1 }}
+                sx={{ color: '#FFF', fontWeight: 600, mb: 1.75, letterSpacing: 0.5 }}
               >
                 Catégories
               </Typography>
-              <Stack spacing={0.5}>
+              <Stack spacing={1}>
                 {['Mode', 'Tendances', 'Accessoires', 'Conseils'].map((c) => (
                   <Typography
                     key={c}
@@ -1017,9 +1232,10 @@ const EleganceTimesOnline = () => {
                     component="a"
                     href="#"
                     sx={{
-                      color: 'rgba(255,255,255,0.6)',
+                      color: alpha('#FFFFFF', 0.55),
                       textDecoration: 'none',
-                      '&:hover': { color: '#FFF' },
+                      transition: 'color 0.2s',
+                      '&:hover': { color: T.accent },
                     }}
                   >
                     {c}
@@ -1027,14 +1243,15 @@ const EleganceTimesOnline = () => {
                 ))}
               </Stack>
             </Grid>
+
             <Grid size={{ xs: 6, md: 2 }}>
               <Typography
                 variant="subtitle2"
-                sx={{ color: '#FFF', fontWeight: 600, mb: 1 }}
+                sx={{ color: '#FFF', fontWeight: 600, mb: 1.75, letterSpacing: 0.5 }}
               >
                 Liens
               </Typography>
-              <Stack spacing={0.5}>
+              <Stack spacing={1}>
                 {[
                   'À propos',
                   'Contact',
@@ -1047,9 +1264,10 @@ const EleganceTimesOnline = () => {
                     component="a"
                     href="#"
                     sx={{
-                      color: 'rgba(255,255,255,0.6)',
+                      color: alpha('#FFFFFF', 0.55),
                       textDecoration: 'none',
-                      '&:hover': { color: '#FFF' },
+                      transition: 'color 0.2s',
+                      '&:hover': { color: T.accent },
                     }}
                   >
                     {l}
@@ -1057,35 +1275,43 @@ const EleganceTimesOnline = () => {
                 ))}
               </Stack>
             </Grid>
+
             <Grid size={{ xs: 12, md: 4 }}>
               <Typography
                 variant="subtitle2"
-                sx={{ color: '#FFF', fontWeight: 600, mb: 1 }}
+                sx={{ color: '#FFF', fontWeight: 600, mb: 1.75, letterSpacing: 0.5 }}
               >
                 Contact
               </Typography>
               <Typography
                 variant="body2"
-                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.25,
+                  mb: 1,
+                }}
               >
-                <Email sx={{ fontSize: 16 }} />
+                <Email sx={{ fontSize: 17, color: T.accent }} />
                 contact@elegancetimes.com
               </Typography>
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                Abidjan, Côte d'Ivoire
-              </Typography>
+              <Typography variant="body2">Abidjan, Côte d'Ivoire</Typography>
             </Grid>
           </Grid>
-          <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.05)' }} />
+
+          <Divider
+            sx={{ my: 4, borderColor: alpha('#FFFFFF', 0.08) }}
+          />
+
           <Typography
             variant="body2"
             sx={{
               textAlign: 'center',
-              color: 'rgba(255,255,255,0.4)',
-              fontSize: '0.8rem',
+              color: alpha('#FFFFFF', 0.4),
+              fontSize: '0.82rem',
             }}
           >
-            © 2024 Elegance Times. Tous droits réservés.
+            © 2024–2026 Elegance Times. Tous droits réservés.
           </Typography>
         </Container>
       </Box>

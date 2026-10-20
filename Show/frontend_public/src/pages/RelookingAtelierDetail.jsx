@@ -3,7 +3,7 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Container, Typography, Box, Grid, Card, CardContent, Button, Chip,
-  Divider, Alert, useTheme, useMediaQuery, Stack, Avatar,
+  Divider, Alert, Stack, Avatar, alpha,
 } from '@mui/material';
 import {
   ArrowBack, CheckCircle, Check, Schedule, WorkspacePremium,
@@ -13,9 +13,22 @@ import heroImage from '../assets/images/tibetia.jpeg';
 import RegisterDialog from '../components/RegisterDialog';
 import { useRelookingInscription } from '../hooks/useRelookingInscription';
 
-// ============================================================
-// DONNÉES
-// ============================================================
+// ─────────────────────────────────────────────────────────────
+const T = {
+  bg: '#F8F7F4',
+  surface: '#FFFFFF',
+  dark: '#1A1A1A',
+  darkSoft: '#2C2C2C',
+  textPrimary: '#1A1A1A',
+  textSecondary: '#5C5C5C',
+  textMuted: '#8A8A8A',
+  border: '#EAEAEA',
+  accent: '#C9A84C',
+  accentSoft: 'rgba(201, 168, 76, 0.12)',
+  accentHover: '#B8943A',
+  success: '#059669',
+};
+
 const RUBRIQUES = {
   1: {
     id: 1,
@@ -162,9 +175,6 @@ Jour 3 (7h)
   },
 };
 
-// ============================================================
-// RENDU DESCRIPTION
-// ============================================================
 const RichDescription = ({ content }) => {
   const lines = content?.split('\n') || [];
   return (
@@ -177,13 +187,13 @@ const RichDescription = ({ content }) => {
           return (
             <Typography
               key={index}
-              variant="h6"
               sx={{
-                mt: index === 0 ? 0 : 3,
-                mb: 1.5,
-                fontWeight: 700,
-                color: '#1a1a1a',
+                mt: index === 0 ? 0 : 3.5,
+                mb: 1.75,
+                fontWeight: 600,
+                color: T.textPrimary,
                 fontFamily: '"Playfair Display", serif',
+                fontSize: '1.15rem',
               }}
             >
               {trimmed.replace('## ', '')}
@@ -193,9 +203,9 @@ const RichDescription = ({ content }) => {
 
         if (trimmed.startsWith('• ')) {
           return (
-            <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, py: 0.5 }}>
-              <Box sx={{ mt: 0.8, width: 6, height: 6, borderRadius: '50%', bgcolor: '#2C2C2C', flexShrink: 0 }} />
-              <Typography variant="body2" sx={{ color: '#555', lineHeight: 1.7 }}>
+            <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, py: 0.6 }}>
+              <Box sx={{ mt: 0.9, width: 6, height: 6, borderRadius: '50%', bgcolor: T.accent, flexShrink: 0 }} />
+              <Typography sx={{ color: T.textSecondary, lineHeight: 1.7, fontSize: '0.95rem' }}>
                 {trimmed.replace('• ', '')}
               </Typography>
             </Box>
@@ -204,9 +214,9 @@ const RichDescription = ({ content }) => {
 
         if (trimmed.startsWith('- ')) {
           return (
-            <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, pl: 1.5, py: 0.3 }}>
-              <Check sx={{ fontSize: 16, color: '#4CAF50', mt: 0.3, flexShrink: 0 }} />
-              <Typography variant="body2" sx={{ color: '#666', lineHeight: 1.6 }}>
+            <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, pl: 1.5, py: 0.35 }}>
+              <Check sx={{ fontSize: 16, color: T.success, mt: 0.35, flexShrink: 0 }} />
+              <Typography sx={{ color: T.textSecondary, lineHeight: 1.65, fontSize: '0.92rem' }}>
                 {trimmed.replace('- ', '')}
               </Typography>
             </Box>
@@ -215,9 +225,9 @@ const RichDescription = ({ content }) => {
 
         if (/^(Matinée|Après-midi|Jour\s+\d+)/i.test(trimmed)) {
           return (
-            <Box key={index} sx={{ mt: 2.5, mb: 0.75, display: 'flex', alignItems: 'center', gap: 1.25 }}>
-              <Schedule sx={{ fontSize: 18, color: '#888' }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1a1a1a' }}>
+            <Box key={index} sx={{ mt: 3, mb: 1, display: 'flex', alignItems: 'center', gap: 1.25 }}>
+              <Schedule sx={{ fontSize: 18, color: T.accent }} />
+              <Typography sx={{ fontWeight: 600, color: T.textPrimary, fontSize: '1rem' }}>
                 {trimmed}
               </Typography>
             </Box>
@@ -225,7 +235,7 @@ const RichDescription = ({ content }) => {
         }
 
         return (
-          <Typography key={index} variant="body2" sx={{ color: '#555', lineHeight: 1.8, mb: 1.25 }}>
+          <Typography key={index} sx={{ color: T.textSecondary, lineHeight: 1.8, mb: 1.5, fontSize: '0.95rem' }}>
             {trimmed}
           </Typography>
         );
@@ -234,13 +244,8 @@ const RichDescription = ({ content }) => {
   );
 };
 
-// ============================================================
-// COMPOSANT PRINCIPAL
-// ============================================================
 const RelookingAtelierDetail = () => {
   const { id } = useParams();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const rubrique = RUBRIQUES[id];
 
   const {
@@ -256,8 +261,8 @@ const RelookingAtelierDetail = () => {
 
   if (!rubrique) {
     return (
-      <Container sx={{ py: 10, textAlign: 'center' }}>
-        <Alert severity="error" sx={{ borderRadius: 3, mb: 3, maxWidth: 480, mx: 'auto' }}>
+      <Container sx={{ py: 12, textAlign: 'center' }}>
+        <Alert severity="error" sx={{ borderRadius: 2.5, mb: 3, maxWidth: 480, mx: 'auto' }}>
           Atelier non trouvé
         </Alert>
         <Button
@@ -265,7 +270,7 @@ const RelookingAtelierDetail = () => {
           to="/relooking/atelier"
           startIcon={<ArrowBack />}
           variant="outlined"
-          sx={{ borderRadius: 50 }}
+          sx={{ borderRadius: 50, borderColor: T.border, color: T.textPrimary }}
         >
           Retour aux ateliers
         </Button>
@@ -274,16 +279,16 @@ const RelookingAtelierDetail = () => {
   }
 
   return (
-    <Box sx={{ bgcolor: '#FAFAFA', minHeight: '100vh' }}>
+    <Box sx={{ bgcolor: T.bg, minHeight: '100vh' }}>
       {/* HERO */}
       <Box
         sx={{
           position: 'relative',
-          height: { xs: 220, md: 300 },
+          height: { xs: 240, md: 320 },
           display: 'flex',
           alignItems: 'flex-end',
           overflow: 'hidden',
-          bgcolor: '#1a1a1a',
+          bgcolor: T.dark,
         }}
       >
         <Box
@@ -297,56 +302,75 @@ const RelookingAtelierDetail = () => {
             height: '100%',
             objectFit: 'cover',
             objectPosition: 'center 20%',
-            opacity: 0.3,
+            opacity: 0.35,
           }}
         />
         <Box
           sx={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(180deg, rgba(26,26,26,0.3) 0%, rgba(26,26,26,0.85) 100%)',
+            background: `linear-gradient(180deg, ${alpha(T.dark, 0.35)} 0%, ${alpha(T.dark, 0.88)} 100%)`,
           }}
         />
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, pb: { xs: 3, md: 4 } }}>
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, pb: { xs: 3.5, md: 4.5 } }}>
           <Chip
             label="ATELIER RELOOKING"
             size="small"
             sx={{
-              mb: 1.5,
-              bgcolor: 'rgba(255,255,255,0.12)',
+              mb: 1.75,
+              bgcolor: alpha('#fff', 0.12),
               color: '#fff',
               fontWeight: 600,
               letterSpacing: 1.5,
-              fontSize: '0.7rem',
+              fontSize: '0.68rem',
               height: 26,
+              borderRadius: 1.5,
             }}
           />
           <Typography
-            variant="h2"
             sx={{
-              fontWeight: 700,
+              fontWeight: 500,
               color: '#fff',
               fontFamily: '"Playfair Display", serif',
-              fontSize: { xs: '1.75rem', md: '2.75rem' },
-              mb: 2,
+              fontSize: { xs: '1.85rem', md: '2.85rem' },
+              mb: 2.25,
+              letterSpacing: -0.5,
+              lineHeight: 1.15,
             }}
           >
             {rubrique.nom}
           </Typography>
           <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
             <Chip
-              icon={<Star sx={{ color: '#FFB400 !important', fontSize: 16 }} />}
+              icon={<Star sx={{ color: `${T.accent} !important`, fontSize: 15 }} />}
               label={`${rubrique.note} · ${rubrique.nb_avis} avis`}
-              sx={{ bgcolor: 'rgba(255,255,255,0.95)', fontWeight: 600 }}
+              sx={{
+                bgcolor: alpha('#fff', 0.95),
+                fontWeight: 600,
+                borderRadius: 1.5,
+                height: 28,
+              }}
             />
             <Chip
-              icon={<Group sx={{ fontSize: 16, color: '#fff !important' }} />}
+              icon={<Group sx={{ fontSize: 15, color: '#fff !important' }} />}
               label={rubrique.participants}
-              sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 600 }}
+              sx={{
+                bgcolor: alpha('#fff', 0.15),
+                color: '#fff',
+                fontWeight: 600,
+                borderRadius: 1.5,
+                height: 28,
+              }}
             />
             <Chip
               label={rubrique.categorie}
-              sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 600 }}
+              sx={{
+                bgcolor: alpha('#fff', 0.15),
+                color: '#fff',
+                fontWeight: 600,
+                borderRadius: 1.5,
+                height: 28,
+              }}
             />
           </Stack>
         </Container>
@@ -354,20 +378,17 @@ const RelookingAtelierDetail = () => {
 
       {/* CONTENU */}
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
-        {/* ✅ Message de succès persistant après fermeture du dialog */}
         {pageMessage && (
           <Alert
             severity={pageMessage.type}
             onClose={dismissPageMessage}
             sx={{
-              mb: 3,
-              borderRadius: '12px',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+              mb: 3.5,
+              borderRadius: 2.5,
+              boxShadow: `0 4px 20px ${alpha(T.dark, 0.06)}`,
             }}
           >
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              {pageMessage.title}
-            </Typography>
+            <Typography sx={{ fontWeight: 700 }}>{pageMessage.title}</Typography>
             <Typography variant="body2">{pageMessage.text}</Typography>
           </Alert>
         )}
@@ -375,32 +396,38 @@ const RelookingAtelierDetail = () => {
         <Button
           component={Link}
           to="/relooking/atelier"
-          startIcon={<ArrowBack />}
-          sx={{ mb: 4, color: '#666' }}
+          startIcon={<ArrowBack sx={{ fontSize: 18 }} />}
+          sx={{
+            mb: 4,
+            color: T.textMuted,
+            textTransform: 'none',
+            fontWeight: 500,
+            px: 0,
+            '&:hover': { color: T.textPrimary, bgcolor: 'transparent' },
+          }}
         >
           Retour aux ateliers
         </Button>
 
         <Grid container spacing={4} sx={{ alignItems: 'flex-start' }}>
-          <Grid item xs={12} md={7}>
-            <Stack spacing={3}>
+          <Grid size={{ xs: 12, md: 7 }}>
+            <Stack spacing={3.5}>
               <Card
                 elevation={0}
                 sx={{
-                  borderRadius: '16px',
-                  border: '1px solid',
-                  borderColor: 'rgba(0,0,0,0.08)',
-                  bgcolor: '#fff',
+                  borderRadius: 3,
+                  border: `1px solid ${T.border}`,
+                  bgcolor: T.surface,
                 }}
               >
-                <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
+                <CardContent sx={{ p: { xs: 3, md: 4 } }}>
                   <Typography
-                    variant="h5"
                     sx={{
-                      fontWeight: 700,
-                      mb: 2.5,
+                      fontWeight: 600,
+                      mb: 2.75,
                       fontFamily: '"Playfair Display", serif',
-                      color: '#1a1a1a',
+                      color: T.textPrimary,
+                      fontSize: '1.25rem',
                     }}
                   >
                     Description détaillée
@@ -412,38 +439,37 @@ const RelookingAtelierDetail = () => {
               <Card
                 elevation={0}
                 sx={{
-                  borderRadius: '16px',
-                  border: '1px solid',
-                  borderColor: 'rgba(0,0,0,0.08)',
-                  bgcolor: '#fff',
+                  borderRadius: 3,
+                  border: `1px solid ${T.border}`,
+                  bgcolor: T.surface,
                 }}
               >
-                <CardContent sx={{ p: { xs: 2.5, md: 3.5 } }}>
+                <CardContent sx={{ p: { xs: 3, md: 4 } }}>
                   <Typography
-                    variant="h5"
                     sx={{
-                      fontWeight: 700,
-                      mb: 2.5,
+                      fontWeight: 600,
+                      mb: 2.75,
                       fontFamily: '"Playfair Display", serif',
-                      color: '#1a1a1a',
+                      color: T.textPrimary,
+                      fontSize: '1.25rem',
                     }}
                   >
                     Ce que vous allez apprendre
                   </Typography>
                   <Stack spacing={1.75}>
                     {rubrique.youWillLearn.map((point, index) => (
-                      <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                      <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.75 }}>
                         <Avatar
                           sx={{
-                            width: 28,
-                            height: 28,
-                            bgcolor: 'rgba(76, 175, 80, 0.12)',
-                            color: '#2e7d32',
+                            width: 30,
+                            height: 30,
+                            bgcolor: alpha(T.success, 0.12),
+                            color: T.success,
                           }}
                         >
                           <CheckCircle sx={{ fontSize: 16 }} />
                         </Avatar>
-                        <Typography variant="body2" sx={{ color: '#444', pt: 0.4 }}>
+                        <Typography sx={{ color: T.textSecondary, pt: 0.4, fontSize: '0.95rem', lineHeight: 1.5 }}>
                           {point}
                         </Typography>
                       </Box>
@@ -454,111 +480,90 @@ const RelookingAtelierDetail = () => {
             </Stack>
           </Grid>
 
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <Box sx={{ position: 'sticky', top: 100 }}>
               <Card
                 elevation={0}
                 sx={{
-                  borderRadius: '16px',
-                  border: '1px solid',
-                  borderColor: 'rgba(0,0,0,0.08)',
+                  borderRadius: 3,
+                  border: `1px solid ${T.border}`,
                   overflow: 'hidden',
-                  boxShadow: '0 12px 40px rgba(0,0,0,0.06)',
+                  boxShadow: `0 16px 48px -12px ${alpha(T.dark, 0.1)}`,
                 }}
               >
                 <Box
                   sx={{
-                    background: 'linear-gradient(135deg, #1a1a1a 0%, #2C2C2C 100%)',
-                    px: 3,
-                    py: 2.5,
+                    background: `linear-gradient(135deg, ${T.dark} 0%, ${T.darkSoft} 100%)`,
+                    px: 3.5,
+                    py: 2.75,
                     color: '#fff',
                   }}
                 >
-                  <Typography variant="overline" sx={{ opacity: 0.7, letterSpacing: 1.5, fontSize: '0.7rem' }}>
+                  <Typography
+                    sx={{
+                      opacity: 0.65,
+                      letterSpacing: 1.8,
+                      fontSize: '0.68rem',
+                      textTransform: 'uppercase',
+                      fontWeight: 600,
+                    }}
+                  >
                     Résumé de l'atelier
                   </Typography>
                   <Typography
-                    variant="h5"
                     sx={{
-                      fontWeight: 700,
+                      fontWeight: 500,
                       fontFamily: '"Playfair Display", serif',
-                      mt: 0.5,
-                      fontSize: '1.25rem',
+                      mt: 0.75,
+                      fontSize: '1.3rem',
+                      lineHeight: 1.3,
                     }}
                   >
                     {rubrique.nom}
                   </Typography>
                 </Box>
 
-                <CardContent sx={{ p: 3 }}>
-                  <Stack spacing={2.5} sx={{ mb: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'rgba(0,0,0,0.06)', color: '#1a1a1a', width: 42, height: 42 }}>
-                        <LocalOffer sx={{ fontSize: 20 }} />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                          Prix
-                        </Typography>
-                        <Typography variant="h6" fontWeight={700} color="#1a1a1a">
-                          {rubrique.prix}
-                        </Typography>
+                <CardContent sx={{ p: 3.5 }}>
+                  <Stack spacing={2.75} sx={{ mb: 3.5 }}>
+                    {[
+                      { icon: <LocalOffer sx={{ fontSize: 20 }} />, label: 'Prix', value: rubrique.prix },
+                      { icon: <Schedule sx={{ fontSize: 20 }} />, label: 'Durée', value: rubrique.duree },
+                      { icon: <Group sx={{ fontSize: 20 }} />, label: 'Participants', value: rubrique.participants },
+                      { icon: <WorkspacePremium sx={{ fontSize: 20 }} />, label: 'Note', value: `${rubrique.note}/5 (${rubrique.nb_avis} avis)` },
+                    ].map((item) => (
+                      <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar
+                          sx={{
+                            bgcolor: T.accentSoft,
+                            color: T.accent,
+                            width: 44,
+                            height: 44,
+                          }}
+                        >
+                          {item.icon}
+                        </Avatar>
+                        <Box>
+                          <Typography sx={{ color: T.textMuted, fontSize: '0.75rem', fontWeight: 500 }}>
+                            {item.label}
+                          </Typography>
+                          <Typography sx={{ fontWeight: 600, color: T.textPrimary, fontSize: '1.05rem' }}>
+                            {item.value}
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'rgba(0,0,0,0.06)', color: '#1a1a1a', width: 42, height: 42 }}>
-                        <Schedule sx={{ fontSize: 20 }} />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                          Durée
-                        </Typography>
-                        <Typography variant="body1" fontWeight={600} color="#1a1a1a">
-                          {rubrique.duree}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'rgba(0,0,0,0.06)', color: '#1a1a1a', width: 42, height: 42 }}>
-                        <Group sx={{ fontSize: 20 }} />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                          Participants
-                        </Typography>
-                        <Typography variant="body1" fontWeight={600} color="#1a1a1a">
-                          {rubrique.participants}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'rgba(0,0,0,0.06)', color: '#1a1a1a', width: 42, height: 42 }}>
-                        <WorkspacePremium sx={{ fontSize: 20 }} />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                          Note
-                        </Typography>
-                        <Typography variant="body1" fontWeight={600} color="#1a1a1a">
-                          {rubrique.note}/5 ({rubrique.nb_avis} avis)
-                        </Typography>
-                      </Box>
-                    </Box>
+                    ))}
                   </Stack>
 
-                  <Divider sx={{ mb: 2.5 }} />
+                  <Divider sx={{ mb: 2.75, borderColor: T.border }} />
 
-                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5, color: '#1a1a1a' }}>
+                  <Typography sx={{ fontWeight: 600, mb: 1.75, color: T.textPrimary, fontSize: '0.95rem' }}>
                     Avantages inclus
                   </Typography>
-                  <Stack spacing={1} sx={{ mb: 3.5 }}>
+                  <Stack spacing={1.1} sx={{ mb: 3.5 }}>
                     {rubrique.avantages.map((avantage, index) => (
                       <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                        <Check sx={{ fontSize: 17, color: '#4CAF50' }} />
-                        <Typography variant="body2" color="#555">
+                        <Check sx={{ fontSize: 17, color: T.success }} />
+                        <Typography sx={{ color: T.textSecondary, fontSize: '0.9rem' }}>
                           {avantage}
                         </Typography>
                       </Box>
@@ -570,16 +575,23 @@ const RelookingAtelierDetail = () => {
                     fullWidth
                     size="large"
                     onClick={handleOpen}
-                    endIcon={<ArrowForward />}
+                    endIcon={<ArrowForward sx={{ fontSize: 18 }} />}
                     sx={{
-                      bgcolor: '#1a1a1a',
+                      bgcolor: T.dark,
                       color: '#fff',
-                      borderRadius: '50px',
-                      py: 1.6,
+                      borderRadius: 2.5,
+                      py: 1.7,
                       fontWeight: 600,
                       textTransform: 'none',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-                      '&:hover': { bgcolor: '#333', transform: 'translateY(-1px)' },
+                      fontSize: '0.95rem',
+                      boxShadow: 'none',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      '&:hover': {
+                        bgcolor: T.accent,
+                        color: T.dark,
+                        boxShadow: `0 12px 32px ${alpha(T.accent, 0.35)}`,
+                        transform: 'translateY(-2px)',
+                      },
                     }}
                   >
                     Réserver cet atelier
@@ -591,7 +603,6 @@ const RelookingAtelierDetail = () => {
         </Grid>
       </Container>
 
-      {/* DIALOG D'INSCRIPTION */}
       <RegisterDialog
         open={open}
         onClose={handleClose}

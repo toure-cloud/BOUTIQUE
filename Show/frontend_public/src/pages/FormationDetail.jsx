@@ -2,33 +2,83 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
-  Container, Typography, Box, Grid, Button, Chip, Paper, TextField,
-  Alert, Snackbar, CircularProgress, Dialog, DialogTitle, DialogContent,
-  DialogActions, InputAdornment, Avatar,
+  Container,
+  Typography,
+  Box,
+  Grid,
+  Button,
+  Chip,
+  Paper,
+  TextField,
+  Alert,
+  Snackbar,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  InputAdornment,
+  Avatar,
+  alpha,
+  Fade,
+  Grow,
 } from "@mui/material";
 import {
-  ArrowBack, CheckCircle, Payment, Person, Email, Phone, CalendarToday,
-  AccessTime, AttachMoney, PlayArrow, LiveTv, Replay, EventNote,
-  CreditCard, PhoneAndroid, QrCode, Star, School, Timer, MenuBook, Lock,
+  ArrowBack,
+  CheckCircle,
+  Payment,
+  Person,
+  Email,
+  Phone,
+  CalendarToday,
+  AccessTime,
+  AttachMoney,
+  PlayArrow,
+  LiveTv,
+  Replay,
+  EventNote,
+  CreditCard,
+  PhoneAndroid,
+  QrCode,
+  Star,
+  School,
+  Timer,
+  MenuBook,
+  Lock,
 } from "@mui/icons-material";
 import { formationService } from "../services/formationService";
 import { paiementService } from "../services/paiementService";
 import QRCodePaiement from "../components/QRCodePaiement";
 import PaiementCarte from "../components/PaiementCarte";
 import heroImage from "../assets/images/tibetia.jpeg";
+import madameTImage from "../assets/images/tibetia.jpeg";
 
-const COACH_IMAGE =
-  "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=600&h=400&fit=crop&q=80";
-
-const PAIEMENT_ICONS = {
-  WAVE: <QrCode sx={{ fontSize: 26 }} />,
-  ORANGE_MONEY: <PhoneAndroid sx={{ fontSize: 26 }} />,
-  MOOV_MONEY: <PhoneAndroid sx={{ fontSize: 26 }} />,
-  MTN_MONEY: <PhoneAndroid sx={{ fontSize: 26 }} />,
-  CARTE_BANCAIRE: <CreditCard sx={{ fontSize: 26 }} />,
+// ─────────────────────────────────────────────────────────────
+const T = {
+  bg: "#F8F7F4",
+  surface: "#FFFFFF",
+  dark: "#1A1A1A",
+  darkSoft: "#2C2C2C",
+  textPrimary: "#1A1A1A",
+  textSecondary: "#5C5C5C",
+  textMuted: "#8A8A8A",
+  border: "#EAEAEA",
+  accent: "#C9A84C",
+  accentSoft: "rgba(201, 168, 76, 0.12)",
+  accentHover: "#B8943A",
+  danger: "#B91C1C",
+  success: "#059669",
+  warning: "#D97706",
 };
 
-// Formatter la durée avec unité si numérique
+const PAIEMENT_ICONS = {
+  WAVE: <QrCode sx={{ fontSize: 24 }} />,
+  ORANGE_MONEY: <PhoneAndroid sx={{ fontSize: 24 }} />,
+  MOOV_MONEY: <PhoneAndroid sx={{ fontSize: 24 }} />,
+  MTN_MONEY: <PhoneAndroid sx={{ fontSize: 24 }} />,
+  CARTE_BANCAIRE: <CreditCard sx={{ fontSize: 24 }} />,
+};
+
 const formatDuree = (duree) => {
   if (!duree) return "À définir";
   const str = String(duree).trim();
@@ -53,7 +103,11 @@ const FormationDetail = () => {
   const [loadingInscription, setLoadingInscription] = useState(false);
 
   const [formData, setFormData] = useState({
-    nom: "", prenom: "", email: "", telephone: "", notes: "",
+    nom: "",
+    prenom: "",
+    email: "",
+    telephone: "",
+    notes: "",
   });
   const [formErrors, setFormErrors] = useState({});
 
@@ -70,13 +124,11 @@ const FormationDetail = () => {
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
 
-  // ─── CHARGEMENT ────────────────────────────────────────
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
 
-      // 1. Formation (bloquant)
       try {
         const formationData = await formationService.getFormationById(parseInt(id));
         setFormation(formationData);
@@ -87,17 +139,11 @@ const FormationDetail = () => {
         return;
       }
 
-      // 2. Moyens de paiement (NON bloquant)
       try {
         const moyensList = await paiementService.getMoyensPaiement();
-        console.log("💰 Moyens de paiement reçus:", moyensList);
         setMoyensPaiement(Array.isArray(moyensList) ? moyensList : []);
       } catch (errMoyens) {
-        console.error(
-          "❌ Erreur moyens de paiement:",
-          errMoyens.response?.status,
-          errMoyens.response?.data || errMoyens.message
-        );
+        console.error("❌ Erreur moyens de paiement:", errMoyens);
         setMoyensPaiement([]);
       }
 
@@ -194,10 +240,8 @@ const FormationDetail = () => {
         notes: formData.notes || "",
       };
 
-      const response = await formationService.creerTransaction(transactionData);
-      console.log("💳 Réponse transaction:", response);
+      await formationService.creerTransaction(transactionData);
 
-      // Le backend génère le code d'accès, on ne le fait PAS côté front
       setPaiementEffectue(true);
       setActiveStep(2);
       setSnackbarMessage(
@@ -216,7 +260,6 @@ const FormationDetail = () => {
   };
 
   const handlePaiementConfirme = (data) => {
-    console.log("✅ Paiement confirmé:", data);
     setPaiementEffectue(true);
     setActiveStep(2);
     setSnackbarMessage("Paiement effectué ! En attente de validation admin.");
@@ -247,7 +290,11 @@ const FormationDetail = () => {
           image: formation.image,
         },
         code_acces: code,
-        client: { email: formData.email, nom: formData.nom, prenom: formData.prenom },
+        client: {
+          email: formData.email,
+          nom: formData.nom,
+          prenom: formData.prenom,
+        },
         timestamp: Date.now(),
       })
     );
@@ -259,58 +306,93 @@ const FormationDetail = () => {
     if (formation.est_live) {
       return (
         <Chip
-          icon={<LiveTv sx={{ fontSize: 16, color: "#fff" }} />}
+          icon={<LiveTv sx={{ fontSize: 15, color: "#fff !important" }} />}
           label="EN DIRECT"
-          sx={{ bgcolor: "#EF4444", color: "#fff", fontWeight: 600, height: 30, borderRadius: 1.5 }}
+          sx={{
+            bgcolor: T.danger,
+            color: "#fff",
+            fontWeight: 700,
+            height: 30,
+            borderRadius: 1.5,
+            fontSize: "0.72rem",
+            letterSpacing: 0.5,
+          }}
         />
       );
     }
     if (formation.est_replay) {
       return (
         <Chip
-          icon={<Replay sx={{ fontSize: 16 }} />}
+          icon={<Replay sx={{ fontSize: 15 }} />}
           label="REPLAY"
-          sx={{ bgcolor: "#0F172A", color: "#fff", fontWeight: 600, height: 30, borderRadius: 1.5 }}
+          sx={{
+            bgcolor: T.dark,
+            color: "#fff",
+            fontWeight: 700,
+            height: 30,
+            borderRadius: 1.5,
+            fontSize: "0.72rem",
+          }}
         />
       );
     }
     return (
       <Chip
-        icon={<EventNote sx={{ fontSize: 16 }} />}
+        icon={<EventNote sx={{ fontSize: 15 }} />}
         label="PROGRAMMÉ"
         sx={{
-          bgcolor: "rgba(255,255,255,0.15)",
+          bgcolor: alpha("#fff", 0.15),
           color: "#fff",
-          fontWeight: 600,
+          fontWeight: 700,
           height: 30,
           borderRadius: 1.5,
           backdropFilter: "blur(8px)",
+          fontSize: "0.72rem",
         }}
       />
     );
   };
 
   const isCarteBancaire = () => {
-    const moyen = moyensPaiement.find((m) => m.id === parseInt(moyenPaiementSelected));
+    const moyen = moyensPaiement.find(
+      (m) => m.id === parseInt(moyenPaiementSelected)
+    );
     return moyen?.type === "CARTE_BANCAIRE";
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "70vh", bgcolor: "#F8FAFC" }}>
-        <CircularProgress sx={{ color: "#0F172A" }} thickness={4} size={48} />
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "70vh",
+          bgcolor: T.bg,
+        }}
+      >
+        <CircularProgress sx={{ color: T.accent }} thickness={4} size={48} />
       </Box>
     );
   }
 
   if (error || !formation) {
     return (
-      <Box sx={{ bgcolor: "#F8FAFC", minHeight: "100vh", py: 10 }}>
+      <Box sx={{ bgcolor: T.bg, minHeight: "100vh", py: 12 }}>
         <Container maxWidth="sm">
-          <Alert severity="error" sx={{ borderRadius: 2, mb: 3 }}>
+          <Alert severity="error" sx={{ borderRadius: 2.5, mb: 3 }}>
             {error || "Formation non trouvée"}
           </Alert>
-          <Button component={Link} to="/" startIcon={<ArrowBack />} sx={{ color: "#0F172A" }}>
+          <Button
+            component={Link}
+            to="/"
+            startIcon={<ArrowBack />}
+            sx={{
+              color: T.textPrimary,
+              textTransform: "none",
+              fontWeight: 600,
+            }}
+          >
             Retour à l'accueil
           </Button>
         </Container>
@@ -319,35 +401,115 @@ const FormationDetail = () => {
   }
 
   return (
-    <Box sx={{ bgcolor: "#F8FAFC", minHeight: "100vh" }}>
-      {/* ─── HEADER ─────────────────────────────────────────── */}
-      <Box sx={{ position: "relative", height: { xs: 260, md: 340 }, display: "flex", alignItems: "flex-end", overflow: "hidden" }}>
+    <Box sx={{ bgcolor: T.bg, minHeight: "100vh" }}>
+      {/* ─── HERO ─────────────────────────────────────────── */}
+      <Box
+        sx={{
+          position: "relative",
+          height: { xs: 280, md: 380 },
+          display: "flex",
+          alignItems: "flex-end",
+          overflow: "hidden",
+        }}
+      >
         <Box
           component="img"
-          src={formation.image ? `${import.meta.env.VITE_MEDIA_URL}${formation.image}` : heroImage}
+          src={
+            formation.image
+              ? `${import.meta.env.VITE_MEDIA_URL}${formation.image}`
+              : heroImage
+          }
           alt={formation.titre}
-          sx={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          sx={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            objectPosition: "center 25%",
+          }}
         />
-        <Box sx={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.4) 50%, rgba(15,23,42,0.2) 100%)" }} />
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            background: `linear-gradient(to top, ${alpha(T.dark, 0.88)} 0%, ${alpha(
+              T.dark,
+              0.45
+            )} 50%, ${alpha(T.dark, 0.2)} 100%)`,
+          }}
+        />
 
-        <Box sx={{ position: "absolute", top: { xs: 16, md: 28 }, right: { xs: 16, md: 40 }, zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", gap: 0.8 }}>
+        {/* Avatar Madame T */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: { xs: 18, md: 28 },
+            right: { xs: 18, md: 40 },
+            zIndex: 2,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 1,
+          }}
+        >
           <Avatar
-            src={COACH_IMAGE}
-            sx={{ width: { xs: 64, md: 88 }, height: { xs: 64, md: 88 }, border: "3px solid rgba(255,255,255,0.9)", boxShadow: "0 4px 20px rgba(0,0,0,0.25)" }}
+            src={madameTImage}
+            alt="Madame T"
+            sx={{
+              width: { xs: 68, md: 92 },
+              height: { xs: 68, md: 92 },
+              border: `3px solid ${T.accent}`,
+              boxShadow: "0 8px 28px rgba(0,0,0,0.3)",
+              "& img": {
+                objectFit: "cover",
+                objectPosition: "center 20%",
+              },
+            }}
           />
           <Chip
-            icon={<Star sx={{ fontSize: 14 }} />}
+            icon={<Star sx={{ fontSize: 13, color: `${T.accent} !important` }} />}
             label="Expert"
             size="small"
-            sx={{ bgcolor: "rgba(255,255,255,0.95)", color: "#0F172A", fontWeight: 600, fontSize: "0.7rem", height: 24 }}
+            sx={{
+              bgcolor: alpha("#fff", 0.95),
+              color: T.dark,
+              fontWeight: 700,
+              fontSize: "0.68rem",
+              height: 24,
+              borderRadius: 1.5,
+            }}
           />
         </Box>
 
-        <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1, pb: { xs: 3.5, md: 4.5 } }}>
-          <Typography sx={{ color: "rgba(255,255,255,0.7)", letterSpacing: 2.5, fontWeight: 500, fontSize: "0.75rem", mb: 1.5, textTransform: "uppercase" }}>
+        <Container
+          maxWidth="lg"
+          sx={{ position: "relative", zIndex: 1, pb: { xs: 4, md: 5 } }}
+        >
+          <Typography
+            sx={{
+              color: alpha("#fff", 0.7),
+              letterSpacing: 3,
+              fontWeight: 500,
+              fontSize: "0.72rem",
+              mb: 1.5,
+              textTransform: "uppercase",
+            }}
+          >
             Formation
           </Typography>
-          <Typography sx={{ fontWeight: 500, color: "#fff", fontFamily: '"Playfair Display", serif', fontSize: { xs: "1.7rem", sm: "2.2rem", md: "2.7rem" }, lineHeight: 1.2, mb: 2, maxWidth: 680 }}>
+          <Typography
+            sx={{
+              fontWeight: 500,
+              color: "#fff",
+              fontFamily: '"Playfair Display", serif',
+              fontSize: { xs: "1.8rem", sm: "2.3rem", md: "2.9rem" },
+              lineHeight: 1.15,
+              mb: 2.5,
+              maxWidth: 680,
+              letterSpacing: -0.5,
+            }}
+          >
             {formation.titre}
           </Typography>
           {getStatutChip(formation)}
@@ -360,7 +522,14 @@ const FormationDetail = () => {
           component={Link}
           to="/"
           startIcon={<ArrowBack sx={{ fontSize: 18 }} />}
-          sx={{ mb: 4, color: "#64748B", textTransform: "none", fontWeight: 500, px: 0, "&:hover": { color: "#0F172A", bgcolor: "transparent" } }}
+          sx={{
+            mb: 4,
+            color: T.textMuted,
+            textTransform: "none",
+            fontWeight: 500,
+            px: 0,
+            "&:hover": { color: T.textPrimary, bgcolor: "transparent" },
+          }}
         >
           Retour
         </Button>
@@ -368,82 +537,207 @@ const FormationDetail = () => {
         <Grid container spacing={4}>
           {/* ─── COLONNE GAUCHE ──────────────────────────── */}
           <Grid size={{ xs: 12, md: 7 }}>
-            <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: 3, border: "1px solid #E2E8F0", bgcolor: "#fff", mb: 3 }}>
-              <Typography sx={{ fontWeight: 600, color: "#0F172A", mb: 2, display: "flex", alignItems: "center", gap: 1.2, fontSize: "1.15rem" }}>
-                <MenuBook sx={{ color: "#0F172A", fontSize: 22 }} />
-                Description
-              </Typography>
-              <Typography sx={{ color: "#475569", lineHeight: 1.8, fontSize: "1rem" }}>
-                {formation.description_detail || formation.description || "Aucune description disponible."}
-              </Typography>
-            </Paper>
+            <Grow in timeout={500}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 3, md: 4 },
+                  borderRadius: 3,
+                  border: `1px solid ${T.border}`,
+                  bgcolor: T.surface,
+                  mb: 3,
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontWeight: 600,
+                    color: T.textPrimary,
+                    mb: 2.5,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1.2,
+                    fontSize: "1.15rem",
+                    fontFamily: '"Playfair Display", serif',
+                  }}
+                >
+                  <MenuBook sx={{ color: T.accent, fontSize: 22 }} />
+                  Description
+                </Typography>
+                <Typography
+                  sx={{
+                    color: T.textSecondary,
+                    lineHeight: 1.85,
+                    fontSize: "1.02rem",
+                  }}
+                >
+                  {formation.description_detail ||
+                    formation.description ||
+                    "Aucune description disponible."}
+                </Typography>
+              </Paper>
+            </Grow>
 
-            <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: 3, border: "1px solid #E2E8F0", bgcolor: "#fff" }}>
-              <Typography sx={{ fontWeight: 600, color: "#0F172A", mb: 3, display: "flex", alignItems: "center", gap: 1.2, fontSize: "1.15rem" }}>
-                <Timer sx={{ color: "#0F172A", fontSize: 22 }} />
-                Informations pratiques
-              </Typography>
+            <Grow in timeout={650}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 3, md: 4 },
+                  borderRadius: 3,
+                  border: `1px solid ${T.border}`,
+                  bgcolor: T.surface,
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontWeight: 600,
+                    color: T.textPrimary,
+                    mb: 3,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1.2,
+                    fontSize: "1.15rem",
+                    fontFamily: '"Playfair Display", serif',
+                  }}
+                >
+                  <Timer sx={{ color: T.accent, fontSize: 22 }} />
+                  Informations pratiques
+                </Typography>
 
-              <Grid container spacing={2}>
-                {[
-                  { icon: <AttachMoney sx={{ fontSize: 22 }} />, label: "Prix", value: formation.prix_formate || formatPrix(formation.prix) },
-                  { icon: <AccessTime sx={{ fontSize: 22 }} />, label: "Durée", value: formatDuree(formation.duree) },
-                  {
-                    icon: <CalendarToday sx={{ fontSize: 22 }} />,
-                    label: "Date",
-                    value: formation.date_live
-                      ? new Date(formation.date_live).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
-                      : "Date non définie",
-                  },
-                  {
-                    icon: <AccessTime sx={{ fontSize: 22 }} />,
-                    label: "Horaire",
-                    value: formation.date_live
-                      ? new Date(formation.date_live).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
-                      : "Horaire non défini",
-                  },
-                ].map((item, idx) => (
-                  <Grid size={{ xs: 6, sm: 3 }} key={idx}>
-                    <Box sx={{ textAlign: "center", p: 2, borderRadius: 2.5, bgcolor: "#F8FAFC", border: "1px solid #E2E8F0", height: "100%" }}>
-                      <Box sx={{ color: "#0F172A", mb: 1 }}>{item.icon}</Box>
-                      <Typography sx={{ color: "#94A3B8", fontSize: "0.72rem", fontWeight: 500, mb: 0.4 }}>
-                        {item.label}
-                      </Typography>
-                      <Typography sx={{ fontWeight: 600, color: "#0F172A", fontSize: { xs: "0.8rem", md: "0.9rem" }, lineHeight: 1.3 }}>
-                        {item.value}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-            </Paper>
+                <Grid container spacing={2}>
+                  {[
+                    {
+                      icon: <AttachMoney sx={{ fontSize: 22 }} />,
+                      label: "Prix",
+                      value:
+                        formation.prix_formate || formatPrix(formation.prix),
+                    },
+                    {
+                      icon: <AccessTime sx={{ fontSize: 22 }} />,
+                      label: "Durée",
+                      value: formatDuree(formation.duree),
+                    },
+                    {
+                      icon: <CalendarToday sx={{ fontSize: 22 }} />,
+                      label: "Date",
+                      value: formation.date_live
+                        ? new Date(formation.date_live).toLocaleDateString(
+                            "fr-FR",
+                            {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            }
+                          )
+                        : "Date non définie",
+                    },
+                    {
+                      icon: <AccessTime sx={{ fontSize: 22 }} />,
+                      label: "Horaire",
+                      value: formation.date_live
+                        ? new Date(formation.date_live).toLocaleTimeString(
+                            "fr-FR",
+                            { hour: "2-digit", minute: "2-digit" }
+                          )
+                        : "Horaire non défini",
+                    },
+                  ].map((item, idx) => (
+                    <Grid size={{ xs: 6, sm: 3 }} key={idx}>
+                      <Box
+                        sx={{
+                          textAlign: "center",
+                          p: 2.2,
+                          borderRadius: 2.5,
+                          bgcolor: T.bg,
+                          border: `1px solid ${T.border}`,
+                          height: "100%",
+                          transition: "all 0.25s ease",
+                          "&:hover": {
+                            borderColor: alpha(T.accent, 0.4),
+                            bgcolor: alpha(T.accent, 0.04),
+                          },
+                        }}
+                      >
+                        <Box sx={{ color: T.accent, mb: 1 }}>{item.icon}</Box>
+                        <Typography
+                          sx={{
+                            color: T.textMuted,
+                            fontSize: "0.7rem",
+                            fontWeight: 600,
+                            mb: 0.5,
+                            letterSpacing: 0.5,
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {item.label}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontWeight: 600,
+                            color: T.textPrimary,
+                            fontSize: { xs: "0.82rem", md: "0.92rem" },
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {item.value}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Paper>
+            </Grow>
           </Grid>
 
-          {/* ─── COLONNE DROITE ──────────────────────────── */}
+          {/* ─── COLONNE DROITE (INSCRIPTION) ─────────────── */}
           <Grid size={{ xs: 12, md: 5 }}>
             <Paper
               elevation={0}
               sx={{
                 p: { xs: 3, md: 3.5 },
                 borderRadius: 3,
-                border: "1px solid #E2E8F0",
-                bgcolor: "#fff",
+                border: `1px solid ${T.border}`,
+                bgcolor: T.surface,
                 position: { md: "sticky" },
                 top: 24,
-                boxShadow: "0 8px 30px rgba(15,23,42,0.04)",
+                boxShadow: `0 12px 40px -12px ${alpha(T.dark, 0.08)}`,
               }}
             >
-              <Typography sx={{ fontWeight: 600, color: "#0F172A", mb: 2.5, display: "flex", alignItems: "center", gap: 1.2, fontSize: "1.15rem" }}>
-                {paiementEffectue ? <CheckCircle sx={{ color: "#059669" }} /> : <School sx={{ color: "#0F172A" }} />}
-                {paiementEffectue ? "Inscription enregistrée" : "Inscription"}
+              <Typography
+                sx={{
+                  fontWeight: 600,
+                  color: T.textPrimary,
+                  mb: 2.5,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.2,
+                  fontSize: "1.15rem",
+                  fontFamily: '"Playfair Display", serif',
+                }}
+              >
+                {paiementEffectue ? (
+                  <CheckCircle sx={{ color: T.success }} />
+                ) : (
+                  <School sx={{ color: T.accent }} />
+                )}
+                {paiementEffectue
+                  ? "Inscription enregistrée"
+                  : "Inscription"}
               </Typography>
 
               {!paiementEffectue ? (
                 <>
                   {activeStep === 0 && (
                     <Box>
-                      <Typography sx={{ color: "#64748B", mb: 2.5, fontSize: "0.9rem" }}>
-                        Remplissez le formulaire pour vous inscrire.
+                      <Typography
+                        sx={{
+                          color: T.textSecondary,
+                          mb: 2.5,
+                          fontSize: "0.9rem",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        Remplissez le formulaire pour vous inscrire à cette
+                        formation.
                       </Typography>
 
                       {["nom", "prenom"].map((field) => (
@@ -457,12 +751,27 @@ const FormationDetail = () => {
                           onChange={handleChange}
                           error={!!formErrors[field]}
                           helperText={formErrors[field]}
-                          sx={{ mb: 2, "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: "#F8FAFC" } }}
+                          sx={{
+                            mb: 2,
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: 2,
+                              bgcolor: T.bg,
+                              "& fieldset": { borderColor: T.border },
+                              "&:hover fieldset": {
+                                borderColor: alpha(T.accent, 0.5),
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: T.accent,
+                              },
+                            },
+                          }}
                           slotProps={{
                             input: {
                               startAdornment: (
                                 <InputAdornment position="start">
-                                  <Person sx={{ color: "#94A3B8", fontSize: 18 }} />
+                                  <Person
+                                    sx={{ color: T.textMuted, fontSize: 18 }}
+                                  />
                                 </InputAdornment>
                               ),
                             },
@@ -480,12 +789,27 @@ const FormationDetail = () => {
                         onChange={handleChange}
                         error={!!formErrors.email}
                         helperText={formErrors.email}
-                        sx={{ mb: 2, "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: "#F8FAFC" } }}
+                        sx={{
+                          mb: 2,
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 2,
+                            bgcolor: T.bg,
+                            "& fieldset": { borderColor: T.border },
+                            "&:hover fieldset": {
+                              borderColor: alpha(T.accent, 0.5),
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: T.accent,
+                            },
+                          },
+                        }}
                         slotProps={{
                           input: {
                             startAdornment: (
                               <InputAdornment position="start">
-                                <Email sx={{ color: "#94A3B8", fontSize: 18 }} />
+                                <Email
+                                  sx={{ color: T.textMuted, fontSize: 18 }}
+                                />
                               </InputAdornment>
                             ),
                           },
@@ -501,12 +825,27 @@ const FormationDetail = () => {
                         onChange={handleChange}
                         error={!!formErrors.telephone}
                         helperText={formErrors.telephone}
-                        sx={{ mb: 2, "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: "#F8FAFC" } }}
+                        sx={{
+                          mb: 2,
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 2,
+                            bgcolor: T.bg,
+                            "& fieldset": { borderColor: T.border },
+                            "&:hover fieldset": {
+                              borderColor: alpha(T.accent, 0.5),
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: T.accent,
+                            },
+                          },
+                        }}
                         slotProps={{
                           input: {
                             startAdornment: (
                               <InputAdornment position="start">
-                                <Phone sx={{ color: "#94A3B8", fontSize: 18 }} />
+                                <Phone
+                                  sx={{ color: T.textMuted, fontSize: 18 }}
+                                />
                               </InputAdornment>
                             ),
                           },
@@ -522,7 +861,14 @@ const FormationDetail = () => {
                         rows={2}
                         value={formData.notes}
                         onChange={handleChange}
-                        sx={{ mb: 3, "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: "#F8FAFC" } }}
+                        sx={{
+                          mb: 3,
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 2,
+                            bgcolor: T.bg,
+                            "& fieldset": { borderColor: T.border },
+                          },
+                        }}
                       />
 
                       <Button
@@ -531,16 +877,32 @@ const FormationDetail = () => {
                         onClick={handleInscription}
                         disabled={loadingInscription}
                         sx={{
-                          bgcolor: "#0F172A",
-                          borderRadius: 2,
-                          py: 1.5,
+                          bgcolor: T.dark,
+                          borderRadius: 2.5,
+                          py: 1.6,
                           fontWeight: 600,
                           textTransform: "none",
                           fontSize: "0.95rem",
-                          "&:hover": { bgcolor: "#1E293B" },
-                          "&.Mui-disabled": { bgcolor: "#E2E8F0", color: "#94A3B8" },
+                          boxShadow: "none",
+                          "&:hover": {
+                            bgcolor: T.darkSoft,
+                            boxShadow: `0 8px 24px ${alpha(T.dark, 0.2)}`,
+                          },
+                          "&.Mui-disabled": {
+                            bgcolor: T.border,
+                            color: T.textMuted,
+                          },
                         }}
-                        startIcon={loadingInscription ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : <Person />}
+                        startIcon={
+                          loadingInscription ? (
+                            <CircularProgress
+                              size={18}
+                              sx={{ color: "#fff" }}
+                            />
+                          ) : (
+                            <Person />
+                          )
+                        }
                       >
                         {loadingInscription ? "Inscription..." : "S'inscrire"}
                       </Button>
@@ -549,62 +911,115 @@ const FormationDetail = () => {
 
                   {activeStep === 1 && (
                     <Box>
-                      <Alert severity="info" sx={{ mb: 2.5, borderRadius: 2 }}>
+                      <Alert
+                        severity="info"
+                        sx={{
+                          mb: 2.5,
+                          borderRadius: 2,
+                          bgcolor: alpha(T.accent, 0.08),
+                          border: `1px solid ${alpha(T.accent, 0.25)}`,
+                          color: T.textPrimary,
+                        }}
+                      >
                         Choisissez votre moyen de paiement.
                       </Alert>
 
-                      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.2, mb: 3 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 1.2,
+                          mb: 3,
+                        }}
+                      >
                         {moyensPaiement.length > 0 ? (
                           moyensPaiement.map((m) => {
-                            const isSelected = moyenPaiementSelected === m.id.toString();
+                            const isSelected =
+                              moyenPaiementSelected === m.id.toString();
                             return (
                               <Box
                                 key={m.id}
-                                onClick={() => setMoyenPaiementSelected(m.id.toString())}
+                                onClick={() =>
+                                  setMoyenPaiementSelected(m.id.toString())
+                                }
                                 sx={{
                                   display: "flex",
                                   alignItems: "center",
                                   gap: 1.5,
-                                  p: 1.6,
-                                  borderRadius: 2,
-                                  border: isSelected ? "2px solid #0F172A" : "1px solid #E2E8F0",
-                                  bgcolor: isSelected ? "#F1F5F9" : "#F8FAFC",
+                                  p: 1.7,
+                                  borderRadius: 2.5,
+                                  border: isSelected
+                                    ? `2px solid ${T.accent}`
+                                    : `1px solid ${T.border}`,
+                                  bgcolor: isSelected
+                                    ? T.accentSoft
+                                    : T.bg,
                                   cursor: "pointer",
-                                  transition: "all 0.2s",
-                                  "&:hover": { borderColor: "#94A3B8" },
+                                  transition: "all 0.25s ease",
+                                  "&:hover": {
+                                    borderColor: alpha(T.accent, 0.6),
+                                  },
                                 }}
                               >
                                 <Box
                                   sx={{
-                                    width: 40,
-                                    height: 40,
+                                    width: 42,
+                                    height: 42,
                                     borderRadius: 2,
-                                    bgcolor: isSelected ? "#0F172A" : "#E2E8F0",
+                                    bgcolor: isSelected
+                                      ? T.accent
+                                      : T.border,
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
-                                    color: isSelected ? "#fff" : "#64748B",
+                                    color: isSelected
+                                      ? T.dark
+                                      : T.textMuted,
+                                    transition: "all 0.25s",
                                   }}
                                 >
                                   {PAIEMENT_ICONS[m.type] || <Payment />}
                                 </Box>
                                 <Box sx={{ flex: 1 }}>
-                                  <Typography sx={{ fontWeight: 600, fontSize: "0.9rem", color: "#0F172A" }}>
+                                  <Typography
+                                    sx={{
+                                      fontWeight: 600,
+                                      fontSize: "0.92rem",
+                                      color: T.textPrimary,
+                                    }}
+                                  >
                                     {m.nom}
                                   </Typography>
-                                  <Typography sx={{ color: "#94A3B8", fontSize: "0.75rem" }}>
+                                  <Typography
+                                    sx={{
+                                      color: T.textMuted,
+                                      fontSize: "0.75rem",
+                                    }}
+                                  >
                                     {m.type}
                                   </Typography>
                                 </Box>
-                                {isSelected && <CheckCircle sx={{ color: "#0F172A", fontSize: 20 }} />}
+                                {isSelected && (
+                                  <CheckCircle
+                                    sx={{ color: T.accent, fontSize: 22 }}
+                                  />
+                                )}
                               </Box>
                             );
                           })
                         ) : (
                           <Alert severity="warning" sx={{ borderRadius: 2 }}>
                             Aucun moyen de paiement disponible.
-                            <Typography component="span" sx={{ fontSize: "0.8rem", mt: 0.5, display: "block" }}>
-                              Contactez l'administrateur au <strong>+225 XX XX XX XX XX</strong> pour finaliser votre inscription.
+                            <Typography
+                              component="span"
+                              sx={{
+                                fontSize: "0.8rem",
+                                mt: 0.5,
+                                display: "block",
+                              }}
+                            >
+                              Contactez l'administrateur pour finaliser votre
+                              inscription.
                             </Typography>
                           </Alert>
                         )}
@@ -629,11 +1044,38 @@ const FormationDetail = () => {
                         </Box>
                       )}
 
-                      <Paper elevation={0} sx={{ p: 2, bgcolor: "#F1F5F9", borderRadius: 2, border: "1px solid #E2E8F0", mt: 2 }}>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <Typography sx={{ color: "#64748B", fontSize: "0.9rem" }}>Montant</Typography>
-                          <Typography sx={{ fontWeight: 700, color: "#0F172A", fontSize: "1.15rem" }}>
-                            {formation.prix_formate || formatPrix(formation.prix)}
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          p: 2.2,
+                          bgcolor: T.bg,
+                          borderRadius: 2.5,
+                          border: `1px solid ${T.border}`,
+                          mt: 2,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Typography
+                            sx={{ color: T.textSecondary, fontSize: "0.9rem" }}
+                          >
+                            Montant
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontWeight: 700,
+                              color: T.textPrimary,
+                              fontSize: "1.2rem",
+                              fontFamily: '"Playfair Display", serif',
+                            }}
+                          >
+                            {formation.prix_formate ||
+                              formatPrix(formation.prix)}
                           </Typography>
                         </Box>
                       </Paper>
@@ -642,17 +1084,59 @@ const FormationDetail = () => {
                 </>
               ) : (
                 <Box>
-                  <Alert severity="info" sx={{ mb: 2.5, borderRadius: 2, bgcolor: "#EFF6FF", border: "1px solid #BFDBFE" }}>
-                    Votre inscription est enregistrée. Un administrateur va valider votre paiement et vous recevrez votre code d'accès par email.
+                  <Alert
+                    severity="info"
+                    sx={{
+                      mb: 2.5,
+                      borderRadius: 2,
+                      bgcolor: alpha("#3B82F6", 0.08),
+                      border: "1px solid #BFDBFE",
+                    }}
+                  >
+                    Votre inscription est enregistrée. Un administrateur va
+                    valider votre paiement et vous recevrez votre code d'accès
+                    par email.
                   </Alert>
 
-                  <Paper elevation={0} sx={{ p: 3, textAlign: "center", borderRadius: 2.5, border: "1px solid #E2E8F0", bgcolor: "#F8FAFC" }}>
-                    <Typography sx={{ color: "#94A3B8", fontSize: "0.8rem", mb: 1 }}>Statut</Typography>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3.5,
+                      textAlign: "center",
+                      borderRadius: 2.5,
+                      border: `1px solid ${T.border}`,
+                      bgcolor: T.bg,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        color: T.textMuted,
+                        fontSize: "0.8rem",
+                        mb: 1.5,
+                      }}
+                    >
+                      Statut
+                    </Typography>
                     <Chip
                       label="En attente de validation"
-                      sx={{ bgcolor: "rgba(217, 119, 6, 0.12)", color: "#D97706", fontWeight: 700, fontSize: "0.85rem", height: 32, px: 2 }}
+                      sx={{
+                        bgcolor: alpha(T.warning, 0.12),
+                        color: T.warning,
+                        fontWeight: 700,
+                        fontSize: "0.85rem",
+                        height: 34,
+                        px: 2,
+                        borderRadius: 2,
+                      }}
                     />
-                    <Typography sx={{ color: "#94A3B8", fontSize: "0.75rem", mt: 2 }}>
+                    <Typography
+                      sx={{
+                        color: T.textMuted,
+                        fontSize: "0.78rem",
+                        mt: 2.5,
+                        lineHeight: 1.5,
+                      }}
+                    >
                       Vous serez notifié dès que le paiement est validé.
                     </Typography>
                   </Paper>
@@ -663,10 +1147,10 @@ const FormationDetail = () => {
                     disabled
                     sx={{
                       mt: 2.5,
-                      bgcolor: "#E2E8F0",
-                      color: "#94A3B8",
-                      borderRadius: 2,
-                      py: 1.5,
+                      bgcolor: T.border,
+                      color: T.textMuted,
+                      borderRadius: 2.5,
+                      py: 1.6,
                       fontWeight: 600,
                       textTransform: "none",
                       fontSize: "0.95rem",
@@ -676,8 +1160,22 @@ const FormationDetail = () => {
                     En attente de validation
                   </Button>
 
-                  <Typography sx={{ display: "block", textAlign: "center", mt: 1.5, color: "#94A3B8", fontSize: "0.75rem" }}>
-                    <Lock sx={{ fontSize: 14, verticalAlign: "middle", mr: 0.5 }} />
+                  <Typography
+                    sx={{
+                      display: "block",
+                      textAlign: "center",
+                      mt: 1.75,
+                      color: T.textMuted,
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    <Lock
+                      sx={{
+                        fontSize: 14,
+                        verticalAlign: "middle",
+                        mr: 0.5,
+                      }}
+                    />
                     Accès activé après validation par l'administrateur
                   </Typography>
                 </Box>
@@ -688,25 +1186,72 @@ const FormationDetail = () => {
       </Container>
 
       {/* ─── DIALOG CONFIRMATION ──────────────────────────── */}
-      <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 600, color: "#0F172A" }}>Confirmation de paiement</DialogTitle>
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={() => setConfirmDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3, border: `1px solid ${T.border}` },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 600,
+            color: T.textPrimary,
+            fontFamily: '"Playfair Display", serif',
+          }}
+        >
+          Confirmation de paiement
+        </DialogTitle>
         <DialogContent>
-          <Typography sx={{ color: "#475569" }}>
-            Vous allez payer <strong style={{ color: "#0F172A" }}>{formation.prix_formate || formatPrix(formation.prix)}</strong> pour :
+          <Typography sx={{ color: T.textSecondary }}>
+            Vous allez payer{" "}
+            <strong style={{ color: T.textPrimary }}>
+              {formation.prix_formate || formatPrix(formation.prix)}
+            </strong>{" "}
+            pour :
           </Typography>
-          <Paper elevation={0} sx={{ p: 2, mt: 2, bgcolor: "#F8FAFC", borderRadius: 2, border: "1px solid #E2E8F0" }}>
-            <Typography sx={{ fontWeight: 600, color: "#0F172A" }}>« {formation.titre} »</Typography>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2.5,
+              mt: 2,
+              bgcolor: T.bg,
+              borderRadius: 2.5,
+              border: `1px solid ${T.border}`,
+            }}
+          >
+            <Typography
+              sx={{
+                fontWeight: 600,
+                color: T.textPrimary,
+                fontFamily: '"Playfair Display", serif',
+              }}
+            >
+              « {formation.titre} »
+            </Typography>
           </Paper>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button onClick={() => setConfirmDialogOpen(false)} sx={{ color: "#64748B", textTransform: "none" }}>
+          <Button
+            onClick={() => setConfirmDialogOpen(false)}
+            sx={{ color: T.textMuted, textTransform: "none" }}
+          >
             Annuler
           </Button>
           <Button
             onClick={handleConfirmerPaiement}
             variant="contained"
             disabled={processingPaiement}
-            sx={{ bgcolor: "#0F172A", textTransform: "none", borderRadius: 2, px: 3, "&:hover": { bgcolor: "#1E293B" } }}
+            sx={{
+              bgcolor: T.dark,
+              textTransform: "none",
+              borderRadius: 2,
+              px: 3.5,
+              fontWeight: 600,
+              "&:hover": { bgcolor: T.darkSoft },
+            }}
           >
             {processingPaiement ? "Traitement..." : "Confirmer"}
           </Button>
@@ -714,8 +1259,17 @@ const FormationDetail = () => {
       </Dialog>
 
       {/* ─── SNACKBAR ─────────────────────────────────────── */}
-      <Snackbar open={snackbarOpen} autoHideDuration={5000} onClose={() => setSnackbarOpen(false)}>
-        <Alert severity={snackbarSeverity} sx={{ borderRadius: 2 }} onClose={() => setSnackbarOpen(false)}>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={5000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity={snackbarSeverity}
+          sx={{ borderRadius: 2.5 }}
+          onClose={() => setSnackbarOpen(false)}
+        >
           {snackbarMessage}
         </Alert>
       </Snackbar>

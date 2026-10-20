@@ -17,6 +17,7 @@ import {
   ListItemText,
   IconButton,
   alpha,
+  Fade,
 } from '@mui/material';
 import {
   ArrowForward,
@@ -35,28 +36,28 @@ import { formationService } from '../services/formationService';
 import { getMediaUrl } from '../utils/media';
 import heroImage from '../assets/images/tibetia.jpeg?url';
 
-// ═══════════════════════════════════════════
-// 🎨 DESIGN TOKENS — PREMIUM
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// 🎨 DESIGN TOKENS — PREMIUM LUXURY
+// ═══════════════════════════════════════════════════════════
 const T = {
-  ivory: '#FBF9F6',
-  ivoryDeep: '#F5F1EA',
+  ivory: '#F8F7F4',
+  ivoryDeep: '#F2EFE9',
   surface: '#FFFFFF',
-  ink: '#0E0E0E',
-  inkSoft: '#1F1F1F',
-  textPrimary: '#0E0E0E',
-  textSecondary: '#5A5A5A',
-  textMuted: '#9A9A9A',
-  border: '#EAE6DE',
-  borderStrong: '#D9D3C7',
-  gold: '#B8935A',
-  goldSoft: 'rgba(184, 147, 90, 0.12)',
-  goldDeep: '#8B6F3F',
-  goldGlow: 'rgba(184, 147, 90, 0.22)',
+  ink: '#121212',
+  inkSoft: '#1E1E1E',
+  textPrimary: '#121212',
+  textSecondary: '#5C5C5C',
+  textMuted: '#8A8A8A',
+  border: '#E8E4DC',
+  borderStrong: '#D6D0C6',
+  gold: '#C9A84C',
+  goldSoft: 'rgba(201, 168, 76, 0.12)',
+  goldDeep: '#A88B3A',
+  goldGlow: 'rgba(201, 168, 76, 0.25)',
   danger: '#B91C1C',
   success: '#166534',
   fontSerif: '"Playfair Display", Georgia, serif',
-  fontSans: '"Inter", -apple-system, sans-serif',
+  fontSans: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
 };
 
 const Home = () => {
@@ -292,7 +293,7 @@ const Home = () => {
       sx={{
         minWidth: { xs: 260, sm: 280, md: 300 },
         maxWidth: { xs: 260, sm: 280, md: 300 },
-        borderRadius: 0,
+        borderRadius: 2.5,
         border: `1px solid ${T.border}`,
         overflow: 'hidden',
         bgcolor: T.surface,
@@ -303,8 +304,8 @@ const Home = () => {
         transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
         '&:hover': {
           transform: 'translateY(-8px)',
-          boxShadow: `0 24px 48px rgba(14,14,14,0.08)`,
-          borderColor: T.borderStrong,
+          boxShadow: `0 28px 56px -12px ${alpha(T.ink, 0.12)}`,
+          borderColor: alpha(T.gold, 0.4),
           '& .card-img': { transform: 'scale(1.06)' },
         },
       }}
@@ -315,8 +316,8 @@ const Home = () => {
           size="small"
           sx={{
             position: 'absolute',
-            top: 16,
-            right: 16,
+            top: 14,
+            right: 14,
             zIndex: 2,
             bgcolor: item.est_live ? T.danger : T.ink,
             color: '#fff',
@@ -324,7 +325,7 @@ const Home = () => {
             fontSize: '0.62rem',
             letterSpacing: 1.2,
             height: 24,
-            borderRadius: 0,
+            borderRadius: 1.5,
             fontFamily: T.fontSans,
           }}
         />
@@ -332,7 +333,7 @@ const Home = () => {
 
       <Box
         sx={{
-          height: 160,
+          height: 168,
           bgcolor: T.ivoryDeep,
           display: 'flex',
           alignItems: 'center',
@@ -386,7 +387,7 @@ const Home = () => {
                 fontSize: '0.68rem',
                 letterSpacing: 1,
                 height: 28,
-                borderRadius: 0,
+                borderRadius: 1.5,
                 fontFamily: T.fontSans,
               }}
             />
@@ -402,7 +403,7 @@ const Home = () => {
             mb: 1.2,
             fontSize: '1.15rem',
             fontFamily: T.fontSerif,
-            lineHeight: 1.25,
+            lineHeight: 1.3,
             minHeight: 52,
           }}
         >
@@ -515,7 +516,7 @@ const Home = () => {
               mt: 'auto',
               bgcolor: T.ink,
               color: '#fff',
-              borderRadius: 0,
+              borderRadius: 2,
               py: 1.3,
               textTransform: 'uppercase',
               fontSize: '0.72rem',
@@ -543,7 +544,7 @@ const Home = () => {
               mt: 'auto',
               bgcolor: item.est_live ? T.danger : T.ink,
               color: '#fff',
-              borderRadius: 0,
+              borderRadius: 2,
               py: 1.3,
               textTransform: 'uppercase',
               fontSize: '0.72rem',
@@ -581,7 +582,7 @@ const Home = () => {
       sx={{
         minWidth: { xs: 240, sm: 260, md: 280 },
         maxWidth: { xs: 240, sm: 260, md: 280 },
-        borderRadius: 0,
+        borderRadius: 2.5,
         border: `1px solid ${T.border}`,
         overflow: 'hidden',
         bgcolor: T.surface,
@@ -591,8 +592,8 @@ const Home = () => {
         transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
         '&:hover': {
           transform: 'translateY(-8px)',
-          boxShadow: `0 24px 48px rgba(14,14,14,0.08)`,
-          borderColor: T.borderStrong,
+          boxShadow: `0 28px 56px -12px ${alpha(T.ink, 0.12)}`,
+          borderColor: alpha(T.gold, 0.4),
           '& .product-img': { transform: 'scale(1.06)' },
         },
       }}
@@ -630,7 +631,7 @@ const Home = () => {
             fontWeight: 600,
             fontSize: '0.7rem',
             height: 26,
-            borderRadius: 0,
+            borderRadius: 1.5,
             fontFamily: T.fontSans,
             border: `1px solid ${T.border}`,
           }}
@@ -684,7 +685,7 @@ const Home = () => {
               fontWeight: 600,
               fontSize: '0.68rem',
               letterSpacing: 1.5,
-              borderRadius: 0,
+              borderRadius: 1.5,
               px: 2.2,
               py: 0.8,
               border: `1px solid ${T.borderStrong}`,
@@ -736,7 +737,7 @@ const Home = () => {
             position: 'absolute',
             inset: 0,
             background:
-              'linear-gradient(to bottom, rgba(14,14,14,0.25) 0%, rgba(14,14,14,0.5) 45%, rgba(14,14,14,0.78) 100%)',
+              'linear-gradient(to bottom, rgba(18,18,18,0.28) 0%, rgba(18,18,18,0.52) 45%, rgba(18,18,18,0.82) 100%)',
           }}
         />
 
@@ -749,87 +750,87 @@ const Home = () => {
             py: 10,
           }}
         >
-          <Typography
-            sx={{
-              color: 'rgba(255,255,255,0.75)',
-              letterSpacing: 5,
-              fontWeight: 500,
-              fontSize: { xs: '0.68rem', md: '0.75rem' },
-              mb: 3,
-              textTransform: 'uppercase',
-              fontFamily: T.fontSans,
-            }}
-          >
-            Madame Tibetia
-          </Typography>
+          <Fade in timeout={900}>
+            <Box>
+              <Typography
+                sx={{
+                  color: alpha('#fff', 0.75),
+                  letterSpacing: 6,
+                  fontWeight: 500,
+                  fontSize: { xs: '0.7rem', md: '0.78rem' },
+                  textTransform: 'uppercase',
+                  mb: 3,
+                  fontFamily: T.fontSans,
+                }}
+              >
+                Madame Tibetia
+              </Typography>
 
-          <Typography
-            sx={{
-              fontSize: { xs: '2.2rem', sm: '3rem', md: '3.8rem', lg: '4.3rem' },
-              fontWeight: 400,
-              color: '#fff',
-              lineHeight: 1.15,
-              mb: 3,
-              fontFamily: T.fontSerif,
-              maxWidth: 900,
-              mx: 'auto',
-              letterSpacing: -0.5,
-            }}
-          >
-            Ressource d’apprentissage pour
-            <br />
-            <Box component="span" sx={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.92)' }}>
-              avoir la confiance
+              <Typography
+                sx={{
+                  color: '#fff',
+                  fontFamily: T.fontSerif,
+                  fontWeight: 400,
+                  fontSize: { xs: '2.8rem', sm: '3.6rem', md: '4.6rem' },
+                  lineHeight: 1.08,
+                  letterSpacing: -1.2,
+                  mb: 2.5,
+                  maxWidth: 820,
+                  mx: 'auto',
+                }}
+              >
+                L’élégance est un art
+                <br />
+                <Box component="span" sx={{ fontStyle: 'italic', color: alpha('#fff', 0.92) }}>
+                  et une bonne qualité de vie
+                </Box>
+              </Typography>
+
+              <Typography
+                sx={{
+                  color: alpha('#fff', 0.7),
+                  mb: 6,
+                  fontWeight: 300,
+                  fontSize: { xs: '0.95rem', md: '1.1rem' },
+                  letterSpacing: 2.5,
+                  textTransform: 'uppercase',
+                  fontFamily: T.fontSans,
+                }}
+              >
+                Soyez la bienvenue
+              </Typography>
+
+              <Button
+                component={Link}
+                to="/formations"
+                variant="contained"
+                size="large"
+                sx={{
+                  bgcolor: '#fff',
+                  color: T.ink,
+                  px: { xs: 4.5, md: 6 },
+                  py: 1.8,
+                  borderRadius: 2.5,
+                  textTransform: 'uppercase',
+                  fontSize: { xs: '0.78rem', md: '0.85rem' },
+                  letterSpacing: 2.5,
+                  fontWeight: 600,
+                  fontFamily: T.fontSans,
+                  boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+                  transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                  '&:hover': {
+                    bgcolor: T.gold,
+                    color: '#fff',
+                    boxShadow: `0 16px 48px ${T.goldGlow}`,
+                    transform: 'translateY(-3px)',
+                  },
+                }}
+                endIcon={<ArrowForward sx={{ fontSize: 18 }} />}
+              >
+                Commencer à apprendre
+              </Button>
             </Box>
-            <br />
-            <Box component="span" sx={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.92)' }}>
-              et une bonne qualité de vie
-            </Box>
-          </Typography>
-
-          <Typography
-            sx={{
-              color: 'rgba(255,255,255,0.7)',
-              mb: 6,
-              fontWeight: 300,
-              fontSize: { xs: '0.95rem', md: '1.1rem' },
-              letterSpacing: 2.5,
-              textTransform: 'uppercase',
-              fontFamily: T.fontSans,
-            }}
-          >
-            Soyez la bienvenue
-          </Typography>
-
-          <Button
-            component={Link}
-            to="/formations"
-            variant="contained"
-            size="large"
-            sx={{
-              bgcolor: '#fff',
-              color: T.ink,
-              px: { xs: 4.5, md: 6 },
-              py: 1.8,
-              borderRadius: 0,
-              textTransform: 'uppercase',
-              fontSize: { xs: '0.78rem', md: '0.85rem' },
-              letterSpacing: 2.5,
-              fontWeight: 600,
-              fontFamily: T.fontSans,
-              boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
-              transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-              '&:hover': {
-                bgcolor: T.gold,
-                color: '#fff',
-                boxShadow: `0 16px 48px ${T.goldGlow}`,
-                transform: 'translateY(-3px)',
-              },
-            }}
-            endIcon={<ArrowForward sx={{ fontSize: 18 }} />}
-          >
-            Commencer à apprendre
-          </Button>
+          </Fade>
         </Container>
       </Box>
 
@@ -890,7 +891,7 @@ const Home = () => {
                 sx={{
                   px: 3.5,
                   py: 1.2,
-                  borderRadius: 0,
+                  borderRadius: 2,
                   textTransform: 'uppercase',
                   fontWeight: 600,
                   fontSize: '0.72rem',
@@ -925,7 +926,7 @@ const Home = () => {
                 border: `1px solid ${T.border}`,
                 width: 44,
                 height: 44,
-                borderRadius: 0,
+                borderRadius: 2,
                 display: { xs: 'none', sm: 'flex' },
                 transition: 'all 0.3s ease',
                 '&:hover': {
@@ -949,7 +950,7 @@ const Home = () => {
                 scrollBehavior: 'smooth',
                 '&::-webkit-scrollbar': { height: 4 },
                 '&::-webkit-scrollbar-track': { bgcolor: T.ivoryDeep },
-                '&::-webkit-scrollbar-thumb': { bgcolor: T.borderStrong },
+                '&::-webkit-scrollbar-thumb': { bgcolor: T.borderStrong, borderRadius: 2 },
               }}
             >
               {getSelfStudyData().map((item) => renderSelfStudyCard(item))}
@@ -967,7 +968,7 @@ const Home = () => {
                 border: `1px solid ${T.border}`,
                 width: 44,
                 height: 44,
-                borderRadius: 0,
+                borderRadius: 2,
                 display: { xs: 'none', sm: 'flex' },
                 transition: 'all 0.3s ease',
                 '&:hover': {
@@ -1065,7 +1066,7 @@ const Home = () => {
                 border: `1px solid ${T.border}`,
                 width: 44,
                 height: 44,
-                borderRadius: 0,
+                borderRadius: 2,
                 display: { xs: 'none', sm: 'flex' },
                 transition: 'all 0.3s ease',
                 '&:hover': {
@@ -1089,7 +1090,7 @@ const Home = () => {
                 scrollBehavior: 'smooth',
                 '&::-webkit-scrollbar': { height: 4 },
                 '&::-webkit-scrollbar-track': { bgcolor: T.ivoryDeep },
-                '&::-webkit-scrollbar-thumb': { bgcolor: T.borderStrong },
+                '&::-webkit-scrollbar-thumb': { bgcolor: T.borderStrong, borderRadius: 2 },
               }}
             >
               {produitsBoutique.map((product) => renderBoutiqueCard(product))}
@@ -1107,7 +1108,7 @@ const Home = () => {
                 border: `1px solid ${T.border}`,
                 width: 44,
                 height: 44,
-                borderRadius: 0,
+                borderRadius: 2,
                 display: { xs: 'none', sm: 'flex' },
                 transition: 'all 0.3s ease',
                 '&:hover': {
@@ -1131,7 +1132,7 @@ const Home = () => {
                 color: '#fff',
                 px: 5,
                 py: 1.6,
-                borderRadius: 0,
+                borderRadius: 2.5,
                 textTransform: 'uppercase',
                 fontSize: '0.75rem',
                 letterSpacing: 2.5,
@@ -1201,7 +1202,7 @@ const Home = () => {
                 <Card
                   elevation={0}
                   sx={{
-                    borderRadius: 0,
+                    borderRadius: 2.5,
                     border: `1px solid ${T.border}`,
                     overflow: 'hidden',
                     height: '100%',
@@ -1209,8 +1210,8 @@ const Home = () => {
                     transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                     '&:hover': {
                       transform: 'translateY(-8px)',
-                      boxShadow: `0 24px 48px rgba(14,14,14,0.08)`,
-                      borderColor: T.borderStrong,
+                      boxShadow: `0 28px 56px -12px ${alpha(T.ink, 0.12)}`,
+                      borderColor: alpha(T.gold, 0.4),
                       '& .event-img': { transform: 'scale(1.05)' },
                     },
                   }}
@@ -1304,7 +1305,7 @@ const Home = () => {
                         to={`/evenements/${evenement.id}`}
                         size="small"
                         sx={{
-                          borderRadius: 0,
+                          borderRadius: 1.5,
                           border: `1px solid ${T.borderStrong}`,
                           color: T.textPrimary,
                           textTransform: 'uppercase',
@@ -1338,7 +1339,7 @@ const Home = () => {
               sx={{
                 border: `1px solid ${T.borderStrong}`,
                 color: T.textPrimary,
-                borderRadius: 0,
+                borderRadius: 2.5,
                 px: 5,
                 py: 1.5,
                 textTransform: 'uppercase',
@@ -1404,7 +1405,7 @@ const Home = () => {
             sx={{
               bgcolor: '#fff',
               color: T.ink,
-              borderRadius: 0,
+              borderRadius: 2,
               px: 3.5,
               py: 1,
               textTransform: 'uppercase',
